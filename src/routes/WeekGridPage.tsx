@@ -51,6 +51,8 @@ export default function WeekGridPage() {
   const [confirmDelete, setConfirmDelete] = useState<WeekPlan | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
   const [pasteTargetWeekday, setPasteTargetWeekday] = useState<number | null>(null);
+  /** 聚焦窗口时嗅探：剪贴板当前是否持有合法事务 JSON。 */
+  const [clipboardHasPlan, setClipboardHasPlan] = useState(false);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -239,6 +241,29 @@ export default function WeekGridPage() {
     [],
   );
 
+  // ============ 剪贴板嗅探（聚焦窗口时校验是否为事务 JSON） ============
+
+  const refreshClipboardState = useCallback(async () => {
+    try {
+      const raw = await readClipboardText();
+      setClipboardHasPlan(parseEntryPlan(raw) != null);
+    } catch {
+      setClipboardHasPlan(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshClipboardState();
+    const onFocus = () => void refreshClipboardState();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshClipboardState]);
+
+  // 剪贴板失效时熄灭已设置的粘贴目标
+  useEffect(() => {
+    if (!clipboardHasPlan) setPasteTargetWeekday(null);
+  }, [clipboardHasPlan]);
+
   // ============ 选中 / 复制 / 粘贴 ============
 
   const handleCopy = useCallback(async () => {
@@ -246,6 +271,7 @@ export default function WeekGridPage() {
     const entry = plan.entries.find((e) => e.id === selectedEntryId);
     if (!entry) return;
     await writeClipboardText(serializeEntryPlan(entry));
+    setClipboardHasPlan(true);
     showToast("已复制事务到剪贴板");
   }, [plan, selectedEntryId, showToast]);
 
@@ -293,14 +319,14 @@ export default function WeekGridPage() {
       if (key === "c" && selectedEntryId != null) {
         e.preventDefault();
         void handleCopy();
-      } else if (key === "v" && pasteTargetWeekday != null) {
+      } else if (key === "v" && pasteTargetWeekday != null && clipboardHasPlan) {
         e.preventDefault();
         void handlePaste();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleCopy, handlePaste, selectedEntryId, pasteTargetWeekday]);
+  }, [handleCopy, handlePaste, selectedEntryId, pasteTargetWeekday, clipboardHasPlan]);
 
   /** 当天设置确认：更新/移除工作副本中的日覆盖。 */
   const handleDaySettings = (
@@ -349,6 +375,7 @@ export default function WeekGridPage() {
         onSelectEntry={setSelectedEntryId}
         onPasteTarget={setPasteTargetWeekday}
         pasteTargetWeekday={pasteTargetWeekday}
+        clipboardHasPlan={clipboardHasPlan}
         onCopy={() => void handleCopy()}
         onPaste={() => void handlePaste()}
         onChangeEntries={handleChangeEntries}

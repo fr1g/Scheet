@@ -33,6 +33,8 @@ interface WeekGridProps {
   /** 左键点击表头：设定粘贴目标天（null = 无）。 */
   onPasteTarget: (weekday: number | null) => void;
   pasteTargetWeekday: number | null;
+  /** 剪贴板是否持有合法事务 JSON（聚焦窗口嗅探）；false 时表头点击不激活粘贴目标。 */
+  clipboardHasPlan: boolean;
   /** 复制选中事务到剪贴板。 */
   onCopy: () => void;
   /** 把剪贴板事务粘贴到粘贴目标天。 */
@@ -89,6 +91,7 @@ export default function WeekGrid({
   onSelectEntry,
   onPasteTarget,
   pasteTargetWeekday,
+  clipboardHasPlan,
   onCopy,
   onPaste,
   onChangeEntries,
@@ -275,7 +278,7 @@ export default function WeekGrid({
         <button
           type="button"
           onClick={onPaste}
-          disabled={pasteTargetWeekday == null}
+          disabled={pasteTargetWeekday == null || !clipboardHasPlan}
           title="粘贴到粘贴目标天 (Ctrl+V)"
           className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
         >
@@ -306,7 +309,10 @@ export default function WeekGrid({
               {days.map((d) => (
                 <th
                   key={d}
-                  onClick={() => onPasteTarget(pasteTargetWeekday === d ? null : d)}
+                  onClick={() => {
+                    if (!clipboardHasPlan) return;
+                    onPasteTarget(pasteTargetWeekday === d ? null : d);
+                  }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     onDayMenu?.(e, d);
@@ -314,12 +320,16 @@ export default function WeekGrid({
                   title={
                     pasteTargetWeekday === d
                       ? "粘贴目标（点击取消）"
-                      : "左键设为粘贴目标，右键打开当天设置"
+                      : clipboardHasPlan
+                        ? "左键设为粘贴目标，右键打开当天设置"
+                        : "剪贴板中没有事务内容，聚焦窗口后自动检测"
                   }
                   className={`h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100 transition-colors ${
                     pasteTargetWeekday === d || dragTargetDay === d
                       ? "bg-zinc-600/70"
-                      : ""
+                      : clipboardHasPlan
+                        ? "cursor-pointer"
+                        : "cursor-default"
                   }`}
                 >
                   {weekdayLabel(d)}
