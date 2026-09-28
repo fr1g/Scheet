@@ -6,7 +6,34 @@
     <title>Scheet</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- JS 就绪前的静态首屏：React 挂载后整体替换，避免白屏等待 -->
+      <div
+        id="boot-splash"
+        style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: #3f3f46; color: #f4f4f5; font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif; user-select: none"
+      >
+        <div
+          id="boot-splash-spinner"
+          style="width: 32px; height: 32px; border: 2px solid #f4f4f5; border-top-color: transparent; border-radius: 9999px"
+          aria-hidden="true"
+        ></div>
+        <p id="boot-splash-text" style="margin: 0; font-size: 14px">正在打开…</p>
+      </div>
+      <script>
+        (function () {
+          // 按系统语言显示首屏文案，并注入旋转动画（内联完成，不依赖任何资源）
+          var zh = (navigator.language || "").toLowerCase().indexOf("zh") === 0;
+          var text = document.getElementById("boot-splash-text");
+          if (text) text.textContent = zh ? "正在打开…" : "Opening…";
+          var style = document.createElement("style");
+          style.textContent =
+            "@keyframes boot-spin { to { transform: rotate(360deg); } }";
+          document.head.appendChild(style);
+          var spinner = document.getElementById("boot-splash-spinner");
+          if (spinner) spinner.style.animation = "boot-spin 0.8s linear infinite";
+        })();
+      </script>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
