@@ -1,4 +1,5 @@
 import { AddIcon } from "tdesign-icons-react";
+import { useTranslation } from "react-i18next";
 import type { WeekPlan } from "../../types/weeks";
 
 interface WeekPlanTabsProps {
@@ -24,6 +25,7 @@ export default function WeekPlanTabs({
   onAdd,
   onTabMenu,
 }: WeekPlanTabsProps) {
+  const { t } = useTranslation();
   return (
     <nav className="flex h-full w-16 shrink-0 flex-col">
       {plans.map((plan) => {
@@ -38,7 +40,11 @@ export default function WeekPlanTabs({
               e.preventDefault();
               onTabMenu?.(e, plan);
             }}
-            title={isCurrent ? `${plan.name}（当周）` : plan.name}
+            title={
+              isCurrent
+                ? `${plan.name}（${t("tabs.current")}）`
+                : plan.name
+            }
             className={`relative h-1/6 w-full border text-left transition-colors ${
               selected
                 ? "z-10 -mr-px border-zinc-600 border-r-0 bg-zinc-700"
@@ -63,7 +69,7 @@ export default function WeekPlanTabs({
         <button
           type="button"
           onClick={onAdd}
-          title="添加周表"
+          title={t("tabs.add")}
           className="flex h-1/6 w-full items-center justify-center border border-zinc-600 bg-zinc-800 text-zinc-100 transition-colors hover:bg-zinc-600/60"
         >
           <AddIcon size="16px" />

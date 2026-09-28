@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { stopAlarmSound } from "../lib/alarm-sound";
 
@@ -20,6 +21,7 @@ export interface AlarmEventData {
  * 仅在主窗口渲染（提醒弹窗子窗口不显示 snackbar）。
  */
 export default function AlarmSnackbar() {
+  const { t } = useTranslation();
   const [event, setEvent] = useState<AlarmEventData | null>(null);
 
   useEffect(() => {
@@ -53,10 +55,12 @@ export default function AlarmSnackbar() {
         >
           <div className="flex items-center justify-between text-[10px] text-zinc-400">
             <span>
-              {event.kind === "start" ? "开始提醒" : "结束提醒"} ·{" "}
-              {event.entryType === "normal" ? "普通事务" : "休息事务"}
+              {t(event.kind === "start" ? "alarmSnackbar.start" : "alarmSnackbar.end")} ·{" "}
+              {t(
+                event.entryType === "normal" ? "alarmSnackbar.normal" : "alarmSnackbar.rest",
+              )}
             </span>
-            {isLoop && <span className="text-amber-300">循环响铃中</span>}
+            {isLoop && <span className="text-amber-300">{t("alarmSnackbar.looping")}</span>}
           </div>
           <div className="mt-1 truncate text-sm text-zinc-100">{event.title}</div>
           <div className="mt-0.5 text-xs text-zinc-300">{event.body}</div>
@@ -69,7 +73,7 @@ export default function AlarmSnackbar() {
               }}
               className="rounded bg-blue-500 px-3 py-1 text-xs text-white transition-colors hover:bg-blue-400"
             >
-              确认
+              {t("alarmSnackbar.confirm")}
             </button>
           </div>
         </motion.div>

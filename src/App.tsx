@@ -6,6 +6,7 @@ import ErrorScreen from "./components/ErrorScreen";
 import LoadingScreen from "./components/LoadingScreen";
 import TitleBar from "./components/TitleBar";
 import { SettingsProvider, useSettings } from "./state/SettingsContext";
+import { GlobalConfigProvider } from "./state/GlobalConfigContext";
 import WeekGridPage from "./routes/WeekGridPage";
 import SettingsPage from "./routes/SettingsPage";
 import AlarmPopupPage from "./routes/AlarmPopupPage";
@@ -56,9 +57,11 @@ function AppShell() {
 export default function App() {
   return (
     <SettingsProvider>
-      <HashRouter>
-        <AppShell />
-      </HashRouter>
+      <GlobalConfigProvider>
+        <HashRouter>
+          <AppShell />
+        </HashRouter>
+      </GlobalConfigProvider>
     </SettingsProvider>
   );
 }

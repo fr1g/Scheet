@@ -16,7 +16,12 @@ const POPUP_HEIGHT: f64 = 132.0;
 #[serde(rename_all = "camelCase")]
 struct AlarmPopupData {
     title: String,
-    body: String,
+    /// 手动提醒的自定义内容（周课表提醒不传，文案由前端生成）。
+    body: Option<String>,
+    /// "start" | "end"（周课表提醒）。
+    kind: Option<String>,
+    /// "HH:MM"。
+    time: Option<String>,
     mode: String,
 }
 
@@ -34,24 +39,38 @@ fn urlencode(s: &str) -> String {
 }
 
 /// 显示（或刷新）提醒弹窗。已存在时仅更新内容，不重建窗口。
-pub fn show(app: &AppHandle, title: &str, body: &str, mode: &str) -> Result<(), String> {
+#[allow(clippy::too_many_arguments)]
+pub fn show(
+    app: &AppHandle,
+    title: &str,
+    body: Option<&str>,
+    kind: Option<&str>,
+    time: Option<&str>,
+    mode: &str,
+) -> Result<(), String> {
+    let data = AlarmPopupData {
+        title: title.to_string(),
+        body: body.map(|b| b.to_string()),
+        kind: kind.map(|k| k.to_string()),
+        time: time.map(|t| t.to_string()),
+        mode: mode.to_string(),
+    };
     if app.get_webview_window(POPUP_LABEL).is_some() {
-        let data = AlarmPopupData {
-            title: title.to_string(),
-            body: body.to_string(),
-            mode: mode.to_string(),
-        };
         return app
             .emit_to(POPUP_LABEL, "scheet://alarm-popup", data)
             .map_err(|e| format!("更新提醒弹窗失败: {e}"));
     }
 
-    let query = format!(
-        "title={}&body={}&mode={}",
-        urlencode(title),
-        urlencode(body),
-        urlencode(mode)
-    );
+    let mut query = format!("title={}&mode={}", urlencode(title), urlencode(mode));
+    if let Some(b) = body {
+        query.push_str(&format!("&body={}", urlencode(b)));
+    }
+    if let Some(k) = kind {
+        query.push_str(&format!("&kind={}", urlencode(k)));
+    }
+    if let Some(t) = time {
+        query.push_str(&format!("&time={}", urlencode(t)));
+    }
     let builder = WebviewWindowBuilder::new(
         app,
         POPUP_LABEL,

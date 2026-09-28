@@ -7,6 +7,7 @@
 use tauri::{
     command,
     menu::{Menu, MenuItem},
+    Manager,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle,
 };
@@ -22,8 +23,21 @@ pub async fn exit_application(app: AppHandle) -> Result<(), String> {
 }
 
 pub fn create(app: &tauri::App) -> tauri::Result<()> {
-    let show = MenuItem::with_id(app, ITEM_SHOW, "显示主窗口", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, ITEM_QUIT, "退出 Scheet", true, None::<&str>)?;
+    // 菜单文字跟随界面语言设置（改动后重启生效）
+    let language = app
+        .try_state::<std::sync::Arc<crate::db::DataDb>>()
+        .and_then(|data| {
+            data.with_conn(crate::settings::load_global_config)
+                .ok()
+                .map(|cfg| cfg.ui_language)
+        })
+        .unwrap_or(crate::settings::UiLanguage::Auto);
+    let (show_text, quit_text) = match language {
+        crate::settings::UiLanguage::En => ("Show Main Window", "Quit Scheet"),
+        _ => ("显示主窗口", "退出 Scheet"),
+    };
+    let show = MenuItem::with_id(app, ITEM_SHOW, show_text, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, ITEM_QUIT, quit_text, true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &quit])?;
 
     TrayIconBuilder::with_id("scheet-tray")

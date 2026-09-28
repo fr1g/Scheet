@@ -223,8 +223,20 @@ pub async fn list_reminders(db: State<'_, Arc<DataDb>>) -> Result<Vec<Reminder>,
 pub(crate) fn poll_due(app: &tauri::AppHandle, db: &DataDb) -> Result<(), String> {
     let due = db.with_conn(take_due)?;
     for reminder in due {
-        if let Err(e) = crate::notify::send(app, &reminder.title, &reminder.body) {
-            eprintln!("[reminders] 通知发送失败(已忽略, id={}): {e}", reminder.id);
+        // 系统通知不可靠，统一走置顶弹窗；标题/正文是用户内容，原样展示
+        let mode_text = match reminder.alarm_mode {
+            crate::sound::AlarmMode::Loop => "loop",
+            crate::sound::AlarmMode::Once => "once",
+        };
+        if let Err(e) = crate::popup::show(
+            app,
+            &reminder.title,
+            Some(&reminder.body),
+            None,
+            None,
+            mode_text,
+        ) {
+            eprintln!("[reminders] 提醒弹窗失败(已忽略, id={}): {e}", reminder.id);
         }
         if let Err(e) = crate::sound::play(&reminder.alarm_file, reminder.alarm_mode) {
             eprintln!(

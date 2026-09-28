@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   minuteToTimeInput,
   timeInputToMinute,
-  weekdayLabel,
 } from "../../lib/weekgrid";
 import { DialogShell, TimeField } from "./PlanSettingsDialog";
 
@@ -24,6 +24,7 @@ export default function DaySettingsDialog({
   onClose,
   onConfirm,
 }: DaySettingsDialogProps) {
+  const { t } = useTranslation();
   const [start, setStart] = useState(minuteToTimeInput(initialStart));
   const [end, setEnd] = useState(minuteToTimeInput(initialEnd));
 
@@ -38,19 +39,21 @@ export default function DaySettingsDialog({
 
   return (
     <DialogShell
-      title={`${weekdayLabel(weekday)} · 当天设置`}
+      title={t("daySettings.title", { day: t(`days.${weekday}`) })}
       onClose={onClose}
       canConfirm={timesOk}
       onConfirm={() => onConfirm(startMinute, endMinute)}
-      confirmText="保存到工作副本"
+      confirmText={t("entry.apply")}
     >
       <div className="grid grid-cols-2 gap-3">
-        <TimeField label="一天开始（留空清除覆盖）" value={start} onChange={setStart} />
-        <TimeField label="一天结束（留空清除覆盖）" value={end} onChange={setEnd} />
+        <TimeField
+          label={t("daySettings.start")}
+          value={start}
+          onChange={setStart}
+        />
+        <TimeField label={t("daySettings.end")} value={end} onChange={setEnd} />
       </div>
-      <p className="mt-2 text-[10px] text-zinc-500">
-        覆盖优先级：当天 → 周表 → 全局设置；随主保存按钮一并入库。
-      </p>
+      <p className="mt-2 text-[10px] text-zinc-500">{t("daySettings.hint")}</p>
     </DialogShell>
   );
 }

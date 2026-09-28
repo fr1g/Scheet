@@ -19,15 +19,6 @@ export function minuteToHHMM(minute: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** 分钟数 → "x 小时 x 分钟"（x 分钟）。 */
-export function humanizeMinutes(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m} 分钟`;
-  if (m === 0) return `${h} 小时`;
-  return `${h} 小时 ${m} 分钟`;
-}
-
 /** 整张周表 7 天窗口的全局范围（用于统一纵向比例、跨列时间对齐）。 */
 export function planGlobalWindow(
   plan: FullPlan,
@@ -179,16 +170,6 @@ export function resolveAlarmDisplay(
   return { file, fileSource, mode, modeSource };
 }
 
-export function alarmFileLabel(value: "builtin" | "none" | string): string {
-  if (value === "builtin") return "内置铃声";
-  if (value === "none") return "不提醒";
-  return value;
-}
-
-export function alarmModeLabel(mode: AlarmMode): string {
-  return mode === "loop" ? "循环播放" : "播放一次";
-}
-
 /** 同一天内互相重叠的提醒事务（与 Rust find_conflicts 一致）。 */
 export function findConflicts(entries: WeekEntry[]): Conflict[] {
   const conflicts: Conflict[] = [];
@@ -243,20 +224,6 @@ export function entryBackground(entryType: EntryType, color: string | null): str
   return entryType === "normal"
     ? "rgba(96, 165, 250, 0.15)" // blue-400
     : "rgba(251, 191, 36, 0.15)"; // amber-400
-}
-
-const WEEKDAY_LABELS: Record<number, string> = {
-  1: "周一",
-  2: "周二",
-  3: "周三",
-  4: "周四",
-  5: "周五",
-  6: "周六",
-  7: "周日",
-};
-
-export function weekdayLabel(weekday: number): string {
-  return WEEKDAY_LABELS[weekday] ?? "";
 }
 
 /** 本地今天对应的 ISO 周几（1=周一..7=周日）。 */

@@ -77,6 +77,33 @@ pub(crate) fn set_setting(conn: &Connection, key: &str, value: &str) -> Result<(
     Ok(())
 }
 
+/// 界面语言。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum UiLanguage {
+    Auto,
+    Zh,
+    En,
+}
+
+impl UiLanguage {
+    pub fn as_db(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Zh => "zh",
+            Self::En => "en",
+        }
+    }
+
+    pub fn from_db(raw: &str) -> Self {
+        match raw {
+            "zh" => Self::Zh,
+            "en" => Self::En,
+            _ => Self::Auto,
+        }
+    }
+}
+
 /// 每周第一天。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -131,6 +158,8 @@ pub struct GlobalConfig {
     pub alarm_normal_end_mode: Option<AlarmMode>,
     pub alarm_rest_end_file: Option<String>,
     pub alarm_rest_end_mode: Option<AlarmMode>,
+    /// 界面语言：auto=跟随系统。
+    pub ui_language: UiLanguage,
 }
 
 impl Default for GlobalConfig {
@@ -151,6 +180,7 @@ impl Default for GlobalConfig {
             alarm_normal_end_mode: None,
             alarm_rest_end_file: None,
             alarm_rest_end_mode: None,
+            ui_language: UiLanguage::Auto,
         }
     }
 }
@@ -182,6 +212,9 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         alarm_normal_end_mode: mode("alarmNormalEndMode")?,
         alarm_rest_end_file: get_setting(conn, "alarmRestEndFile")?,
         alarm_rest_end_mode: mode("alarmRestEndMode")?,
+        ui_language: get_setting(conn, "uiLanguage")?
+            .map(|s| UiLanguage::from_db(&s))
+            .unwrap_or(UiLanguage::Auto),
     })
 }
 
@@ -224,6 +257,7 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
         ("alarmNormalEndMode", cfg.alarm_normal_end_mode),
         ("alarmRestEndMode", cfg.alarm_rest_end_mode),
     ];
+    set_setting(conn, "uiLanguage", cfg.ui_language.as_db())?;
     for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,

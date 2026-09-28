@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useTranslation } from "react-i18next";
 import ConfirmDialog from "./ConfirmDialog";
 import { exitApplication } from "../lib/app";
-import { buildAppTitle } from "../lib/apptitle";
 import { useSettings } from "../state/SettingsContext";
 import { useTitleState } from "../state/titleState";
 import { useToday } from "../state/dateState";
@@ -10,9 +10,26 @@ import WindowControls from "./WindowControls";
 
 /** 应用标题：显示在窗口控制按钮的相反一侧，并同步到系统窗口标题。 */
 function AppTitle() {
-  const titleState = useTitleState();
+  const { t } = useTranslation();
+  const { currentPlanSlot, selectedPlanSlot, planCount } = useTitleState();
   const { date } = useToday();
-  const title = buildAppTitle(titleState, date);
+
+  const weekLabel = (slot: number | null): string => {
+    if (slot == null) return "";
+    if (planCount === 2) {
+      return slot === 1 ? t("titlebar.single") : t("titlebar.double");
+    }
+    return t("titlebar.weekN", { n: slot });
+  };
+
+  const current = weekLabel(currentPlanSlot);
+  let title = "Scheet";
+  if (current) {
+    title = t("titlebar.format", { week: current, date });
+    if (selectedPlanSlot != null && selectedPlanSlot !== currentPlanSlot) {
+      title += t("titlebar.selected", { label: weekLabel(selectedPlanSlot) });
+    }
+  }
 
   useEffect(() => {
     void getCurrentWindow().setTitle(title);
@@ -26,6 +43,7 @@ function AppTitle() {
 }
 
 export default function TitleBar() {
+  const { t } = useTranslation();
   const { settings } = useSettings();
   const position = settings?.windowControls.position ?? "right";
   const [confirmExit, setConfirmExit] = useState(false);
@@ -51,9 +69,9 @@ export default function TitleBar() {
       </header>
       <ConfirmDialog
         open={confirmExit}
-        title="退出 Scheet"
-        message="退出后将无法收到提醒（包括循环响铃），直到重新打开应用。确定退出？"
-        confirmText="退出"
+        title={t("exitConfirm.title")}
+        message={t("exitConfirm.message")}
+        confirmText={t("exitConfirm.confirm")}
         danger
         onConfirm={() => {
           setConfirmExit(false);

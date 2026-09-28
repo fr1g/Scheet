@@ -1,22 +1,22 @@
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
 import Toast from "../components/Toast";
 import DaySettingsDialog from "../components/week/DaySettingsDialog";
 import EntryEditDialog from "../components/week/EntryEditDialog";
 import PlanSettingsDialog from "../components/week/PlanSettingsDialog";
-import WeekGrid from "../components/week/WeekGrid";
+import TodoPanel from "../components/week/TodoPanel";
 import WeekPlanTabs from "../components/week/WeekPlanTabs";
+import WeekGrid from "../components/week/WeekGrid";
+import { readClipboardText, writeClipboardText } from "../lib/clipboard";
 import {
   entryBackground,
   minuteToHHMM,
   parseEntryPlan,
   serializeEntryPlan,
-  weekdayLabel,
 } from "../lib/weekgrid";
-import { getGlobalConfig } from "../lib/global-config";
-import TodoPanel from "../components/week/TodoPanel";
 import {
   createWeekPlan,
   deleteWeekPlan,
@@ -26,19 +26,19 @@ import {
   saveWeekPlan,
   setActiveWeekPlan,
 } from "../lib/weeks";
-import { readClipboardText, writeClipboardText } from "../lib/clipboard";
-import type { GlobalConfig } from "../types/global-config";
 import type { FullPlan, WeekEntry, WeekPlan } from "../types/weeks";
 import { setTitleState } from "../state/titleState";
+import { useGlobalConfig } from "../state/GlobalConfigContext";
 
-/** 周表页：左侧 tab 列 + 中央网格。编辑在工作副本上进行，显式保存入库。 */
+/** 周表页：左侧 tab 列 + 中央网格 + 右侧待办。编辑在工作副本上进行，显式保存入库。 */
 export default function WeekGridPage() {
+  const { t } = useTranslation();
+  const { config, error: configError, reload: reloadConfig } = useGlobalConfig();
   const [plans, setPlans] = useState<WeekPlan[]>([]);
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [plan, setPlan] = useState<FullPlan | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState("");
-  const [config, setConfig] = useState<GlobalConfig | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [confirmSwitch, setConfirmSwitch] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -88,10 +88,7 @@ export default function WeekGridPage() {
   );
 
   useEffect(() => {
-    getGlobalConfig()
-      .then(setConfig)
-      .catch((e) => showToast(String(e)));
-    loadPlans(null).catch((e) => showToast(String(e)));
+    loadPlans(null).catch((e: unknown) => showToast(String(e)));
   }, [loadPlans, showToast]);
 
   useEffect(() => {
@@ -106,7 +103,7 @@ export default function WeekGridPage() {
         setPlan(loaded);
         setSavedSnapshot(JSON.stringify(loaded));
       })
-      .catch((e) => showToast(String(e)));
+      .catch((e: unknown) => showToast(String(e)));
     return () => {
       cancelled = true;
     };
@@ -117,10 +114,8 @@ export default function WeekGridPage() {
   // 同步标题栏/系统窗口标题所需的状态
   useEffect(() => {
     setTitleState({
-      currentPlanSlot:
-        plans.find((p) => p.id === currentId)?.slot ?? null,
-      selectedPlanSlot:
-        plans.find((p) => p.id === selectedId)?.slot ?? null,
+      currentPlanSlot: plans.find((p) => p.id === currentId)?.slot ?? null,
+      selectedPlanSlot: plans.find((p) => p.id === selectedId)?.slot ?? null,
       planCount: plans.length,
     });
   }, [plans, currentId, selectedId]);
@@ -138,8 +133,8 @@ export default function WeekGridPage() {
     try {
       const created = await createWeekPlan();
       await loadPlans(created.id);
-      showToast(`已创建 ${created.name}`);
-    } catch (e) {
+      showToast(t("toasts.planCreated", { name: created.name }));
+    } catch (e: unknown) {
       showToast(String(e));
     }
   };
@@ -159,112 +154,27 @@ export default function WeekGridPage() {
       if (outcome.saved && outcome.plan) {
         setPlan(outcome.plan);
         setSavedSnapshot(JSON.stringify(outcome.plan));
-        showToast("周表已保存");
+        showToast(t("toasts.saved"));
       } else {
-        showToast(`存在 ${outcome.conflicts.length} 处时间重叠，已拒绝保存`);
+        showToast(t("toasts.conflict", { count: outcome.conflicts.length }));
       }
-    } catch (e) {
+    } catch (e: unknown) {
       showToast(String(e));
     } finally {
       setSaving(false);
     }
-  }, [plan, showToast]);
+  }, [plan, showToast, t]);
 
   /** 放弃工作副本的自上次保存以来的全部修改。 */
   const handleRevert = useCallback(() => {
     setConfirmRevert(false);
     try {
       setPlan(JSON.parse(savedSnapshot));
-      showToast("已放弃未保存的更改");
+      showToast(t("toasts.reverted"));
     } catch (e: unknown) {
       showToast(String(e));
     }
-  }, [savedSnapshot, showToast]);
-
-  // ============ 右键菜单动作 ============
-
-  const handleSetActive = async (target: WeekPlan) => {
-    try {
-      await setActiveWeekPlan(target.id);
-      await loadPlans(selectedId);
-      showToast(`已将「${target.name}」设为当周`);
-    } catch (e) {
-      showToast(String(e));
-    }
-  };
-
-  const handleDelete = async (target: WeekPlan) => {
-    try {
-      await deleteWeekPlan(target.id);
-      await loadPlans(selectedId === target.id ? null : selectedId);
-      showToast(`已删除「${target.name}」`);
-    } catch (e) {
-      showToast(String(e));
-    }
-  };
-
-  const tabMenuItems: ContextMenuItem[] = tabMenu
-    ? [
-        {
-          label: "周表设置…",
-          onSelect: () => setPlanSettings(tabMenu.plan),
-        },
-        {
-          label: "设为当周",
-          hidden: tabMenu.plan.id === currentId,
-          onSelect: () => void handleSetActive(tabMenu.plan),
-        },
-        {
-          label: "删除…",
-          danger: true,
-          hidden: tabMenu.plan.slot === 1,
-          onSelect: () => setConfirmDelete(tabMenu.plan),
-        },
-      ]
-    : [];
-
-  const dayMenuItems: ContextMenuItem[] = dayMenu
-    ? [
-        {
-          label: "当天设置…",
-          onSelect: () => {
-            if (!plan) return;
-            const o = plan.overrides.find((o) => o.weekday === dayMenu.weekday);
-            setDaySettings({
-              weekday: dayMenu.weekday,
-              initialStart: o?.dayStartMinute ?? null,
-              initialEnd: o?.dayEndMinute ?? null,
-            });
-          },
-        },
-      ]
-    : [];
-
-  /** 周表设置确认：只改工作副本，随主保存按钮入库。 */
-  const handlePlanSettings = (
-    name: string,
-    dayStart: number | null,
-    dayEnd: number | null,
-  ) => {
-    setPlanSettings(null);
-    setPlan((prev) =>
-      prev
-        ? {
-            ...prev,
-            plan: { ...prev.plan, name, dayStartMinute: dayStart, dayEndMinute: dayEnd },
-          }
-        : prev,
-    );
-  };
-
-  // ============ 拖拽导致的事务变更 ============
-
-  const handleChangeEntries = useCallback(
-    (updater: (entries: WeekEntry[]) => WeekEntry[]) => {
-      setPlan((prev) => (prev ? { ...prev, entries: updater(prev.entries) } : prev));
-    },
-    [],
-  );
+  }, [savedSnapshot, showToast, t]);
 
   // ============ 剪贴板嗅探（聚焦窗口时校验是否为事务 JSON） ============
 
@@ -288,6 +198,90 @@ export default function WeekGridPage() {
   useEffect(() => {
     if (!clipboardHasPlan) setPasteTargetWeekday(null);
   }, [clipboardHasPlan]);
+
+  // ============ 选中 / 复制 / 粘贴 ============
+
+  const handleCopy = useCallback(async () => {
+    if (!plan || selectedEntryId == null) return;
+    const entry = plan.entries.find((e) => e.id === selectedEntryId);
+    if (!entry) return;
+    await writeClipboardText(serializeEntryPlan(entry));
+    setClipboardPlan(parseEntryPlan(serializeEntryPlan(entry)));
+    showToast(t("toasts.copied"));
+  }, [plan, selectedEntryId, showToast, t]);
+
+  const handlePaste = useCallback(async () => {
+    if (pasteTargetWeekday == null) return;
+    try {
+      const raw = await readClipboardText();
+      const base = parseEntryPlan(raw);
+      if (!base) {
+        showToast(t("toasts.pasteNoData"));
+        return;
+      }
+      setPlan((prev) => {
+        if (!prev) return prev;
+        // 新条目使用递减的负数临时 id（仅用于冲突配对，保存后重建）
+        const tempId = Math.min(0, ...prev.entries.map((e) => e.id)) - 1;
+        return {
+          ...prev,
+          entries: [
+            ...prev.entries,
+            { ...base, id: tempId, weekday: pasteTargetWeekday },
+          ],
+        };
+      });
+      showToast(t("toasts.pasted", { day: t(`days.${pasteTargetWeekday}`) }));
+    } catch (e: unknown) {
+      showToast(String(e));
+    }
+  }, [pasteTargetWeekday, showToast, t]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      const key = e.key.toLowerCase();
+      if (key === "c" && selectedEntryId != null) {
+        e.preventDefault();
+        void handleCopy();
+      } else if (key === "v" && pasteTargetWeekday != null && clipboardHasPlan) {
+        e.preventDefault();
+        void handlePaste();
+      } else if (key === "s" && dirty) {
+        e.preventDefault();
+        void handleSave();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    handleCopy,
+    handlePaste,
+    handleSave,
+    selectedEntryId,
+    pasteTargetWeekday,
+    clipboardHasPlan,
+    dirty,
+  ]);
+
+  // ============ 拖拽导致的事务变更 ============
+
+  const handleChangeEntries = useCallback(
+    (updater: (entries: WeekEntry[]) => WeekEntry[]) => {
+      setPlan((prev) => (prev ? { ...prev, entries: updater(prev.entries) } : prev));
+    },
+    [],
+  );
 
   // ============ 双击编辑 / 新建 ============
 
@@ -340,80 +334,81 @@ export default function WeekGridPage() {
     setEditEntry(null);
   };
 
-  // ============ 选中 / 复制 / 粘贴 ============
+  // ============ 右键菜单动作 ============
 
-  const handleCopy = useCallback(async () => {
-    if (!plan || selectedEntryId == null) return;
-    const entry = plan.entries.find((e) => e.id === selectedEntryId);
-    if (!entry) return;
-    await writeClipboardText(serializeEntryPlan(entry));
-    setClipboardPlan(parseEntryPlan(serializeEntryPlan(entry)));
-    showToast("已复制事务到剪贴板");
-  }, [plan, selectedEntryId, showToast]);
-
-  const handlePaste = useCallback(async () => {
-    if (pasteTargetWeekday == null) return;
+  const handleSetActive = async (target: WeekPlan) => {
     try {
-      const raw = await readClipboardText();
-      const base = parseEntryPlan(raw);
-      if (!base) {
-        showToast("剪贴板中没有可用的事务数据");
-        return;
-      }
-      setPlan((prev) => {
-        if (!prev) return prev;
-        // 新条目使用递减的负数临时 id（仅用于冲突配对，保存后重建）
-        const tempId = Math.min(0, ...prev.entries.map((e) => e.id)) - 1;
-        return {
-          ...prev,
-          entries: [
-            ...prev.entries,
-            { ...base, id: tempId, weekday: pasteTargetWeekday },
-          ],
-        };
-      });
-      showToast(`已粘贴到${weekdayLabel(pasteTargetWeekday)}（重叠冲突已标红）`);
-    } catch (e) {
+      await setActiveWeekPlan(target.id);
+      await loadPlans(selectedId);
+      showToast(t("toasts.setAsCurrent", { name: target.name }));
+    } catch (e: unknown) {
       showToast(String(e));
     }
-  }, [pasteTargetWeekday, showToast]);
+  };
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      const mod = e.ctrlKey || e.metaKey;
-      if (!mod) return;
-      const key = e.key.toLowerCase();
-      if (key === "c" && selectedEntryId != null) {
-        e.preventDefault();
-        void handleCopy();
-      } else if (key === "v" && pasteTargetWeekday != null && clipboardHasPlan) {
-        e.preventDefault();
-        void handlePaste();
-      } else if (key === "s" && dirty) {
-        e.preventDefault();
-        void handleSave();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    handleCopy,
-    handlePaste,
-    handleSave,
-    selectedEntryId,
-    pasteTargetWeekday,
-    clipboardHasPlan,
-    dirty,
-  ]);
+  const handleDelete = async (target: WeekPlan) => {
+    try {
+      await deleteWeekPlan(target.id);
+      await loadPlans(selectedId === target.id ? null : selectedId);
+      showToast(t("toasts.planDeleted", { name: target.name }));
+    } catch (e: unknown) {
+      showToast(String(e));
+    }
+  };
+
+  const tabMenuItems: ContextMenuItem[] = tabMenu
+    ? [
+        {
+          label: t("menu.planSettings"),
+          onSelect: () => setPlanSettings(tabMenu.plan),
+        },
+        {
+          label: t("menu.setActive"),
+          hidden: tabMenu.plan.id === currentId,
+          onSelect: () => void handleSetActive(tabMenu.plan),
+        },
+        {
+          label: t("menu.deletePlan"),
+          danger: true,
+          hidden: tabMenu.plan.slot === 1,
+          onSelect: () => setConfirmDelete(tabMenu.plan),
+        },
+      ]
+    : [];
+
+  const dayMenuItems: ContextMenuItem[] = dayMenu
+    ? [
+        {
+          label: t("menu.daySettings"),
+          onSelect: () => {
+            if (!plan) return;
+            const o = plan.overrides.find((o) => o.weekday === dayMenu.weekday);
+            setDaySettings({
+              weekday: dayMenu.weekday,
+              initialStart: o?.dayStartMinute ?? null,
+              initialEnd: o?.dayEndMinute ?? null,
+            });
+          },
+        },
+      ]
+    : [];
+
+  /** 周表设置确认：只改工作副本，随主保存按钮入库。 */
+  const handlePlanSettings = (
+    name: string,
+    dayStart: number | null,
+    dayEnd: number | null,
+  ) => {
+    setPlanSettings(null);
+    setPlan((prev) =>
+      prev
+        ? {
+            ...prev,
+            plan: { ...prev.plan, name, dayStartMinute: dayStart, dayEndMinute: dayEnd },
+          }
+        : prev,
+    );
+  };
 
   /** 当天设置确认：更新/移除工作副本中的日覆盖。 */
   const handleDaySettings = (
@@ -434,9 +429,23 @@ export default function WeekGridPage() {
   };
 
   if (!config || !plan) {
+    if (configError) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-100">
+          <p className="text-sm">{String(configError)}</p>
+          <button
+            type="button"
+            onClick={reloadConfig}
+            className="rounded px-4 py-1.5 text-sm transition-colors hover:bg-zinc-600"
+          >
+            {t("error.retry")}
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="flex h-full items-center justify-center text-sm text-zinc-300">
-        加载周表…
+        {t("loading.text")}
       </div>
     );
   }
@@ -456,7 +465,7 @@ export default function WeekGridPage() {
         config={config}
         dirty={dirty}
         saving={saving}
-        onSave={handleSave}
+        onSave={() => void handleSave()}
         onDayMenu={(e, weekday) => setDayMenu({ x: e.clientX, y: e.clientY, weekday })}
         selectedEntryId={selectedEntryId}
         onSelectEntry={setSelectedEntryId}
@@ -473,9 +482,7 @@ export default function WeekGridPage() {
       <aside className="relative w-64 shrink-0 border-l border-zinc-600">
         {clipboardPlan && (
           <div className="absolute inset-x-3 top-3 z-20">
-            <div className="text-[10px] text-zinc-400">
-              剪贴板中的事务（点表头设目标后可粘贴）
-            </div>
+            <div className="text-[10px] text-zinc-400">{t("clipboard.hint")}</div>
             <div
               className="mt-1 flex flex-col rounded-xl px-2 py-1 text-xs text-zinc-100 shadow-lg"
               style={{
@@ -487,7 +494,7 @@ export default function WeekGridPage() {
               </span>
               <span className="grid grow place-items-center py-1 text-center leading-tight">
                 {clipboardPlan.title ||
-                  (clipboardPlan.entryType === "normal" ? "普通事务" : "休息事务")}
+                  t(clipboardPlan.entryType === "normal" ? "grid.normal" : "grid.rest")}
               </span>
               <span className="text-[10px] leading-3 text-zinc-300">
                 {minuteToHHMM(clipboardPlan.startMinute + clipboardPlan.durationMinute)}
@@ -551,9 +558,9 @@ export default function WeekGridPage() {
           <ConfirmDialog
             key="confirm-delete"
             open
-            title="删除周表"
-            message={`将删除「${confirmDelete.name}」及其全部事务与日覆盖，不可恢复。确定删除？`}
-            confirmText="删除"
+            title={t("confirms.deletePlanTitle")}
+            message={t("confirms.deletePlanMessage", { name: confirmDelete.name })}
+            confirmText={t("confirms.deleteConfirm")}
             danger
             onConfirm={() => {
               const target = confirmDelete;
@@ -567,9 +574,9 @@ export default function WeekGridPage() {
           <ConfirmDialog
             key="confirm-switch"
             open
-            title="未保存的更改"
-            message="切换周表将丢弃未保存的修改，确定继续？"
-            confirmText="丢弃并切换"
+            title={t("confirms.switchTitle")}
+            message={t("confirms.switchMessage")}
+            confirmText={t("confirms.switchConfirm")}
             danger
             onConfirm={() => {
               const target = confirmSwitch;
@@ -583,9 +590,9 @@ export default function WeekGridPage() {
           <ConfirmDialog
             key="confirm-revert"
             open
-            title="放弃未保存的更改"
-            message="将把周表恢复到上次保存的状态，确定放弃？"
-            confirmText="放弃更改"
+            title={t("confirms.revertTitle")}
+            message={t("confirms.revertMessage")}
+            confirmText={t("confirms.revertConfirm")}
             danger
             onConfirm={handleRevert}
             onCancel={() => setConfirmRevert(false)}

@@ -28,5 +28,7 @@ export interface GlobalConfig {
   alarmNormalEndMode: AlarmMode | null;
   alarmRestEndFile: string | null;
   alarmRestEndMode: AlarmMode | null;
+  /** 界面语言：auto=跟随系统。 */
+  uiLanguage: "auto" | "zh" | "en";
 }
 

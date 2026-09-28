@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AddIcon, CloseIcon } from "tdesign-icons-react";
 import { useToday } from "../../state/dateState";
 import {
@@ -11,6 +12,7 @@ import type { Todo } from "../../types/todo";
 
 /** 右侧当日待办面板：增删/勾选；跨天（useToday 驱动）自动刷新（后端负责滚动复制）。 */
 export default function TodoPanel({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const { date } = useToday();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [draft, setDraft] = useState("");
@@ -62,7 +64,7 @@ export default function TodoPanel({ className }: { className?: string }) {
   return (
     <div className={`flex h-full flex-col ${className ?? ""}`}>
       <div className="flex items-center justify-between px-3 pt-3">
-        <span className="text-xs text-zinc-400">今日待办</span>
+        <span className="text-xs text-zinc-400">{t("todo.title")}</span>
         <span className="text-[10px] text-zinc-500">{date}</span>
       </div>
       <div className="mt-2 flex gap-1 px-3">
@@ -73,13 +75,13 @@ export default function TodoPanel({ className }: { className?: string }) {
           onKeyDown={(e) => {
             if (e.key === "Enter") void handleAdd();
           }}
-          placeholder="添加待办，回车确认"
+          placeholder={t("todo.placeholder")}
           className="min-w-0 flex-1 rounded-lg border border-zinc-600 bg-zinc-700 px-2 py-1 text-xs text-zinc-100 outline-none focus:border-zinc-400"
         />
         <button
           type="button"
           onClick={() => void handleAdd()}
-          title="添加待办"
+          title={t("todo.title")}
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-100 transition-colors hover:bg-zinc-600"
         >
           <AddIcon size="14px" />
@@ -107,7 +109,7 @@ export default function TodoPanel({ className }: { className?: string }) {
             <button
               type="button"
               onClick={() => void remove(todo)}
-              title="删除待办"
+              title={t("todo.delete")}
               className="shrink-0 text-zinc-400 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
             >
               <CloseIcon size="12px" />
@@ -116,7 +118,7 @@ export default function TodoPanel({ className }: { className?: string }) {
         ))}
         {todos.length === 0 && (
           <li className="pt-4 text-center text-[10px] text-zinc-500">
-            今天还没有待办
+            {t("todo.empty")}
           </li>
         )}
       </ul>

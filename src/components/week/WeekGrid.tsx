@@ -6,7 +6,6 @@ import type { FullPlan, WeekEntry } from "../../types/weeks";
 import {
   entryBackground,
   findConflicts,
-  humanizeMinutes,
   layoutDayEntries,
   minuteToHHMM,
   orderedWeekdays,
@@ -14,9 +13,10 @@ import {
   PX_PER_MINUTE as PX_PER_MINUTE_FALLBACK,
   resolveDayWindow,
   TIME_LABEL_MIN_HEIGHT,
-  weekdayLabel,
   type PositionedEntry,
 } from "../../lib/weekgrid";
+import { useTranslation } from "react-i18next";
+import { useHumanizeMinutes } from "../../i18n";
 import { useToday } from "../../state/dateState";
 
 interface WeekGridProps {
@@ -123,6 +123,7 @@ export default function WeekGrid({
   onCreateAt,
 }: WeekGridProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [wrapHeight, setWrapHeight] = useState(0);
   const { weekday: today } = useToday();
@@ -335,16 +336,16 @@ export default function WeekGrid({
         {dirty && (
           <>
             <span className="animate-pulse rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-300">
-              未保存更改 ●
+              {t("topbar.unsaved")}
             </span>
             <button
               type="button"
               onClick={onRevert}
-              title="放弃未保存的更改，恢复到上次保存"
+              title={t("topbar.revertTitle")}
               className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
             >
               <RollbackIcon size="13px" />
-              取消更改
+              {t("topbar.revert")}
             </button>
           </>
         )}
@@ -352,7 +353,7 @@ export default function WeekGrid({
         <button
           type="button"
           onClick={() => navigate("/settings")}
-          title="设置"
+          title={t("topbar.settings")}
           className="flex h-7 w-7 items-center justify-center rounded text-zinc-100 transition-colors hover:bg-zinc-600"
         >
           <SettingIcon size="15px" />
@@ -361,21 +362,21 @@ export default function WeekGrid({
           type="button"
           onClick={onCopy}
           disabled={selectedEntryId == null}
-          title="复制选中事务 (Ctrl+C)"
+          title={t("topbar.copyTitle")}
           className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
         >
           <CopyIcon size="13px" />
-          复制
+          {t("topbar.copy")}
         </button>
         <button
           type="button"
           onClick={onPaste}
           disabled={pasteTargetWeekday == null || !clipboardHasPlan}
-          title="粘贴到粘贴目标天 (Ctrl+V)"
+          title={t("topbar.pasteTitle")}
           className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
         >
           <PasteIcon size="13px" />
-          粘贴
+          {t("topbar.paste")}
         </button>
         <button
           type="button"
@@ -384,7 +385,7 @@ export default function WeekGrid({
           className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
         >
           <SaveIcon size="13px" />
-          保存
+          {t("topbar.save")}
         </button>
       </div>
 
@@ -411,10 +412,10 @@ export default function WeekGrid({
                   }}
                   title={
                     pasteTargetWeekday === d
-                      ? "粘贴目标（点击取消）"
+                      ? t("grid.pasteTargetCancel")
                       : clipboardHasPlan
-                        ? "左键设为粘贴目标，右键打开当天设置"
-                        : "剪贴板中没有事务内容，聚焦窗口后自动检测"
+                        ? t("grid.headerReady")
+                        : t("grid.headerEmpty")
                   }
                   className={`h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100 transition-colors ${
                     pasteTargetWeekday === d || dragTargetDay === d
@@ -424,13 +425,13 @@ export default function WeekGrid({
                         : "cursor-default"
                   }`}
                 >
-                  {weekdayLabel(d)}
+                  {t(`days.${d}`)}
                   {d === today && (
-                    <span className="ml-1 text-[10px] text-blue-300">今天</span>
+                    <span className="ml-1 text-[10px] text-blue-300">{t("grid.today")}</span>
                   )}
                   {pasteTargetWeekday === d && (
                     <span className="ml-1 text-[10px] text-emerald-300">
-                      粘贴目标
+                      {t("grid.pasteTarget")}
                     </span>
                   )}
                 </th>
@@ -452,7 +453,7 @@ export default function WeekGrid({
                   <td key={d} data-day={d} className="border border-zinc-600 p-1 align-top">
                     <div
                       className="relative h-full overflow-hidden"
-                      title="双击空白处在此新建事务"
+                      title={t("grid.newHere")}
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest("[data-entry]")) return;
                         onSelectEntry(null);
@@ -543,6 +544,8 @@ function EntryCell({
   onResizeStartDown: (e: React.PointerEvent) => void;
   onResizeEndDown: (e: React.PointerEvent) => void;
 }) {
+  const { t } = useTranslation();
+  const humanize = useHumanizeMinutes();
   const entry = p.entry;
   const showTimes = p.heightPx - 2 >= TIME_LABEL_MIN_HEIGHT;
   const outline = conflicted
@@ -551,11 +554,15 @@ function EntryCell({
       ? "outline outline-2 outline-amber-400"
       : "";
   const selectionRing = selected ? "ring-2 ring-zinc-100/80" : "";
-  const typeLabel = entry.entryType === "normal" ? "普通事务" : "休息事务";
+  const typeLabel = entry.entryType === "normal" ? t("grid.normal") : t("grid.rest");
   const realEnd = entry.startMinute + entry.durationMinute;
-  const tooltip = `${minuteToHHMM(entry.startMinute)}~${minuteToHHMM(realEnd)} · 时长 ${humanizeMinutes(
-    entry.durationMinute,
-  )} · ${entry.title || typeLabel}${p.overflow ? "（超出当天结束时间）" : ""}`;
+  const tooltip =
+    t("grid.tooltip", {
+      start: minuteToHHMM(entry.startMinute),
+      end: minuteToHHMM(realEnd),
+      duration: humanize(entry.durationMinute),
+      title: entry.title || typeLabel,
+    }) + (p.overflow ? t("grid.overflow") : "");
   const handle =
     "absolute z-10 opacity-0 transition-colors group-hover:bg-zinc-100/25 group-hover:opacity-100";
 
@@ -570,22 +577,22 @@ function EntryCell({
     >
       <div
         onPointerDown={onResizeStartDown}
-        title="拖动调整开始时间"
+        title={t("grid.resizeStart")}
         className={`inset-x-0 top-0 h-1.5 cursor-ns-resize rounded-t-xl ${handle}`}
       />
       <div
         onPointerDown={onResizeEndDown}
-        title="拖动调整结束时间"
+        title={t("grid.resizeEnd")}
         className={`inset-x-0 bottom-0 h-1.5 cursor-ns-resize rounded-b-xl ${handle}`}
       />
       <div
         onPointerDown={onCopyPointerDown}
-        title="横向拖动：复制安排到其他天的同一时段"
+        title={t("grid.copyEdge")}
         className={`inset-y-0 left-0 w-1.5 cursor-ew-resize rounded-l-xl ${handle}`}
       />
       <div
         onPointerDown={onCopyPointerDown}
-        title="横向拖动：复制安排到其他天的同一时段"
+        title={t("grid.copyEdge")}
         className={`inset-y-0 right-0 w-1.5 cursor-ew-resize rounded-r-xl ${handle}`}
       />
       {showTimes && (

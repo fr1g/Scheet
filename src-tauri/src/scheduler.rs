@@ -33,7 +33,8 @@ struct AlarmEventPayload {
     kind: AlarmKind,
     entry_type: EntryType,
     title: String,
-    body: String,
+    /// 到期时间（当日分钟数），文案由前端按语言生成。
+    fire_minute: i64,
     /// "builtin" | "none" | alarms 文件名。
     ringtone: String,
     mode: AlarmMode,
@@ -135,20 +136,8 @@ fn poll_timetable(
 }
 
 fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent) {
-    let title = if event.title.trim().is_empty() {
-        match event.entry_type {
-            EntryType::Normal => "普通事务",
-            EntryType::Rest => "休息事务",
-        }
-        .to_string()
-    } else {
-        event.title.trim().to_string()
-    };
-    let kind_text = match event.kind {
-        AlarmKind::Start => "开始",
-        AlarmKind::End => "结束",
-    };
-    let body = format!("{kind_text}提醒 · {}", minute_to_hhmm(event.fire_minute));
+    // 标题原样传递；空标题由前端按事务类型回退显示（文案走 i18n）
+    let title = event.title.trim().to_string();
 
     let ringtone_name = match &event.ringtone {
         Ringtone::Silent => "none",
@@ -158,11 +147,21 @@ fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent) {
 
     if !matches!(event.ringtone, Ringtone::Silent) {
         // 系统通知在部分环境不可见，改为置顶弹窗（跨平台一致）
-        let mode_text = match event.mode {
-            AlarmMode::Once => "once",
-            AlarmMode::Loop => "loop",
+        let kind_text = match event.kind {
+            AlarmKind::Start => "start",
+            AlarmKind::End => "end",
         };
-        if let Err(e) = popup::show(app, &title, &body, mode_text) {
+        if let Err(e) = popup::show(
+            app,
+            &title,
+            None,
+            Some(kind_text),
+            Some(&minute_to_hhmm(event.fire_minute)),
+            match event.mode {
+                AlarmMode::Once => "once",
+                AlarmMode::Loop => "loop",
+            },
+        ) {
             eprintln!("[scheduler] 提醒弹窗失败(已忽略): {e}");
         }
         let sound_file = match &event.ringtone {
@@ -179,7 +178,7 @@ fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent) {
         kind: event.kind,
         entry_type: event.entry_type,
         title,
-        body,
+        fire_minute: event.fire_minute,
         ringtone: ringtone_name.to_string(),
         mode: event.mode,
     };
