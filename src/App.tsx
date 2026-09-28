@@ -1,4 +1,5 @@
 import { HashRouter, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import AlarmSnackbar from "./components/AlarmSnackbar";
 import ErrorScreen from "./components/ErrorScreen";
@@ -13,6 +14,13 @@ function AppShell() {
   const { status } = useSettings();
   // 提醒弹窗子窗口自绘全部内容：不渲染主窗口标题栏
   const isPopup = getCurrentWindow().label === "alarm-popup";
+
+  // 全局屏蔽浏览器默认右键菜单（自定义菜单自行 preventDefault + 打开）
+  useEffect(() => {
+    const onContextMenu = (e: MouseEvent) => e.preventDefault();
+    window.addEventListener("contextmenu", onContextMenu);
+    return () => window.removeEventListener("contextmenu", onContextMenu);
+  }, []);
 
   // 标题栏始终渲染：即使加载/出错也保留拖拽区与窗口控制按钮，避免窗口无法操作
   let content;

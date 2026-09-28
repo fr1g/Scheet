@@ -1,4 +1,4 @@
-import { SaveIcon, SettingIcon, CopyIcon, PasteIcon } from "tdesign-icons-react";
+import { SaveIcon, SettingIcon, CopyIcon, PasteIcon, RollbackIcon } from "tdesign-icons-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import type { GlobalConfig } from "../../types/global-config";
@@ -40,6 +40,8 @@ interface WeekGridProps {
   onCopy: () => void;
   /** 把剪贴板事务粘贴到粘贴目标天。 */
   onPaste: () => void;
+  /** 放弃未保存的更改（恢复到上次保存）。 */
+  onRevert: () => void;
   /** 拖拽/调整导致的事务变更（写入工作副本，随主保存入库）。 */
   onChangeEntries: (updater: (entries: WeekEntry[]) => WeekEntry[]) => void;
   /** 双击事务：打开编辑模态。 */
@@ -115,6 +117,7 @@ export default function WeekGrid({
   clipboardHasPlan,
   onCopy,
   onPaste,
+  onRevert,
   onChangeEntries,
   onEditEntry,
   onCreateAt,
@@ -330,9 +333,20 @@ export default function WeekGrid({
       <div className="flex items-center gap-2 border-b border-zinc-600 px-3 py-1.5">
         <h1 className="text-sm text-zinc-100">{plan.plan.name}</h1>
         {dirty && (
-          <span className="animate-pulse rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-300">
-            未保存更改 ●
-          </span>
+          <>
+            <span className="animate-pulse rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-300">
+              未保存更改 ●
+            </span>
+            <button
+              type="button"
+              onClick={onRevert}
+              title="放弃未保存的更改，恢复到上次保存"
+              className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+            >
+              <RollbackIcon size="13px" />
+              取消更改
+            </button>
+          </>
         )}
         <div className="flex-1" />
         <button

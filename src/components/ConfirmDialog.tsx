@@ -1,4 +1,5 @@
-import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import { Dialog, DialogTitle } from "@headlessui/react";
+import { motion } from "framer-motion";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -22,9 +23,22 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onClose={onCancel} className="relative z-50">
-      <div className="fixed inset-0 bg-black/50" aria-hidden />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="fixed inset-0 bg-black/50"
+        aria-hidden
+      />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel className="w-full max-w-sm rounded-xl border border-zinc-600 bg-zinc-800 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 8 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="w-full max-w-sm rounded-xl border border-zinc-600 bg-zinc-800 p-4"
+        >
           <DialogTitle className="text-sm font-medium text-zinc-100">
             {title}
           </DialogTitle>
@@ -49,7 +63,7 @@ export default function ConfirmDialog({
               {confirmText}
             </button>
           </div>
-        </DialogPanel>
+        </motion.div>
       </div>
     </Dialog>
   );

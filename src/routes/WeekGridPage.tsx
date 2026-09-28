@@ -1,3 +1,4 @@
+import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
@@ -53,6 +54,7 @@ export default function WeekGridPage() {
     initialEnd: number | null;
   } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<WeekPlan | null>(null);
+  const [confirmRevert, setConfirmRevert] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
   const [pasteTargetWeekday, setPasteTargetWeekday] = useState<number | null>(null);
   /** 聚焦窗口时嗅探：剪贴板中的事务（null = 无/非事务 JSON）。 */
@@ -142,7 +144,7 @@ export default function WeekGridPage() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!plan) return;
     setSaving(true);
     try {
@@ -166,7 +168,18 @@ export default function WeekGridPage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [plan, showToast]);
+
+  /** 放弃工作副本的自上次保存以来的全部修改。 */
+  const handleRevert = useCallback(() => {
+    setConfirmRevert(false);
+    try {
+      setPlan(JSON.parse(savedSnapshot));
+      showToast("已放弃未保存的更改");
+    } catch (e: unknown) {
+      showToast(String(e));
+    }
+  }, [savedSnapshot, showToast]);
 
   // ============ 右键菜单动作 ============
 
@@ -385,11 +398,22 @@ export default function WeekGridPage() {
       } else if (key === "v" && pasteTargetWeekday != null && clipboardHasPlan) {
         e.preventDefault();
         void handlePaste();
+      } else if (key === "s" && dirty) {
+        e.preventDefault();
+        void handleSave();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleCopy, handlePaste, selectedEntryId, pasteTargetWeekday, clipboardHasPlan]);
+  }, [
+    handleCopy,
+    handlePaste,
+    handleSave,
+    selectedEntryId,
+    pasteTargetWeekday,
+    clipboardHasPlan,
+    dirty,
+  ]);
 
   /** 当天设置确认：更新/移除工作副本中的日覆盖。 */
   const handleDaySettings = (
@@ -441,6 +465,7 @@ export default function WeekGridPage() {
         clipboardHasPlan={clipboardHasPlan}
         onCopy={() => void handleCopy()}
         onPaste={() => void handlePaste()}
+        onRevert={() => setConfirmRevert(true)}
         onChangeEntries={handleChangeEntries}
         onEditEntry={(entry) => setEditEntry({ entry, createdNow: false })}
         onCreateAt={handleCreateAt}
@@ -472,79 +497,101 @@ export default function WeekGridPage() {
         )}
         <TodoPanel className={clipboardPlan ? "pt-24" : ""} />
       </aside>
-      {tabMenu && (
-        <ContextMenu
-          x={tabMenu.x}
-          y={tabMenu.y}
-          items={tabMenuItems}
-          onClose={() => setTabMenu(null)}
-        />
-      )}
-      {dayMenu && (
-        <ContextMenu
-          x={dayMenu.x}
-          y={dayMenu.y}
-          items={dayMenuItems}
-          onClose={() => setDayMenu(null)}
-        />
-      )}
-      {planSettings && (
-        <PlanSettingsDialog
-          key={planSettings.id}
-          plan={planSettings}
-          onClose={() => setPlanSettings(null)}
-          onConfirm={handlePlanSettings}
-        />
-      )}
-      {daySettings && (
-        <DaySettingsDialog
-          key={daySettings.weekday}
-          weekday={daySettings.weekday}
-          initialStart={daySettings.initialStart}
-          initialEnd={daySettings.initialEnd}
-          onClose={() => setDaySettings(null)}
-          onConfirm={(dayStart, dayEnd) =>
-            handleDaySettings(daySettings.weekday, dayStart, dayEnd)
-          }
-        />
-      )}
-      {editEntry && (
-        <EntryEditDialog
-          key={editEntry.entry.id}
-          entry={editEntry.entry}
-          config={config}
-          createdNow={editEntry.createdNow}
-          onClose={handleEditCancel}
-          onConfirm={handleEditConfirm}
-          onDelete={handleEditDelete}
-        />
-      )}
-      <ConfirmDialog
-        open={confirmDelete != null}
-        title="删除周表"
-        message={`将删除「${confirmDelete?.name ?? ""}」及其全部事务与日覆盖，不可恢复。确定删除？`}
-        confirmText="删除"
-        danger
-        onConfirm={() => {
-          const target = confirmDelete;
-          setConfirmDelete(null);
-          if (target) void handleDelete(target);
-        }}
-        onCancel={() => setConfirmDelete(null)}
-      />
-      <ConfirmDialog
-        open={confirmSwitch != null}
-        title="未保存的更改"
-        message="切换周表将丢弃未保存的修改，确定继续？"
-        confirmText="丢弃并切换"
-        danger
-        onConfirm={() => {
-          const target = confirmSwitch;
-          setConfirmSwitch(null);
-          if (target != null) setSelectedId(target);
-        }}
-        onCancel={() => setConfirmSwitch(null)}
-      />
+      <AnimatePresence>
+        {tabMenu && (
+          <ContextMenu
+            key="tab-menu"
+            x={tabMenu.x}
+            y={tabMenu.y}
+            items={tabMenuItems}
+            onClose={() => setTabMenu(null)}
+          />
+        )}
+        {dayMenu && (
+          <ContextMenu
+            key="day-menu"
+            x={dayMenu.x}
+            y={dayMenu.y}
+            items={dayMenuItems}
+            onClose={() => setDayMenu(null)}
+          />
+        )}
+        {planSettings && (
+          <PlanSettingsDialog
+            key="plan-settings"
+            plan={planSettings}
+            onClose={() => setPlanSettings(null)}
+            onConfirm={handlePlanSettings}
+          />
+        )}
+        {daySettings && (
+          <DaySettingsDialog
+            key="day-settings"
+            weekday={daySettings.weekday}
+            initialStart={daySettings.initialStart}
+            initialEnd={daySettings.initialEnd}
+            onClose={() => setDaySettings(null)}
+            onConfirm={(dayStart, dayEnd) =>
+              handleDaySettings(daySettings.weekday, dayStart, dayEnd)
+            }
+          />
+        )}
+        {editEntry && (
+          <EntryEditDialog
+            key={`edit-${editEntry.entry.id}`}
+            entry={editEntry.entry}
+            config={config}
+            createdNow={editEntry.createdNow}
+            onClose={handleEditCancel}
+            onConfirm={handleEditConfirm}
+            onDelete={handleEditDelete}
+          />
+        )}
+        {confirmDelete && (
+          <ConfirmDialog
+            key="confirm-delete"
+            open
+            title="删除周表"
+            message={`将删除「${confirmDelete.name}」及其全部事务与日覆盖，不可恢复。确定删除？`}
+            confirmText="删除"
+            danger
+            onConfirm={() => {
+              const target = confirmDelete;
+              setConfirmDelete(null);
+              if (target) void handleDelete(target);
+            }}
+            onCancel={() => setConfirmDelete(null)}
+          />
+        )}
+        {confirmSwitch && (
+          <ConfirmDialog
+            key="confirm-switch"
+            open
+            title="未保存的更改"
+            message="切换周表将丢弃未保存的修改，确定继续？"
+            confirmText="丢弃并切换"
+            danger
+            onConfirm={() => {
+              const target = confirmSwitch;
+              setConfirmSwitch(null);
+              if (target != null) setSelectedId(target);
+            }}
+            onCancel={() => setConfirmSwitch(null)}
+          />
+        )}
+        {confirmRevert && (
+          <ConfirmDialog
+            key="confirm-revert"
+            open
+            title="放弃未保存的更改"
+            message="将把周表恢复到上次保存的状态，确定放弃？"
+            confirmText="放弃更改"
+            danger
+            onConfirm={handleRevert}
+            onCancel={() => setConfirmRevert(false)}
+          />
+        )}
+      </AnimatePresence>
       <Toast message={toast} />
     </div>
   );

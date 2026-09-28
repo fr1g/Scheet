@@ -60,3 +60,21 @@ select option {
 select option:checked {
   background-color: var(--color-zinc-600);
 }
+
+/* 提醒 snackbar 的缓慢闪烁 outline（不改变布局） */
+@keyframes alarm-snackbar-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(251, 191, 36, 0.85),
+      0 8px 24px rgb(0 0 0 / 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 0 9px rgba(251, 191, 36, 0.12),
+      0 8px 24px rgb(0 0 0 / 0.4);
+  }
+}
+.alarm-snackbar-pulse {
+  animation: alarm-snackbar-pulse 1.8s ease-in-out infinite;
+}

@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
 
 export interface ContextMenuItem {
@@ -39,9 +40,13 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
   const clampedY = Math.min(y, window.innerHeight - visible.length * 30 - 12);
 
   return (
-    <div
+    <motion.div
       ref={ref}
-      style={{ left: x, top: clampedY }}
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.12, ease: "easeOut" }}
+      style={{ left: x, top: clampedY, transformOrigin: "top left" }}
       className="fixed z-50 min-w-[140px] rounded-lg border border-zinc-600 bg-zinc-800 py-1 shadow-lg"
     >
       {visible.map((item) => (
@@ -59,6 +64,6 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
           {item.label}
         </button>
       ))}
-    </div>
+    </motion.div>
   );
 }

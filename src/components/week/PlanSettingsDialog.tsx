@@ -1,10 +1,76 @@
-import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import { Dialog, DialogTitle } from "@headlessui/react";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import {
   minuteToTimeInput,
   timeInputToMinute,
 } from "../../lib/weekgrid";
 import type { WeekPlan } from "../../types/weeks";
+
+/** 通用的模态外壳（HeadlessUI Dialog + framer-motion 过渡）。
+ *  footer 缺省为"取消/确认"，可整体替换。 */
+export function DialogShell({
+  title,
+  children,
+  onClose,
+  onConfirm,
+  canConfirm = true,
+  confirmText = "确定",
+  footer,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  onConfirm: () => void;
+  canConfirm?: boolean;
+  confirmText?: string;
+  /** 提供时替换默认页脚（编辑模态用它放"删除/取消/保存"组合）。 */
+  footer?: React.ReactNode;
+}) {
+  return (
+    <Dialog open onClose={onClose} className="relative z-50">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="fixed inset-0 bg-black/50"
+        aria-hidden
+      />
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 8 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="w-full max-w-md rounded-xl border border-zinc-600 bg-zinc-800 p-4"
+        >
+          <DialogTitle className="text-sm font-medium text-zinc-100">{title}</DialogTitle>
+          <div className="mt-3">{children}</div>
+          {footer ?? (
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={!canConfirm}
+                className="rounded bg-blue-500 px-3 py-1.5 text-xs text-white transition-colors enabled:hover:bg-blue-400 disabled:opacity-40"
+              >
+                {confirmText}
+              </button>
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </Dialog>
+  );
+}
 
 interface PlanSettingsDialogProps {
   plan: WeekPlan;
@@ -78,56 +144,5 @@ export function TimeField({
         className="mt-1 w-full rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
       />
     </label>
-  );
-}
-
-/** 通用的模态外壳（HeadlessUI Dialog）。footer 缺省为"取消/确认"，可整体替换。 */
-export function DialogShell({
-  title,
-  children,
-  onClose,
-  onConfirm,
-  canConfirm = true,
-  confirmText = "确定",
-  footer,
-}: {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
-  onConfirm: () => void;
-  canConfirm?: boolean;
-  confirmText?: string;
-  /** 提供时替换默认页脚（编辑模态用它放"删除/取消/保存"组合）。 */
-  footer?: React.ReactNode;
-}) {
-  return (
-    <Dialog open onClose={onClose} className="relative z-50">
-      <div className="fixed inset-0 bg-black/50" aria-hidden />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel className="w-full max-w-md rounded-xl border border-zinc-600 bg-zinc-800 p-4">
-          <DialogTitle className="text-sm font-medium text-zinc-100">{title}</DialogTitle>
-          <div className="mt-3">{children}</div>
-          {footer ?? (
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={onConfirm}
-                disabled={!canConfirm}
-                className="rounded bg-blue-500 px-3 py-1.5 text-xs text-white transition-colors enabled:hover:bg-blue-400 disabled:opacity-40"
-              >
-                {confirmText}
-              </button>
-            </div>
-          )}
-        </DialogPanel>
-      </div>
-    </Dialog>
   );
 }
