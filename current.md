@@ -30,3 +30,4 @@
 - 2026-09-29 M5 完成：右侧当日待办面板（增删/勾选/跨天 useToday 刷新）、todo 区上方剪贴板事务预览浮块（focus 嗅探+cell 样式渲染）；AGENTS/README 收尾；release 构建冒烟通过（14MB exe 独立运行）。提交 b063cc4。M1-M5 全部完成，待用户按 测试用例.md 最终验收
 - 2026-09-29 M4-part2 完成（用户反馈批次）：取消更改按钮（恢复快照+确认模态）、Ctrl+S 保存、全局屏蔽默认右键菜单、framer-motion 过渡（snackbar/模态/右键菜单/Toast）、snackbar 缓慢闪烁琥珀 outline。37 测试绿，提交 ee015b5，待用户验收
 - 2026-09-29 M4-part3 完成（用户反馈）：Shift 悬停关闭按钮变"退出"（红色加宽），Shift+点击确认模态警告后 exit_application 直接退出。提交 cb1ffd7，应用运行中待验收
+- 2026-09-29 i18n 完成：i18next 中英双语（zh 为事实标准、en 镜像），语言偏好进全局设置（auto/zh/en）即时生效；GlobalConfig 提升到应用级上下文；全部组件文案接 t() 并白话化；Rust 推送改结构化数据（kind+fire_minute），文案前端生成；托盘菜单按语言设置。37 测试绿，提交 670984e，待用户验收
