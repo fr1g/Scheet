@@ -28,74 +28,6 @@ export function humanizeMinutes(minutes: number): string {
   return `${h} 小时 ${m} 分钟`;
 }
 
-export interface DayCellModel {
-  kind: "entry" | "unplanned";
-  entry?: WeekEntry;
-  startMinute: number;
-  /** 渲染用结束分钟（溢出已钳制到当天结束）。 */
-  endMinute: number;
-  /** 真实结束分钟（时间标签/tooltip 显示用）。 */
-  realEndMinute: number;
-  heightPx: number;
-  /** 结束时间超出当天结束时间（黄 outline 警告）。 */
-  overflow: boolean;
-}
-
-/** 把某天的事务列表构建为顺排 cell 模型（含视觉隐藏的无安排空隙）。 */
-export function buildDayCells(
-  entries: WeekEntry[],
-  weekday: number,
-  dayStart: number,
-  dayEnd: number,
-  pxPerMinute: number,
-): DayCellModel[] {
-  const day = entries
-    .filter((e) => e.weekday === weekday)
-    .sort((a, b) => a.startMinute - b.startMinute);
-  const cells: DayCellModel[] = [];
-  let cursor = dayStart;
-
-  for (const entry of day) {
-    if (entry.startMinute > cursor) {
-      cells.push({
-        kind: "unplanned",
-        startMinute: cursor,
-        endMinute: entry.startMinute,
-        realEndMinute: entry.startMinute,
-        heightPx: (entry.startMinute - cursor) * pxPerMinute,
-        overflow: false,
-      });
-    }
-    const realEnd = entry.startMinute + entry.durationMinute;
-    const clampedEnd = Math.min(realEnd, dayEnd);
-    const overflow = realEnd > dayEnd;
-    if (clampedEnd > entry.startMinute) {
-      cells.push({
-        kind: "entry",
-        entry,
-        startMinute: entry.startMinute,
-        endMinute: clampedEnd,
-        realEndMinute: realEnd,
-        heightPx: (clampedEnd - entry.startMinute) * pxPerMinute,
-        overflow,
-      });
-    }
-    cursor = Math.max(cursor, clampedEnd);
-  }
-
-  if (cursor < dayEnd) {
-    cells.push({
-      kind: "unplanned",
-      startMinute: cursor,
-      endMinute: dayEnd,
-      realEndMinute: dayEnd,
-      heightPx: (dayEnd - cursor) * pxPerMinute,
-      overflow: false,
-    });
-  }
-  return cells;
-}
-
 /** 整张周表 7 天窗口的全局范围（用于统一纵向比例、跨列时间对齐）。 */
 export function planGlobalWindow(
   plan: FullPlan,
@@ -131,6 +63,96 @@ export interface ResolvedAlarmDisplay {
   fileSource: string;
   mode: AlarmMode;
   modeSource: string;
+}
+
+export interface PositionedEntry {
+  entry: WeekEntry;
+  /** 相对当天列顶部的像素偏移（已钳制到当天窗口）。 */
+  topPx: number;
+  /** 渲染高度（溢出已钳制到当天结束）。 */
+  heightPx: number;
+  /** 结束时间超出当天结束时间（黄 outline 警告）。 */
+  overflow: boolean;
+  /** 冲突泳道号（0 起）。 */
+  lane: number;
+  /** 所在冲突簇的泳道总数（1 = 独占整列宽度）。 */
+  lanes: number;
+}
+
+/**
+ * 把某天的事务布局为绝对定位模型：
+ * - 区间按当天窗口钳制，完全在窗口外的事务不渲染；
+ * - 泳道分配：按开始排序后 first-fit（区间图着色，色数=最大并发数）；
+ * - 连通簇（互相链式重叠）共享泳道总数，非重叠事务仍独占整列宽度。
+ */
+export function layoutDayEntries(
+  entries: WeekEntry[],
+  weekday: number,
+  dayStart: number,
+  dayEnd: number,
+  pxPerMinute: number,
+): PositionedEntry[] {
+  const day = entries
+    .filter((e) => e.weekday === weekday)
+    .sort((a, b) => a.startMinute - b.startMinute || a.id - b.id);
+
+  const spans = day.map((entry) => {
+    const realEnd = entry.startMinute + entry.durationMinute;
+    const renderStart = Math.max(entry.startMinute, dayStart);
+    const renderEnd = Math.min(realEnd, dayEnd);
+    return { entry, renderStart, renderEnd, overflow: realEnd > dayEnd };
+  });
+
+  // 泳道 first-fit
+  const laneEnds: number[] = [];
+  const laneOf: number[] = [];
+  for (const s of spans) {
+    let lane = laneEnds.findIndex((end) => end <= s.renderStart);
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(s.renderEnd);
+    } else {
+      laneEnds[lane] = s.renderEnd;
+    }
+    laneOf.push(lane);
+  }
+
+  // 连通簇划分：renderStart >= 当前簇尾 → 新簇
+  const clusterOf: number[] = [];
+  let cluster = 0;
+  let clusterEnd = Number.NEGATIVE_INFINITY;
+  spans.forEach((s, i) => {
+    if (s.renderStart >= clusterEnd) {
+      cluster++;
+      clusterEnd = s.renderEnd;
+    } else {
+      clusterEnd = Math.max(clusterEnd, s.renderEnd);
+    }
+    clusterOf[i] = cluster;
+  });
+  const clusterLanes = new Map<number, number>();
+  spans.forEach((_, i) => {
+    clusterLanes.set(
+      clusterOf[i],
+      Math.max(clusterLanes.get(clusterOf[i]) ?? 0, laneOf[i] + 1),
+    );
+  });
+
+  const positioned: PositionedEntry[] = [];
+  spans.forEach((s, i) => {
+    const topPx = (s.renderStart - dayStart) * pxPerMinute;
+    const heightPx = (s.renderEnd - s.renderStart) * pxPerMinute;
+    if (heightPx <= 0) return; // 完全在窗口外
+    positioned.push({
+      entry: s.entry,
+      topPx,
+      heightPx,
+      overflow: s.overflow,
+      lane: laneOf[i],
+      lanes: clusterLanes.get(clusterOf[i]) ?? 1,
+    });
+  });
+  return positioned;
 }
 
 /** 铃声解析链（类型默认 → 全局默认 → 内置），供编辑模态展示继承值。 */
@@ -238,11 +260,6 @@ export function weekdayLabel(weekday: number): string {
 }
 
 /** 本地今天对应的 ISO 周几（1=周一..7=周日）。 */
-export function todayWeekday(): number {
-  const day = new Date().getDay(); // 0=周日
-  return day === 0 ? 7 : day;
-}
-
 // ============ 事务剪贴板（ScheetPlan JSON） ============
 
 /** 事务序列化为剪贴板 JSON；首键固定为 "objectType": "ScheetPlan"。 */

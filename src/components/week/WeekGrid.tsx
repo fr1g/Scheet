@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import type { GlobalConfig } from "../../types/global-config";
 import type { FullPlan, WeekEntry } from "../../types/weeks";
 import {
-  buildDayCells,
   entryBackground,
   findConflicts,
   humanizeMinutes,
+  layoutDayEntries,
   minuteToHHMM,
   orderedWeekdays,
   planGlobalWindow,
@@ -15,7 +15,7 @@ import {
   resolveDayWindow,
   TIME_LABEL_MIN_HEIGHT,
   weekdayLabel,
-  type DayCellModel,
+  type PositionedEntry,
 } from "../../lib/weekgrid";
 import { useToday } from "../../state/dateState";
 
@@ -44,7 +44,7 @@ interface WeekGridProps {
   onChangeEntries: (updater: (entries: WeekEntry[]) => WeekEntry[]) => void;
   /** 双击事务：打开编辑模态。 */
   onEditEntry?: (entry: WeekEntry) => void;
-  /** 双击无安排区域：在该时段新建事务。 */
+  /** 双击无安排空白：在对应时段新建事务。 */
   onCreateAt?: (weekday: number, startMinute: number) => void;
 }
 
@@ -72,7 +72,7 @@ type DragState =
       baseEnd: number;
       end: number;
     }
-  /** 拖动 cell 本体：保持时长在当天任意时段重放（垂直）+ 换天（水平）。 */
+  /** 拖动 cell 本体：保持时长重放（垂直）+ 换天（水平）。 */
   | {
       mode: "move";
       entryId: number;
@@ -98,9 +98,8 @@ function snap5(deltaPx: number, pxPerMinute: number): number {
 }
 
 /**
- * 周表网格：表占满窗口高度，cell 高度按 窗口高度/全天分钟数 动态比例。
- * 所有列共用同一比例（取 7 天窗口的全局范围），保证跨列时间对齐；
- * 个别天窗口不同时以首尾透明垫片补齐。
+ * 周表网格：表占满窗口高度，事务 cell 绝对定位（top=时间偏移×比例），
+ * 冲突事务按泳道并排。所有列共用同一比例（取 7 天窗口的全局范围）。
  */
 export default function WeekGrid({
   plan,
@@ -179,7 +178,6 @@ export default function WeekGrid({
     if (e.button !== 0) return;
     e.stopPropagation();
     const { dayStart } = resolveDayWindow(plan, entry.weekday, config);
-    dragMovedReset();
     if (which === "start") {
       setDrag({
         mode: "resize-start",
@@ -229,7 +227,10 @@ export default function WeekGrid({
         // 拖顶部：改开始时间，结束不变；至少保留 5 分钟
         const start = Math.max(
           drag.dayStart,
-          Math.min(drag.baseEnd - 5, drag.baseStart + snap5(e.clientY - drag.startY, pxPerMinute)),
+          Math.min(
+            drag.baseEnd - 5,
+            drag.baseStart + snap5(e.clientY - drag.startY, pxPerMinute),
+          ),
         );
         if (start !== drag.start) {
           setDrag({ ...drag, start });
@@ -247,7 +248,10 @@ export default function WeekGrid({
         // 拖底部：改结束时间（允许溢出当天结束时间，最长一整天）
         const end = Math.min(
           drag.baseStart + MAX_DURATION_MINUTE,
-          Math.max(drag.baseStart + 5, drag.baseEnd + snap5(e.clientY - drag.startY, pxPerMinute)),
+          Math.max(
+            drag.baseStart + 5,
+            drag.baseEnd + snap5(e.clientY - drag.startY, pxPerMinute),
+          ),
         );
         if (end !== drag.end) {
           setDrag({ ...drag, end });
@@ -282,9 +286,7 @@ export default function WeekGrid({
         );
         onChangeEntries((entries) =>
           entries.map((x) =>
-            x.id === drag.entryId
-              ? { ...x, startMinute: start, weekday: day }
-              : x,
+            x.id === drag.entryId ? { ...x, startMinute: start, weekday: day } : x,
           ),
         );
       }
@@ -425,18 +427,36 @@ export default function WeekGrid({
             <tr>
               {days.map((d) => {
                 const { dayStart, dayEnd } = resolveDayWindow(plan, d, config);
-                const cells = buildDayCells(
+                const positioned = layoutDayEntries(
                   plan.entries,
                   d,
                   dayStart,
                   dayEnd,
                   pxPerMinute,
                 );
-                const leading = (dayStart - globalStart) * pxPerMinute;
-                const trailing = (globalEnd - dayEnd) * pxPerMinute;
                 return (
                   <td key={d} data-day={d} className="border border-zinc-600 p-1 align-top">
-                    <div className="relative flex h-full flex-col overflow-hidden">
+                    <div
+                      className="relative h-full overflow-hidden"
+                      title="双击空白处在此新建事务"
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest("[data-entry]")) return;
+                        onSelectEntry(null);
+                      }}
+                      onDoubleClick={(e) => {
+                        if ((e.target as HTMLElement).closest("[data-entry]")) return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const minute = Math.min(
+                          dayEnd - 5,
+                          Math.max(
+                            dayStart,
+                            dayStart +
+                              Math.floor((e.clientY - rect.top) / pxPerMinute / 5) * 5,
+                          ),
+                        );
+                        onCreateAt?.(d, minute);
+                      }}
+                    >
                       {/* 底层标记当天的开始/结束时间（无安排区域可见，被事务 cell 覆盖） */}
                       <span className="pointer-events-none absolute left-1 top-0.5 z-0 text-[10px] leading-3 text-zinc-500">
                         {minuteToHHMM(dayStart)}
@@ -444,48 +464,39 @@ export default function WeekGrid({
                       <span className="pointer-events-none absolute bottom-0.5 left-1 z-0 text-[10px] leading-3 text-zinc-500">
                         {minuteToHHMM(dayEnd)}
                       </span>
-                      {leading > 0 && (
-                        <div className="shrink-0 py-px" style={{ height: leading }} />
-                      )}
-                      {cells.map((cell, i) =>
-                        cell.kind === "unplanned" ? (
-                          <div
-                            key={i}
-                            className="shrink-0 py-px"
-                            style={{ height: cell.heightPx }}
-                            onClick={() => onSelectEntry(null)}
-                            onDoubleClick={() => onCreateAt?.(d, cell.startMinute)}
-                            title="双击在此新建事务"
-                          >
-                            <div className="h-full rounded-xl opacity-0" />
-                          </div>
-                        ) : (
-                          <div
-                            key={i}
-                            className="relative z-10 shrink-0 py-px"
-                            style={{ height: cell.heightPx }}
-                            onDoubleClick={() => onEditEntry?.(cell.entry!)}
-                          >
-                            <EntryCell
-                              cell={cell}
-                              conflicted={conflictIds.has(cell.entry!.id)}
-                              selected={selectedEntryId === cell.entry!.id}
-                              dragging={drag?.entryId === cell.entry!.id}
-                              onBodyPointerDown={(e) => startMoveDrag(e, cell.entry!)}
-                              onCopyPointerDown={(e) => startCopyDrag(e, cell.entry!)}
-                              onResizeStartDown={(e) =>
-                                startResizeDrag(e, cell.entry!, "start")
-                              }
-                              onResizeEndDown={(e) =>
-                                startResizeDrag(e, cell.entry!, "end")
-                              }
-                            />
-                          </div>
-                        ),
-                      )}
-                      {trailing > 0 && (
-                        <div className="shrink-0 py-px" style={{ height: trailing }} />
-                      )}
+                      {positioned.map((p) => (
+                        <div
+                          key={p.entry.id}
+                          data-entry
+                          className="absolute z-10 px-px py-px"
+                          style={{
+                            top: p.topPx,
+                            height: p.heightPx,
+                            left: `${(p.lane * 100) / p.lanes}%`,
+                            width: `${100 / p.lanes}%`,
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            onEditEntry?.(p.entry);
+                          }}
+                        >
+                          <EntryCell
+                            p={p}
+                            conflicted={conflictIds.has(p.entry.id)}
+                            selected={selectedEntryId === p.entry.id}
+                            dragging={drag?.entryId === p.entry.id}
+                            onBodyPointerDown={(e) => startMoveDrag(e, p.entry)}
+                            onCopyPointerDown={(e) => startCopyDrag(e, p.entry)}
+                            onResizeStartDown={(e) =>
+                              startResizeDrag(e, p.entry, "start")
+                            }
+                            onResizeEndDown={(e) =>
+                              startResizeDrag(e, p.entry, "end")
+                            }
+                          />
+                        </div>
+                      ))}
                     </div>
                   </td>
                 );
@@ -498,13 +509,9 @@ export default function WeekGrid({
   );
 }
 
-function dragMovedReset(): void {
-  /* 预留：如需在 resize 后抑制双击可在此扩展 */
-}
-
-/** 事务 cell：主体=移动（重放/换天），四边=调整（上开始/下结束）或复制（左右）。 */
+/** 事务 cell：主体=移动（重放/换天），上/下边缘=调开始/结束，左/右边缘=复制安排。 */
 function EntryCell({
-  cell,
+  p,
   conflicted,
   selected,
   dragging,
@@ -513,7 +520,7 @@ function EntryCell({
   onResizeStartDown,
   onResizeEndDown,
 }: {
-  cell: DayCellModel;
+  p: PositionedEntry;
   conflicted: boolean;
   selected: boolean;
   dragging: boolean;
@@ -522,18 +529,19 @@ function EntryCell({
   onResizeStartDown: (e: React.PointerEvent) => void;
   onResizeEndDown: (e: React.PointerEvent) => void;
 }) {
-  const entry = cell.entry!;
-  const showTimes = cell.heightPx - 2 >= TIME_LABEL_MIN_HEIGHT;
+  const entry = p.entry;
+  const showTimes = p.heightPx - 2 >= TIME_LABEL_MIN_HEIGHT;
   const outline = conflicted
     ? "outline outline-2 outline-red-500"
-    : cell.overflow
+    : p.overflow
       ? "outline outline-2 outline-amber-400"
       : "";
   const selectionRing = selected ? "ring-2 ring-zinc-100/80" : "";
   const typeLabel = entry.entryType === "normal" ? "普通事务" : "休息事务";
-  const tooltip = `${minuteToHHMM(cell.startMinute)}~${minuteToHHMM(cell.realEndMinute)} · 时长 ${humanizeMinutes(
+  const realEnd = entry.startMinute + entry.durationMinute;
+  const tooltip = `${minuteToHHMM(entry.startMinute)}~${minuteToHHMM(realEnd)} · 时长 ${humanizeMinutes(
     entry.durationMinute,
-  )} · ${entry.title || typeLabel}${cell.overflow ? "（超出当天结束时间）" : ""}`;
+  )} · ${entry.title || typeLabel}${p.overflow ? "（超出当天结束时间）" : ""}`;
   const handle =
     "absolute z-10 opacity-0 transition-colors group-hover:bg-zinc-100/25 group-hover:opacity-100";
 
@@ -568,7 +576,7 @@ function EntryCell({
       />
       {showTimes && (
         <span className="text-[10px] leading-3 text-zinc-300">
-          {minuteToHHMM(cell.startMinute)}
+          {minuteToHHMM(entry.startMinute)}
         </span>
       )}
       <span className="grid grow place-items-center text-center leading-tight">
@@ -576,7 +584,7 @@ function EntryCell({
       </span>
       {showTimes && (
         <span className="text-[10px] leading-3 text-zinc-300">
-          {minuteToHHMM(cell.realEndMinute)}
+          {minuteToHHMM(realEnd)}
         </span>
       )}
     </div>
