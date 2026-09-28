@@ -1,5 +1,6 @@
 import { SaveIcon, SettingIcon } from "tdesign-icons-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import type { GlobalConfig } from "../../types/global-config";
 import type { FullPlan } from "../../types/weeks";
 import {
@@ -8,7 +9,8 @@ import {
   findConflicts,
   minuteToHHMM,
   orderedWeekdays,
-  PX_PER_MINUTE,
+  planGlobalWindow,
+  PX_PER_MINUTE as PX_PER_MINUTE_FALLBACK,
   resolveDayWindow,
   TIME_LABEL_MIN_HEIGHT,
   todayWeekday,
@@ -24,7 +26,16 @@ interface WeekGridProps {
   onSave: () => void;
 }
 
-/** 周表网格：顶栏（保存/设置）+ 7 天列（表头 sticky + flex 顺排事务列）。 */
+/** thead 行高（h-8，含边框）。 */
+const HEADER_ROW_PX = 32;
+/** tbody td 的上下内边距合计（p-1）。 */
+const TD_PADDING_PX = 8;
+
+/**
+ * 周表网格：表占满窗口高度，cell 高度按 窗口高度/全天分钟数 动态比例。
+ * 所有列共用同一比例（取 7 天窗口的全局范围），保证跨列时间对齐；
+ * 个别天窗口不同时以首尾透明垫片补齐。
+ */
 export default function WeekGrid({
   plan,
   config,
@@ -33,6 +44,19 @@ export default function WeekGrid({
   onSave,
 }: WeekGridProps) {
   const navigate = useNavigate();
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [wrapHeight, setWrapHeight] = useState(0);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setWrapHeight(el.clientHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const days = orderedWeekdays(config.firstDayOfWeek);
   const today = todayWeekday();
   const conflictIds = new Set<number>();
@@ -40,6 +64,15 @@ export default function WeekGrid({
     conflictIds.add(c.aId);
     conflictIds.add(c.bId);
   }
+
+  const { start: globalStart, end: globalEnd } = planGlobalWindow(plan, config);
+  const spanMinutes = Math.max(1, globalEnd - globalStart);
+  const availablePx = Math.max(
+    120,
+    wrapHeight > 0 ? wrapHeight - HEADER_ROW_PX - TD_PADDING_PX : 0,
+  );
+  const pxPerMinute =
+    wrapHeight > 0 ? availablePx / spanMinutes : PX_PER_MINUTE_FALLBACK;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -66,14 +99,14 @@ export default function WeekGrid({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <table className="w-full table-fixed border-separate border-spacing-0">
-          <thead className="sticky top-0 z-10 bg-zinc-700">
+      <div ref={wrapRef} className="min-h-0 flex-1 overflow-x-auto">
+        <table className="h-full w-full min-w-[840px] table-fixed border-collapse">
+          <thead>
             <tr>
               {days.map((d) => (
                 <th
                   key={d}
-                  className="border border-zinc-600 px-2 py-1 text-left text-xs font-normal text-zinc-100"
+                  className="h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100"
                 >
                   {weekdayLabel(d)}
                   {d === today && (
@@ -87,27 +120,51 @@ export default function WeekGrid({
             <tr>
               {days.map((d) => {
                 const { dayStart, dayEnd } = resolveDayWindow(plan, d, config);
-                const cells = buildDayCells(plan.entries, d, dayStart, dayEnd);
+                const cells = buildDayCells(
+                  plan.entries,
+                  d,
+                  dayStart,
+                  dayEnd,
+                  pxPerMinute,
+                );
+                const leading = (dayStart - globalStart) * pxPerMinute;
+                const trailing = (globalEnd - dayEnd) * pxPerMinute;
                 return (
                   <td key={d} className="border border-zinc-600 p-1 align-top">
-                    <div
-                      className="flex flex-col gap-0.5"
-                      style={{ height: (dayEnd - dayStart) * PX_PER_MINUTE }}
-                    >
+                    <div className="flex h-full flex-col overflow-hidden">
+                      {leading > 0 && (
+                        <div
+                          className="shrink-0 py-px"
+                          style={{ height: leading }}
+                        />
+                      )}
                       {cells.map((cell, i) =>
                         cell.kind === "unplanned" ? (
                           <div
                             key={i}
-                            className="rounded-xl opacity-0"
+                            className="shrink-0 py-px"
                             style={{ height: cell.heightPx }}
-                          />
+                          >
+                            <div className="h-full rounded-xl opacity-0" />
+                          </div>
                         ) : (
-                          <EntryCell
+                          <div
                             key={i}
-                            cell={cell}
-                            conflicted={conflictIds.has(cell.entry!.id)}
-                          />
+                            className="shrink-0 py-px"
+                            style={{ height: cell.heightPx }}
+                          >
+                            <EntryCell
+                              cell={cell}
+                              conflicted={conflictIds.has(cell.entry!.id)}
+                            />
+                          </div>
                         ),
+                      )}
+                      {trailing > 0 && (
+                        <div
+                          className="shrink-0 py-px"
+                          style={{ height: trailing }}
+                        />
                       )}
                     </div>
                   </td>
@@ -121,6 +178,7 @@ export default function WeekGrid({
   );
 }
 
+/** 每个 cell 的占位槽：槽高=分钟比例高度，内层留 1px 垂直缝形成卡片间隔。 */
 function EntryCell({
   cell,
   conflicted,
@@ -129,7 +187,7 @@ function EntryCell({
   conflicted: boolean;
 }) {
   const entry = cell.entry!;
-  const showTimes = cell.heightPx >= TIME_LABEL_MIN_HEIGHT;
+  const showTimes = cell.heightPx - 2 >= TIME_LABEL_MIN_HEIGHT;
   const outline = conflicted
     ? "outline outline-2 outline-red-500"
     : cell.overflow
@@ -143,8 +201,8 @@ function EntryCell({
   return (
     <div
       title={tooltip}
-      style={{ height: cell.heightPx, background: entryBackground(entry) }}
-      className={`flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline}`}
+      style={{ background: entryBackground(entry) }}
+      className={`h-full w-full flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline}`}
     >
       {showTimes && (
         <span className="text-[10px] leading-3 text-zinc-300">

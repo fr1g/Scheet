@@ -47,6 +47,7 @@
 - [x] M2.4 7 天列渲染：flex 顺排（可见事务 cell + 隐藏无安排 cell）、cell 三段式（时间标签阈值 72px、中部标题）、3.2px/分钟、深色适配（蓝/琥珀 15% 透明度）、今天列标记
 - [x] M2.5 冲突红 outline（前端实时计算）+ 溢出黄 outline + tooltip、保存按钮/脏标记/保存流程（Rust 权威校验 + toast）、表体纵向滚动 + 天表头 sticky
 - [x] M2.6 pnpm build 通过 + 34 测试绿 + tauri dev 冒烟（修复 Vite 监视 EBUSY：ignore src-tauri/**）→ **已到验收点，dev 实例留运行中供查看**
+- [x] M2.7（验收反馈修复）① State 类型错配：settings/reminders 命令参数 Arc<LazyDb>→Arc<DataDb>（错误屏根因）；② AppShell 加载/错误态保留标题栏（窗口可拖动/关闭）；③ week_entries.color 列（#RRGGBB 校验+迁移），渲染叠加 15% 透明度、默认蓝/琥珀。35 测试绿，探针确认设置加载成功。git：cf94a1e（全量）+ 68b243a（修复）
 
 ## M3 交互与冲突
 

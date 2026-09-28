@@ -10,7 +10,10 @@ interface WeekPlanTabsProps {
   onAdd: () => void;
 }
 
-/** 左侧纵向周表 tab 列：1~6 个动态槽位，未满时末尾显示添加按钮。 */
+/**
+ * 左侧纵向周表 tab 列：每个 tab 占窗口高度的 1/6（类似 Windows 属性标签页），
+ * 选中的 tab 与右侧表区连通（右侧无边框 + 负外边距盖住内容区左边框）。
+ */
 export default function WeekPlanTabs({
   plans,
   selectedId,
@@ -19,7 +22,7 @@ export default function WeekPlanTabs({
   onAdd,
 }: WeekPlanTabsProps) {
   return (
-    <nav className="flex w-14 shrink-0 flex-col items-center gap-2 border-r border-zinc-600 py-2">
+    <nav className="flex h-full w-16 shrink-0 flex-col">
       {plans.map((plan) => {
         const selected = plan.id === selectedId;
         const isCurrent = plan.id === currentId;
@@ -29,18 +32,22 @@ export default function WeekPlanTabs({
             type="button"
             onClick={() => onSelect(plan.id)}
             title={isCurrent ? `${plan.name}（当周）` : plan.name}
-            className={`relative w-12 rounded-lg px-1 py-2 text-center transition-colors ${
-              selected ? "bg-zinc-600" : "hover:bg-zinc-600/60"
+            className={`relative h-1/6 w-full border text-left transition-colors ${
+              selected
+                ? "z-10 -mr-px border-zinc-600 border-r-0 bg-zinc-700"
+                : "border-zinc-600 bg-zinc-800 hover:bg-zinc-600/60"
             }`}
           >
             {isCurrent && (
-              <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
             )}
-            <span className="block text-[10px] leading-3 text-zinc-400">
+            <span className="absolute right-1.5 top-1 text-[10px] leading-3 text-zinc-500">
               {plan.slot}
             </span>
-            <span className="block w-full truncate text-[10px] leading-3 text-zinc-100">
-              {plan.name}
+            <span className="flex h-full w-full items-center justify-center px-1">
+              <span className="line-clamp-2 text-center text-xs leading-tight text-zinc-100">
+                {plan.name}
+              </span>
             </span>
           </button>
         );
@@ -50,7 +57,7 @@ export default function WeekPlanTabs({
           type="button"
           onClick={onAdd}
           title="添加周表"
-          className="flex h-9 w-12 items-center justify-center rounded-lg text-zinc-100 transition-colors hover:bg-zinc-600"
+          className="flex h-1/6 w-full items-center justify-center border border-zinc-600 bg-zinc-800 text-zinc-100 transition-colors hover:bg-zinc-600/60"
         >
           <AddIcon size="16px" />
         </button>

@@ -6,7 +6,7 @@
 import type { Conflict, FullPlan, WeekEntry } from "../types/weeks";
 import type { GlobalConfig } from "../types/global-config";
 
-/** 像素/分钟：与用户原型比例一致（30 分钟 ≈ 96px）。 */
+/** 像素/分钟的兜底值（窗口尺寸未测得时使用）。 */
 export const PX_PER_MINUTE = 3.2;
 
 /** cell 内嵌时间标签的最小高度（低于此值降级为 hover tooltip）。 */
@@ -38,6 +38,7 @@ export function buildDayCells(
   weekday: number,
   dayStart: number,
   dayEnd: number,
+  pxPerMinute: number,
 ): DayCellModel[] {
   const day = entries
     .filter((e) => e.weekday === weekday)
@@ -52,7 +53,7 @@ export function buildDayCells(
         startMinute: cursor,
         endMinute: entry.startMinute,
         realEndMinute: entry.startMinute,
-        heightPx: (entry.startMinute - cursor) * PX_PER_MINUTE,
+        heightPx: (entry.startMinute - cursor) * pxPerMinute,
         overflow: false,
       });
     }
@@ -66,7 +67,7 @@ export function buildDayCells(
         startMinute: entry.startMinute,
         endMinute: clampedEnd,
         realEndMinute: realEnd,
-        heightPx: (clampedEnd - entry.startMinute) * PX_PER_MINUTE,
+        heightPx: (clampedEnd - entry.startMinute) * pxPerMinute,
         overflow,
       });
     }
@@ -79,11 +80,26 @@ export function buildDayCells(
       startMinute: cursor,
       endMinute: dayEnd,
       realEndMinute: dayEnd,
-      heightPx: (dayEnd - cursor) * PX_PER_MINUTE,
+      heightPx: (dayEnd - cursor) * pxPerMinute,
       overflow: false,
     });
   }
   return cells;
+}
+
+/** 整张周表 7 天窗口的全局范围（用于统一纵向比例、跨列时间对齐）。 */
+export function planGlobalWindow(
+  plan: FullPlan,
+  config: GlobalConfig,
+): { start: number; end: number } {
+  let start = Number.POSITIVE_INFINITY;
+  let end = Number.NEGATIVE_INFINITY;
+  for (let d = 1; d <= 7; d++) {
+    const w = resolveDayWindow(plan, d, config);
+    start = Math.min(start, w.dayStart);
+    end = Math.max(end, w.dayEnd);
+  }
+  return { start, end };
 }
 
 /** 解析某天的起止窗口：日覆盖 → 周表 → 全局（与 Rust resolve_day_window 一致）。 */

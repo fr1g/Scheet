@@ -16,8 +16,8 @@
         "title": "Scheet",
         "width": 1200,
         "height": 800,
-        "minWidth": 800,
-        "minHeight": 600,
+        "minWidth": 1080,
+        "minHeight": 700,
         "center": true,
         "decorations": false,
         "backgroundColor": "#3F3F46"

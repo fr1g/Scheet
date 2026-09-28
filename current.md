@@ -14,3 +14,4 @@
 - 2026-09-28 M1.8（验收反馈）：新增 clock.rs 时间存储约定——时间点统一 UTC RFC3339（原 weeks.rs 用了本地偏移时间戳，已修），日历日保持本地日期文本，时刻表时间保持分钟数；AGENTS.md 增补约定章节；全库审计无遗漏；34 测试绿
 - 2026-09-28 UI 对齐：用户提供 Tailwind Play 原型——表体改为 flex 顺排方案（替代原绝对定位计划）：可见事务 cell + opacity-0 无安排 cell，cell 三段式（起止时间/标题），普通=蓝 休息=琥珀 圆角，space-y-0.5；tab 列去固定 7 槽（第 6 表创建后添加按钮消失）；新增右键菜单（tab：周表设置/设为当周/删除[模态确认]；表头：当天设置）；普通事务标题必填（前端校验）；cell 高度不足时时间标签降级 tooltip。plan.md M2/M3 已同步
 - 2026-09-28 M2 完成：类型/IPC 镜像、路由（/ 周表页 + /settings 占位）、tab 列（动态+满员隐藏添加+当周点标+切换脏确认）、网格按原型渲染（flex 顺排、时间标签阈值 72px、3.2px/min、深色 15% 蓝/琥珀、今天标记、sticky 表头、纵向滚动）、红/黄 outline 实时计算、保存流程（Rust 权威校验+toast）。修复 Vite 监视 EBUSY（ignore src-tauri/**）。34 测试绿、pnpm build 过、dev 实例运行中待验收
+- 2026-09-28 M2 验收反馈修复：①settings/reminders 的 State 参数错配（Arc<LazyDb>→Arc<DataDb>，此前冒烟"三库已建"实为调度线程所为、前端停在错误屏——冒烟盲区教训）；②AppShell 加载/错误态保留标题栏（修复窗口无法拖动/关闭）；③事务自定义颜色（week_entries.color #RRGGBB+15% 透明度，默认蓝/琥珀）。git 初始提交 cf94a1e + 修复提交 68b243a；35 测试绿，debug 探针确认设置加载成功

@@ -142,6 +142,12 @@ export default function WeekGridPage() {
         saving={saving}
         onSave={handleSave}
       />
+      <aside className="w-64 shrink-0 border-l border-zinc-600 p-3">
+        <div className="text-xs text-zinc-400">今日待办</div>
+        <div className="mt-2 text-[10px] text-zinc-500">
+          待办列表与剪贴板预览将在 M5 里程碑提供
+        </div>
+      </aside>
       <ConfirmDialog
         open={confirmSwitch != null}
         title="未保存的更改"
