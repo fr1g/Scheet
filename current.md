@@ -19,3 +19,4 @@
 - 2026-09-28 M2.9 追加：标题栏应用标题 `第x周，YYYY-MM-DD - Scheet`（两表=单周/双周；选中≠当周时追加 `(选中: ...)`），同步系统窗口标题（core:window:allow-set-title）。用 titleState 外部存储桥接周表页状态，提交 f0ed4ba
 - 2026-09-28 M3.0 完成：右键菜单系统——tab 菜单（周表设置弹窗：名称+周表级起止时间→工作副本；设为当周→setActiveWeekPlan 写锚点；删除→危险模态确认+deleteWeekPlan，首表不显示）；表头菜单（当天设置→日覆盖写工作副本，留空清除）。新增 ContextMenu/PlanSettingsDialog/DaySettingsDialog 组件与时间输入辅助。提交 272b809，应用运行中待验收；继续 M3.1 复制粘贴
 - 2026-09-28 M3.0b 修复（用户反馈）：①自动命名按数量派发在删除后重号（两个 周表6）→ 改为按槽位号派生（create_plan 签名改为 Option<&str>）；②表格百分比高度+亚像素累积导致几像素滚动 → 表高显式像素化+overflow-y-hidden+日列裁剪。36 测试绿，提交 713338b，应用运行中待验收；继续 M3.1
+- 2026-09-28 M3.1 完成：调度 1000ms + scheet://date-changed 事件 → dateState/useToday（标题栏日期、今天标记跨午夜刷新）；事务选中（单击 ring）+ 复制（Ctrl+C/按钮 → ScheetPlan JSON）+ 粘贴目标（左键表头）+ 粘贴（Ctrl+V/按钮 → 负数临时 id 插入工作副本，冲突实时标红）。提交 186bbcc，应用运行中待验收；下一轮 M3.2 拖拽三件套

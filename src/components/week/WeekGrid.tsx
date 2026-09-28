@@ -2,7 +2,7 @@ import { SaveIcon, SettingIcon, CopyIcon, PasteIcon } from "tdesign-icons-react"
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import type { GlobalConfig } from "../../types/global-config";
-import type { FullPlan } from "../../types/weeks";
+import type { FullPlan, WeekEntry } from "../../types/weeks";
 import {
   buildDayCells,
   entryBackground,
@@ -28,7 +28,7 @@ interface WeekGridProps {
   onDayMenu?: (e: React.MouseEvent, weekday: number) => void;
   /** 当前选中的事务（高亮 + 复制目标）。 */
   selectedEntryId: number | null;
-  /** 左键点击事务 cell：选中/取消。 */
+  /** 左键按下事务 cell：选中。 */
   onSelectEntry: (entryId: number | null) => void;
   /** 左键点击表头：设定粘贴目标天（null = 无）。 */
   onPasteTarget: (weekday: number | null) => void;
@@ -37,12 +37,41 @@ interface WeekGridProps {
   onCopy: () => void;
   /** 把剪贴板事务粘贴到粘贴目标天。 */
   onPaste: () => void;
+  /** 拖拽/调整导致的事务变更（写入工作副本，随主保存入库）。 */
+  onChangeEntries: (updater: (entries: WeekEntry[]) => WeekEntry[]) => void;
 }
 
-/** thead 行高（h-8，含边框）。 */
-const HEADER_ROW_PX = 32;
-/** tbody td 的上下内边距合计（p-1）。 */
-const TD_PADDING_PX = 8;
+const HEADER_ROW_PX = 32; // thead 行高（h-8，含边框）
+const TD_PADDING_PX = 8; // tbody td 上下内边距合计（p-1）
+const DRAG_THRESHOLD_PX = 6; // 轴向判定阈值
+const MAX_DURATION_MINUTE = 1440;
+
+type DragState =
+  /** 按下未超过阈值：尚不能判定轴向。 */
+  | {
+      mode: "pending";
+      entryId: number;
+      sourceWeekday: number;
+      startX: number;
+      startY: number;
+      baseDuration: number;
+    }
+  /** 垂直拖拽：调整时长（5 分钟步进）。 */
+  | { mode: "resize"; entryId: number; startY: number; baseDuration: number; duration: number }
+  /** 水平拖拽：移动事务到其他天。 */
+  | { mode: "move"; entryId: number; sourceWeekday: number; targetDay: number | null }
+  /** 边缘横向拖拽：把该事务复制安排到其他天的同一时段。 */
+  | { mode: "copy"; entryId: number; sourceWeekday: number; targetDay: number | null };
+
+function dayFromPoint(x: number, y: number): number | null {
+  const el = document.elementFromPoint(x, y);
+  const value = el?.closest("[data-day]")?.getAttribute("data-day");
+  return value == null ? null : Number(value);
+}
+
+function clampDuration(minutes: number): number {
+  return Math.min(MAX_DURATION_MINUTE, Math.max(5, Math.round(minutes / 5) * 5));
+}
 
 /**
  * 周表网格：表占满窗口高度，cell 高度按 窗口高度/全天分钟数 动态比例。
@@ -62,11 +91,14 @@ export default function WeekGrid({
   pasteTargetWeekday,
   onCopy,
   onPaste,
+  onChangeEntries,
 }: WeekGridProps) {
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [wrapHeight, setWrapHeight] = useState(0);
   const { weekday: today } = useToday();
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const dragMovedRef = useRef(false);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -93,6 +125,128 @@ export default function WeekGrid({
   );
   const pxPerMinute =
     wrapHeight > 0 ? availablePx / spanMinutes : PX_PER_MINUTE_FALLBACK;
+  const dragTargetDay = drag && "targetDay" in drag ? drag.targetDay : null;
+
+  const nextTempId = () => Math.min(0, ...plan.entries.map((e) => e.id)) - 1;
+
+  // ============ 拖拽状态机 ============
+
+  const startBodyDrag = (e: React.PointerEvent, entry: WeekEntry) => {
+    if (e.button !== 0) return;
+    onSelectEntry(entry.id);
+    dragMovedRef.current = false;
+    setDrag({
+      mode: "pending",
+      entryId: entry.id,
+      sourceWeekday: entry.weekday,
+      startX: e.clientX,
+      startY: e.clientY,
+      baseDuration: entry.durationMinute,
+    });
+  };
+
+  const startCopyDrag = (e: React.PointerEvent, entry: WeekEntry) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    dragMovedRef.current = false;
+    setDrag({
+      mode: "copy",
+      entryId: entry.id,
+      sourceWeekday: entry.weekday,
+      targetDay: null,
+    });
+  };
+
+  useEffect(() => {
+    if (!drag) return;
+
+    // 拖拽期间统一指针光标
+    const prevCursor = document.body.style.cursor;
+    document.body.style.cursor =
+      drag.mode === "resize"
+        ? "ns-resize"
+        : drag.mode === "copy"
+          ? "copy"
+          : "grabbing";
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (drag.mode === "pending") {
+        const dx = Math.abs(e.clientX - drag.startX);
+        const dy = Math.abs(e.clientY - drag.startY);
+        if (Math.max(dx, dy) < DRAG_THRESHOLD_PX) return;
+        dragMovedRef.current = true;
+        if (dy >= dx) {
+          setDrag({
+            mode: "resize",
+            entryId: drag.entryId,
+            startY: drag.startY,
+            baseDuration: drag.baseDuration,
+            duration: drag.baseDuration,
+          });
+        } else {
+          dragMovedRef.current = true;
+          setDrag({
+            mode: "move",
+            entryId: drag.entryId,
+            sourceWeekday: drag.sourceWeekday,
+            targetDay: dayFromPoint(e.clientX, e.clientY),
+          });
+        }
+        return;
+      }
+      if (drag.mode === "resize") {
+        const duration = clampDuration(
+          drag.baseDuration + (e.clientY - drag.startY) / pxPerMinute,
+        );
+        if (duration !== drag.duration) {
+          setDrag({ ...drag, duration });
+          onChangeEntries((entries) =>
+            entries.map((x) =>
+              x.id === drag.entryId ? { ...x, durationMinute: duration } : x,
+            ),
+          );
+        }
+        return;
+      }
+      const targetDay = dayFromPoint(e.clientX, e.clientY);
+      if (targetDay !== drag.targetDay) {
+        setDrag({ ...drag, targetDay });
+      }
+    };
+
+    const onPointerUp = () => {
+      if (drag.mode === "move" && drag.targetDay != null && drag.targetDay !== drag.sourceWeekday) {
+        const target = drag.targetDay;
+        onChangeEntries((entries) =>
+          entries.map((x) => (x.id === drag.entryId ? { ...x, weekday: target } : x)),
+        );
+      } else if (
+        drag.mode === "copy" &&
+        drag.targetDay != null &&
+        drag.targetDay !== drag.sourceWeekday
+      ) {
+        const source = plan.entries.find((x) => x.id === drag.entryId);
+        if (source) {
+          const copy: WeekEntry = { ...source, id: nextTempId(), weekday: drag.targetDay };
+          onChangeEntries((entries) => [...entries, copy]);
+        }
+      }
+      setDrag(null);
+    };
+
+    const onPointerCancel = () => setDrag(null);
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+    return () => {
+      document.body.style.cursor = prevCursor;
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drag, pxPerMinute, plan.entries, onChangeEntries]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -157,9 +311,15 @@ export default function WeekGrid({
                     e.preventDefault();
                     onDayMenu?.(e, d);
                   }}
-                  title={pasteTargetWeekday === d ? "粘贴目标（点击取消）" : "左键设为粘贴目标，右键打开当天设置"}
+                  title={
+                    pasteTargetWeekday === d
+                      ? "粘贴目标（点击取消）"
+                      : "左键设为粘贴目标，右键打开当天设置"
+                  }
                   className={`h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100 transition-colors ${
-                    pasteTargetWeekday === d ? "cursor-pointer bg-zinc-600/70" : "cursor-pointer"
+                    pasteTargetWeekday === d || dragTargetDay === d
+                      ? "bg-zinc-600/70"
+                      : ""
                   }`}
                 >
                   {weekdayLabel(d)}
@@ -167,7 +327,9 @@ export default function WeekGrid({
                     <span className="ml-1 text-[10px] text-blue-300">今天</span>
                   )}
                   {pasteTargetWeekday === d && (
-                    <span className="ml-1 text-[10px] text-emerald-300">粘贴目标</span>
+                    <span className="ml-1 text-[10px] text-emerald-300">
+                      粘贴目标
+                    </span>
                   )}
                 </th>
               ))}
@@ -187,13 +349,10 @@ export default function WeekGrid({
                 const leading = (dayStart - globalStart) * pxPerMinute;
                 const trailing = (globalEnd - dayEnd) * pxPerMinute;
                 return (
-                  <td key={d} className="border border-zinc-600 p-1 align-top">
+                  <td key={d} data-day={d} className="border border-zinc-600 p-1 align-top">
                     <div className="flex h-full flex-col overflow-hidden">
                       {leading > 0 && (
-                        <div
-                          className="shrink-0 py-px"
-                          style={{ height: leading }}
-                        />
+                        <div className="shrink-0 py-px" style={{ height: leading }} />
                       )}
                       {cells.map((cell, i) =>
                         cell.kind === "unplanned" ? (
@@ -210,21 +369,20 @@ export default function WeekGrid({
                             key={i}
                             className="shrink-0 py-px"
                             style={{ height: cell.heightPx }}
-                            onClick={() => onSelectEntry(cell.entry!.id)}
                           >
                             <EntryCell
                               cell={cell}
                               conflicted={conflictIds.has(cell.entry!.id)}
                               selected={selectedEntryId === cell.entry!.id}
+                              dragging={drag?.entryId === cell.entry!.id}
+                              onBodyPointerDown={(e) => startBodyDrag(e, cell.entry!)}
+                              onEdgePointerDown={(e) => startCopyDrag(e, cell.entry!)}
                             />
                           </div>
                         ),
                       )}
                       {trailing > 0 && (
-                        <div
-                          className="shrink-0 py-px"
-                          style={{ height: trailing }}
-                        />
+                        <div className="shrink-0 py-px" style={{ height: trailing }} />
                       )}
                     </div>
                   </td>
@@ -243,10 +401,16 @@ function EntryCell({
   cell,
   conflicted,
   selected,
+  dragging,
+  onBodyPointerDown,
+  onEdgePointerDown,
 }: {
   cell: DayCellModel;
   conflicted: boolean;
   selected: boolean;
+  dragging: boolean;
+  onBodyPointerDown: (e: React.PointerEvent) => void;
+  onEdgePointerDown: (e: React.PointerEvent) => void;
 }) {
   const entry = cell.entry!;
   const showTimes = cell.heightPx - 2 >= TIME_LABEL_MIN_HEIGHT;
@@ -265,8 +429,20 @@ function EntryCell({
     <div
       title={tooltip}
       style={{ background: entryBackground(entry) }}
-      className={`h-full w-full flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline} ${selectionRing}`}
+      onPointerDown={onBodyPointerDown}
+      className={`group relative h-full w-full flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline} ${selectionRing} ${
+        dragging ? "cursor-grabbing" : "cursor-move"
+      }`}
     >
+      {/* 左右边缘把手：横向拖拽把事务复制安排到其他天的同一时段 */}
+      <div
+        onPointerDown={onEdgePointerDown}
+        className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-ew-resize rounded-l-xl opacity-0 transition-colors group-hover:bg-zinc-100/25 group-hover:opacity-100"
+      />
+      <div
+        onPointerDown={onEdgePointerDown}
+        className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-ew-resize rounded-r-xl opacity-0 transition-colors group-hover:bg-zinc-100/25 group-hover:opacity-100"
+      />
       {showTimes && (
         <span className="text-[10px] leading-3 text-zinc-300">
           {minuteToHHMM(cell.startMinute)}

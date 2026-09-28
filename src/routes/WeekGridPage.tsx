@@ -23,7 +23,7 @@ import {
   weekdayLabel,
 } from "../lib/weekgrid";
 import type { GlobalConfig } from "../types/global-config";
-import type { FullPlan, WeekPlan } from "../types/weeks";
+import type { FullPlan, WeekEntry, WeekPlan } from "../types/weeks";
 import { setTitleState } from "../state/titleState";
 
 /** 周表页：左侧 tab 列 + 中央网格。编辑在工作副本上进行，显式保存入库。 */
@@ -230,6 +230,15 @@ export default function WeekGridPage() {
     );
   };
 
+  // ============ 拖拽导致的事务变更 ============
+
+  const handleChangeEntries = useCallback(
+    (updater: (entries: WeekEntry[]) => WeekEntry[]) => {
+      setPlan((prev) => (prev ? { ...prev, entries: updater(prev.entries) } : prev));
+    },
+    [],
+  );
+
   // ============ 选中 / 复制 / 粘贴 ============
 
   const handleCopy = useCallback(async () => {
@@ -342,6 +351,7 @@ export default function WeekGridPage() {
         pasteTargetWeekday={pasteTargetWeekday}
         onCopy={() => void handleCopy()}
         onPaste={() => void handlePaste()}
+        onChangeEntries={handleChangeEntries}
       />
       <aside className="w-64 shrink-0 border-l border-zinc-600 p-3">
         <div className="text-xs text-zinc-400">今日待办</div>
