@@ -26,6 +26,8 @@ export interface WeekEntry {
   /** null=继承下一级；"builtin"=内置铃声；"none"=不提醒；其他=alarms 文件名。 */
   alarmFile: string | null;
   alarmMode: AlarmMode | null;
+  /** 自定义颜色 #RRGGBB；null 时按类型使用默认色（普通=蓝、休息=琥珀）。 */
+  color: string | null;
 }
 
 /** 某周表某天的起止时间覆盖。 */

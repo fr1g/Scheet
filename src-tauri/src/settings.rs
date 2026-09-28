@@ -5,7 +5,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::{command, State};
 
-use crate::db::LazyDb;
+use crate::db::DataDb;
 use crate::sound::AlarmMode;
 
 /// 窗口控制按钮组的位置。
@@ -209,7 +209,7 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
 }
 
 #[command]
-pub async fn get_global_config(db: State<'_, Arc<LazyDb>>) -> Result<GlobalConfig, String> {
+pub async fn get_global_config(db: State<'_, Arc<DataDb>>) -> Result<GlobalConfig, String> {
     let db = db.inner().clone();
     Ok(
         tauri::async_runtime::spawn_blocking(move || db.with_conn(load_global_config))
@@ -221,7 +221,7 @@ pub async fn get_global_config(db: State<'_, Arc<LazyDb>>) -> Result<GlobalConfi
 #[command]
 pub async fn set_global_config(
     config: GlobalConfig,
-    db: State<'_, Arc<LazyDb>>,
+    db: State<'_, Arc<DataDb>>,
 ) -> Result<GlobalConfig, String> {
     if !(0..=1439).contains(&config.day_start_minute)
         || !(0..=1439).contains(&config.day_end_minute)
@@ -311,19 +311,22 @@ pub fn save_window_controls(
 }
 
 #[command]
-pub async fn get_app_settings(db: State<'_, Arc<LazyDb>>) -> Result<AppSettings, String> {
+pub async fn get_app_settings(db: State<'_, Arc<DataDb>>) -> Result<AppSettings, String> {
     let db = db.inner().clone();
-    Ok(
+    let settings =
         tauri::async_runtime::spawn_blocking(move || db.with_conn(|conn| load(conn)))
             .await
-            .map_err(|e| e.to_string())??,
-    )
+            .map_err(|e| e.to_string())??;
+    // 前端能否离开错误屏的判据（debug 构建输出，供冒烟验证）
+    #[cfg(debug_assertions)]
+    eprintln!("[web] 设置加载成功");
+    Ok(settings)
 }
 
 #[command]
 pub async fn set_window_controls_position(
     position: WindowControlsPosition,
-    db: State<'_, Arc<LazyDb>>,
+    db: State<'_, Arc<DataDb>>,
 ) -> Result<AppSettings, String> {
     let db = db.inner().clone();
     Ok(

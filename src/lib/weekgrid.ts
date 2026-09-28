@@ -132,6 +132,30 @@ export function orderedWeekdays(firstDayOfWeek: "mon" | "sun"): number[] {
     : [1, 2, 3, 4, 5, 6, 7];
 }
 
+/** 事务 cell 背景的默认透明度（用户自定义 hex 色也按此叠加）。 */
+export const CELL_COLOR_ALPHA = 0.15;
+
+/** #RRGGBB -> rgba(r, g, b, alpha)；非法输入返回 null。 */
+export function hexWithAlpha(hex: string, alpha: number): string | null {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * 事务 cell 的背景色：自定义颜色叠加透明度；
+ * 未自定义时按类型取默认色（普通=蓝、休息=琥珀，与原型同色相的深色变体）。
+ */
+export function entryBackground(entry: WeekEntry): string {
+  const custom = entry.color ? hexWithAlpha(entry.color, CELL_COLOR_ALPHA) : null;
+  if (custom) return custom;
+  return entry.entryType === "normal"
+    ? "rgba(96, 165, 250, 0.15)" // blue-400
+    : "rgba(251, 191, 36, 0.15)"; // amber-400
+}
+
 const WEEKDAY_LABELS: Record<number, string> = {
   1: "周一",
   2: "周二",

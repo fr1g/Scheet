@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{command, State};
 
 use crate::clock;
-use crate::db::LazyDb;
+use crate::db::DataDb;
 use crate::sound::AlarmMode;
 
 pub const STATUS_PENDING: &str = "pending";
@@ -162,7 +162,7 @@ pub async fn create_reminder(
     fire_at: String,
     alarm_file: Option<String>,
     alarm_mode: Option<AlarmMode>,
-    db: State<'_, Arc<LazyDb>>,
+    db: State<'_, Arc<DataDb>>,
 ) -> Result<Reminder, String> {
     if title.trim().is_empty() {
         return Err("title 不能为空".to_string());
@@ -197,7 +197,7 @@ pub async fn create_reminder(
 }
 
 #[command]
-pub async fn cancel_reminder(id: i64, db: State<'_, Arc<LazyDb>>) -> Result<bool, String> {
+pub async fn cancel_reminder(id: i64, db: State<'_, Arc<DataDb>>) -> Result<bool, String> {
     let db = db.inner().clone();
     Ok(
         tauri::async_runtime::spawn_blocking(move || {
@@ -209,7 +209,7 @@ pub async fn cancel_reminder(id: i64, db: State<'_, Arc<LazyDb>>) -> Result<bool
 }
 
 #[command]
-pub async fn list_reminders(db: State<'_, Arc<LazyDb>>) -> Result<Vec<Reminder>, String> {
+pub async fn list_reminders(db: State<'_, Arc<DataDb>>) -> Result<Vec<Reminder>, String> {
     let db = db.inner().clone();
     Ok(
         tauri::async_runtime::spawn_blocking(move || db.with_conn(list))
@@ -220,7 +220,7 @@ pub async fn list_reminders(db: State<'_, Arc<LazyDb>>) -> Result<Vec<Reminder>,
 
 /// 调度线程的一次手动提醒轮询（由 scheduler.rs 调用）。
 /// 通知/铃声失败只记录日志；无论成败都标记 fired，避免反复轰炸。
-pub(crate) fn poll_due(app: &tauri::AppHandle, db: &LazyDb) -> Result<(), String> {
+pub(crate) fn poll_due(app: &tauri::AppHandle, db: &DataDb) -> Result<(), String> {
     let due = db.with_conn(take_due)?;
     for reminder in due {
         if let Err(e) = crate::notify::send(app, &reminder.title, &reminder.body) {

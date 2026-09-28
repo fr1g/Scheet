@@ -116,7 +116,7 @@ mod linux {
 pub fn macos_bootstrap(
     app: &AppHandle,
     identifier: &str,
-    db: &std::sync::Arc<crate::db::LazyDb>,
+    db: &std::sync::Arc<crate::db::DataDb>,
 ) {
     macos::set_application_identifier(tauri::is_dev(), identifier);
 

@@ -145,6 +145,7 @@ mod tests {
             title: format!("事务{id}"),
             alarm_file: None,
             alarm_mode: None,
+            color: None,
         }
     }
 

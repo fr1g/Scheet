@@ -4,6 +4,7 @@ import type { GlobalConfig } from "../../types/global-config";
 import type { FullPlan } from "../../types/weeks";
 import {
   buildDayCells,
+  entryBackground,
   findConflicts,
   minuteToHHMM,
   orderedWeekdays,
@@ -129,8 +130,6 @@ function EntryCell({
 }) {
   const entry = cell.entry!;
   const showTimes = cell.heightPx >= TIME_LABEL_MIN_HEIGHT;
-  const typeClass =
-    entry.entryType === "normal" ? "bg-blue-400/15" : "bg-amber-400/15";
   const outline = conflicted
     ? "outline outline-2 outline-red-500"
     : cell.overflow
@@ -144,8 +143,8 @@ function EntryCell({
   return (
     <div
       title={tooltip}
-      style={{ height: cell.heightPx }}
-      className={`flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${typeClass} ${outline}`}
+      style={{ height: cell.heightPx, background: entryBackground(entry) }}
+      className={`flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline}`}
     >
       {showTimes && (
         <span className="text-[10px] leading-3 text-zinc-300">

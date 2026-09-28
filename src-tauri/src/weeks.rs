@@ -80,6 +80,8 @@ pub struct WeekEntry {
     pub alarm_file: Option<String>,
     /// None=继承下一级。
     pub alarm_mode: Option<AlarmMode>,
+    /// 自定义颜色 #RRGGBB；None 时按类型使用默认色（普通=蓝、休息=琥珀）。
+    pub color: Option<String>,
 }
 
 /// 某周表某天的起止时间覆盖。
@@ -154,6 +156,7 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
             title TEXT NOT NULL DEFAULT '',
             alarm_file TEXT,
             alarm_mode TEXT CHECK (alarm_mode IS NULL OR alarm_mode IN ('once', 'loop')),
+            color TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -168,6 +171,12 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
         );",
     )
     .map_err(|e| format!("初始化 weeks.db 失败: {e}"))?;
+    // 轻量迁移：旧库补列（已存在则忽略）
+    if let Err(e) = conn.execute("ALTER TABLE week_entries ADD COLUMN color TEXT", []) {
+        if !e.to_string().contains("duplicate column") {
+            eprintln!("[db] 迁移 week_entries.color 失败(已忽略): {e}");
+        }
+    }
     ensure_default_plan(conn)
 }
 
@@ -278,7 +287,7 @@ pub fn get_full_plan(conn: &Connection, plan_id: i64) -> Result<FullPlan, String
     let mut stmt = conn
         .prepare(
             "SELECT id, plan_id, weekday, start_minute, duration_minute, entry_type, title,
-                    alarm_file, alarm_mode
+                    alarm_file, alarm_mode, color
              FROM week_entries WHERE plan_id = ?1 ORDER BY weekday, start_minute",
         )
         .map_err(|e| format!("读取事务失败: {e}"))?;
@@ -295,6 +304,7 @@ pub fn get_full_plan(conn: &Connection, plan_id: i64) -> Result<FullPlan, String
                 title: row.get("title")?,
                 alarm_file: row.get("alarm_file")?,
                 alarm_mode: alarm_mode.map(|m| AlarmMode::from_db(&m)),
+                color: row.get("color")?,
             })
         })
         .map_err(|e| format!("读取事务失败: {e}"))?;
@@ -378,6 +388,14 @@ fn validate_entry(entry: &WeekEntry) -> Result<(), String> {
         Some(f) if f == "builtin" || f == "none" => {}
         Some(file) => crate::sound::validate_alarm_file_name(file)?,
     }
+    if let Some(color) = &entry.color {
+        let valid = color.len() == 7
+            && color.starts_with('#')
+            && color[1..].bytes().all(|b| b.is_ascii_hexdigit());
+        if !valid {
+            return Err(format!("事务 {} 的颜色必须是 #RRGGBB 格式", entry.id));
+        }
+    }
     Ok(())
 }
 
@@ -456,8 +474,8 @@ pub fn save_plan(conn: &Connection, payload: &SavePlanPayload) -> Result<SaveOut
         tx.execute(
             "INSERT INTO week_entries
                 (plan_id, weekday, start_minute, duration_minute, entry_type, title,
-                 alarm_file, alarm_mode, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)",
+                 alarm_file, alarm_mode, color, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
             params![
                 payload.id,
                 entry.weekday,
@@ -467,6 +485,7 @@ pub fn save_plan(conn: &Connection, payload: &SavePlanPayload) -> Result<SaveOut
                 entry.title,
                 entry.alarm_file,
                 entry.alarm_mode.map(|m| m.as_db()),
+                entry.color,
                 now_str(),
             ],
         )
@@ -747,6 +766,7 @@ mod tests {
             title: String::new(),
             alarm_file: None,
             alarm_mode: None,
+            color: None,
         }
     }
 
@@ -841,6 +861,36 @@ mod tests {
             overrides: vec![],
         };
         assert!(save_plan(&conn, &payload).is_err());
+    }
+
+    #[test]
+    fn save_validates_color_format() {
+        let conn = weeks_conn();
+        let plan = list_plans(&conn).unwrap().remove(0);
+        let mut bad = entry(-1, 1, 360, 30);
+        bad.color = Some("blue".into());
+        let payload = SavePlanPayload {
+            id: plan.id,
+            name: "x".into(),
+            day_start_minute: None,
+            day_end_minute: None,
+            entries: vec![bad],
+            overrides: vec![],
+        };
+        assert!(save_plan(&conn, &payload).is_err());
+
+        let mut good = entry(-1, 1, 360, 30);
+        good.color = Some("#3B82F6".into());
+        let payload = SavePlanPayload {
+            entries: vec![good],
+            ..payload
+        };
+        let outcome = save_plan(&conn, &payload).unwrap();
+        assert!(outcome.saved);
+        assert_eq!(
+            get_full_plan(&conn, plan.id).unwrap().entries[0].color,
+            Some("#3B82F6".into())
+        );
     }
 
     #[test]
