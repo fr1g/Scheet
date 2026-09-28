@@ -191,3 +191,16 @@ export function todayWeekday(): number {
   const day = new Date().getDay(); // 0=周日
   return day === 0 ? 7 : day;
 }
+
+/** 分钟数 → time 输入框值 "HH:MM"；null → 空串（表示未设置/继承）。 */
+export function minuteToTimeInput(minute: number | null): string {
+  return minute == null ? "" : minuteToHHMM(minute);
+}
+
+/** time 输入框值 → 分钟数；空串 → null（未设置）；非法 → NaN。 */
+export function timeInputToMinute(value: string): number | null {
+  if (!value) return null;
+  const [h, m] = value.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return Number.NaN;
+  return h * 60 + m;
+}

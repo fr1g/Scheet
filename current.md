@@ -16,3 +16,4 @@
 - 2026-09-28 M2 完成：类型/IPC 镜像、路由（/ 周表页 + /settings 占位）、tab 列（动态+满员隐藏添加+当周点标+切换脏确认）、网格按原型渲染（flex 顺排、时间标签阈值 72px、3.2px/min、深色 15% 蓝/琥珀、今天标记、sticky 表头、纵向滚动）、红/黄 outline 实时计算、保存流程（Rust 权威校验+toast）。修复 Vite 监视 EBUSY（ignore src-tauri/**）。34 测试绿、pnpm build 过、dev 实例运行中待验收
 - 2026-09-28 M2 验收反馈修复：①settings/reminders 的 State 参数错配（Arc<LazyDb>→Arc<DataDb>，此前冒烟"三库已建"实为调度线程所为、前端停在错误屏——冒烟盲区教训）；②AppShell 加载/错误态保留标题栏（修复窗口无法拖动/关闭）；③事务自定义颜色（week_entries.color #RRGGBB+15% 透明度，默认蓝/琥珀）。git 初始提交 cf94a1e + 修复提交 68b243a；35 测试绿，debug 探针确认设置加载成功
 - 2026-09-28 M2.8 精修：表占满窗口高度+cell 动态比例（ResizeObserver、7 天统一比例、垫片对齐）、全局窄半透明滚动条、tab 六分高+笔记本式选中连通、右侧 todo 预留区、最小窗口 1080x700。提交 19e70d4，HMR 已生效待验收
+- 2026-09-28 M2.9 追加：标题栏应用标题 `第x周，YYYY-MM-DD - Scheet`（两表=单周/双周；选中≠当周时追加 `(选中: ...)`），同步系统窗口标题（core:window:allow-set-title）。用 titleState 外部存储桥接周表页状态，提交 f0ed4ba

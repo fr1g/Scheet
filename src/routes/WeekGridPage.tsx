@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
+import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
 import Toast from "../components/Toast";
+import DaySettingsDialog from "../components/week/DaySettingsDialog";
+import PlanSettingsDialog from "../components/week/PlanSettingsDialog";
 import WeekGrid from "../components/week/WeekGrid";
 import WeekPlanTabs from "../components/week/WeekPlanTabs";
 import { getGlobalConfig } from "../lib/global-config";
 import {
   createWeekPlan,
-  getCurrentWeekPlan,
+  deleteWeekPlan,
   getWeekPlan,
+  getCurrentWeekPlan,
   listWeekPlans,
   saveWeekPlan,
+  setActiveWeekPlan,
 } from "../lib/weeks";
 import type { GlobalConfig } from "../types/global-config";
 import type { FullPlan, WeekPlan } from "../types/weeks";
@@ -27,6 +32,17 @@ export default function WeekGridPage() {
   const [confirmSwitch, setConfirmSwitch] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const toastTimer = useRef<number | undefined>(undefined);
+
+  // 右键菜单与设置弹窗状态
+  const [tabMenu, setTabMenu] = useState<{ x: number; y: number; plan: WeekPlan } | null>(null);
+  const [dayMenu, setDayMenu] = useState<{ x: number; y: number; weekday: number } | null>(null);
+  const [planSettings, setPlanSettings] = useState<WeekPlan | null>(null);
+  const [daySettings, setDaySettings] = useState<{
+    weekday: number;
+    initialStart: number | null;
+    initialEnd: number | null;
+  } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<WeekPlan | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -130,6 +146,100 @@ export default function WeekGridPage() {
     }
   };
 
+  // ============ 右键菜单动作 ============
+
+  const handleSetActive = async (target: WeekPlan) => {
+    try {
+      await setActiveWeekPlan(target.id);
+      await loadPlans(selectedId);
+      showToast(`已将「${target.name}」设为当周`);
+    } catch (e) {
+      showToast(String(e));
+    }
+  };
+
+  const handleDelete = async (target: WeekPlan) => {
+    try {
+      await deleteWeekPlan(target.id);
+      await loadPlans(selectedId === target.id ? null : selectedId);
+      showToast(`已删除「${target.name}」`);
+    } catch (e) {
+      showToast(String(e));
+    }
+  };
+
+  const tabMenuItems: ContextMenuItem[] = tabMenu
+    ? [
+        {
+          label: "周表设置…",
+          onSelect: () => setPlanSettings(tabMenu.plan),
+        },
+        {
+          label: "设为当周",
+          hidden: tabMenu.plan.id === currentId,
+          onSelect: () => void handleSetActive(tabMenu.plan),
+        },
+        {
+          label: "删除…",
+          danger: true,
+          hidden: tabMenu.plan.slot === 1,
+          onSelect: () => setConfirmDelete(tabMenu.plan),
+        },
+      ]
+    : [];
+
+  const dayMenuItems: ContextMenuItem[] = dayMenu
+    ? [
+        {
+          label: "当天设置…",
+          onSelect: () => {
+            if (!plan) return;
+            const o = plan.overrides.find((o) => o.weekday === dayMenu.weekday);
+            setDaySettings({
+              weekday: dayMenu.weekday,
+              initialStart: o?.dayStartMinute ?? null,
+              initialEnd: o?.dayEndMinute ?? null,
+            });
+          },
+        },
+      ]
+    : [];
+
+  /** 周表设置确认：只改工作副本，随主保存按钮入库。 */
+  const handlePlanSettings = (
+    name: string,
+    dayStart: number | null,
+    dayEnd: number | null,
+  ) => {
+    setPlanSettings(null);
+    setPlan((prev) =>
+      prev
+        ? {
+            ...prev,
+            plan: { ...prev.plan, name, dayStartMinute: dayStart, dayEndMinute: dayEnd },
+          }
+        : prev,
+    );
+  };
+
+  /** 当天设置确认：更新/移除工作副本中的日覆盖。 */
+  const handleDaySettings = (
+    weekday: number,
+    dayStart: number | null,
+    dayEnd: number | null,
+  ) => {
+    setDaySettings(null);
+    setPlan((prev) => {
+      if (!prev) return prev;
+      const others = prev.overrides.filter((o) => o.weekday !== weekday);
+      const overrides =
+        dayStart == null && dayEnd == null
+          ? others
+          : [...others, { weekday, dayStartMinute: dayStart, dayEndMinute: dayEnd }];
+      return { ...prev, overrides };
+    });
+  };
+
   if (!config || !plan) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-zinc-300">
@@ -146,6 +256,7 @@ export default function WeekGridPage() {
         currentId={currentId}
         onSelect={handleSelect}
         onAdd={handleAdd}
+        onTabMenu={(e, target) => setTabMenu({ x: e.clientX, y: e.clientY, plan: target })}
       />
       <WeekGrid
         plan={plan}
@@ -153,6 +264,7 @@ export default function WeekGridPage() {
         dirty={dirty}
         saving={saving}
         onSave={handleSave}
+        onDayMenu={(e, weekday) => setDayMenu({ x: e.clientX, y: e.clientY, weekday })}
       />
       <aside className="w-64 shrink-0 border-l border-zinc-600 p-3">
         <div className="text-xs text-zinc-400">今日待办</div>
@@ -160,6 +272,55 @@ export default function WeekGridPage() {
           待办列表与剪贴板预览将在 M5 里程碑提供
         </div>
       </aside>
+      {tabMenu && (
+        <ContextMenu
+          x={tabMenu.x}
+          y={tabMenu.y}
+          items={tabMenuItems}
+          onClose={() => setTabMenu(null)}
+        />
+      )}
+      {dayMenu && (
+        <ContextMenu
+          x={dayMenu.x}
+          y={dayMenu.y}
+          items={dayMenuItems}
+          onClose={() => setDayMenu(null)}
+        />
+      )}
+      {planSettings && (
+        <PlanSettingsDialog
+          key={planSettings.id}
+          plan={planSettings}
+          onClose={() => setPlanSettings(null)}
+          onConfirm={handlePlanSettings}
+        />
+      )}
+      {daySettings && (
+        <DaySettingsDialog
+          key={daySettings.weekday}
+          weekday={daySettings.weekday}
+          initialStart={daySettings.initialStart}
+          initialEnd={daySettings.initialEnd}
+          onClose={() => setDaySettings(null)}
+          onConfirm={(dayStart, dayEnd) =>
+            handleDaySettings(daySettings.weekday, dayStart, dayEnd)
+          }
+        />
+      )}
+      <ConfirmDialog
+        open={confirmDelete != null}
+        title="删除周表"
+        message={`将删除「${confirmDelete?.name ?? ""}」及其全部事务与日覆盖，不可恢复。确定删除？`}
+        confirmText="删除"
+        danger
+        onConfirm={() => {
+          const target = confirmDelete;
+          setConfirmDelete(null);
+          if (target) void handleDelete(target);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
       <ConfirmDialog
         open={confirmSwitch != null}
         title="未保存的更改"

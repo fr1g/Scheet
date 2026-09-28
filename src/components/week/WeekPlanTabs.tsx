@@ -8,6 +8,8 @@ interface WeekPlanTabsProps {
   currentId: number | null;
   onSelect: (id: number) => void;
   onAdd: () => void;
+  /** 右键 tab：打开周表菜单（设置/设为当周/删除）。 */
+  onTabMenu?: (e: React.MouseEvent, plan: WeekPlan) => void;
 }
 
 /**
@@ -20,6 +22,7 @@ export default function WeekPlanTabs({
   currentId,
   onSelect,
   onAdd,
+  onTabMenu,
 }: WeekPlanTabsProps) {
   return (
     <nav className="flex h-full w-16 shrink-0 flex-col">
@@ -31,6 +34,10 @@ export default function WeekPlanTabs({
             key={plan.id}
             type="button"
             onClick={() => onSelect(plan.id)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onTabMenu?.(e, plan);
+            }}
             title={isCurrent ? `${plan.name}（当周）` : plan.name}
             className={`relative h-1/6 w-full border text-left transition-colors ${
               selected

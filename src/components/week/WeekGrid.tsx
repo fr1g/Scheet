@@ -24,6 +24,8 @@ interface WeekGridProps {
   dirty: boolean;
   saving: boolean;
   onSave: () => void;
+  /** 右键表头：打开当天设置菜单。 */
+  onDayMenu?: (e: React.MouseEvent, weekday: number) => void;
 }
 
 /** thead 行高（h-8，含边框）。 */
@@ -42,6 +44,7 @@ export default function WeekGrid({
   dirty,
   saving,
   onSave,
+  onDayMenu,
 }: WeekGridProps) {
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -106,6 +109,11 @@ export default function WeekGrid({
               {days.map((d) => (
                 <th
                   key={d}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    onDayMenu?.(e, d);
+                  }}
+                  title="右键打开当天设置"
                   className="h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100"
                 >
                   {weekdayLabel(d)}
