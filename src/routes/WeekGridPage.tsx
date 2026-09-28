@@ -3,6 +3,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
 import Toast from "../components/Toast";
 import DaySettingsDialog from "../components/week/DaySettingsDialog";
+import EntryEditDialog from "../components/week/EntryEditDialog";
 import PlanSettingsDialog from "../components/week/PlanSettingsDialog";
 import WeekGrid from "../components/week/WeekGrid";
 import WeekPlanTabs from "../components/week/WeekPlanTabs";
@@ -53,6 +54,11 @@ export default function WeekGridPage() {
   const [pasteTargetWeekday, setPasteTargetWeekday] = useState<number | null>(null);
   /** 聚焦窗口时嗅探：剪贴板当前是否持有合法事务 JSON。 */
   const [clipboardHasPlan, setClipboardHasPlan] = useState(false);
+  /** 编辑中的事务；createdNow=双击无安排区域刚创建，取消时撤销。 */
+  const [editEntry, setEditEntry] = useState<{
+    entry: WeekEntry;
+    createdNow: boolean;
+  } | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -264,6 +270,55 @@ export default function WeekGridPage() {
     if (!clipboardHasPlan) setPasteTargetWeekday(null);
   }, [clipboardHasPlan]);
 
+  // ============ 双击编辑 / 新建 ============
+
+  const handleCreateAt = (weekday: number, startMinute: number) => {
+    if (!plan) return;
+    const tempId = Math.min(0, ...plan.entries.map((e) => e.id)) - 1;
+    const entry: WeekEntry = {
+      id: tempId,
+      weekday,
+      startMinute,
+      durationMinute: 30,
+      entryType: "normal",
+      title: "",
+      alarmFile: null,
+      alarmMode: null,
+      color: null,
+    };
+    setPlan({ ...plan, entries: [...plan.entries, entry] });
+    setEditEntry({ entry, createdNow: true });
+  };
+
+  const handleEditConfirm = (edited: WeekEntry) => {
+    setEditEntry(null);
+    setPlan((prev) =>
+      prev
+        ? { ...prev, entries: prev.entries.map((e) => (e.id === edited.id ? edited : e)) }
+        : prev,
+    );
+  };
+
+  /** 取消：双击新建的临时事务一并撤销，其余仅关闭弹窗。 */
+  const handleEditCancel = () => {
+    if (editEntry?.createdNow) {
+      const tempId = editEntry.entry.id;
+      setPlan((prev) =>
+        prev ? { ...prev, entries: prev.entries.filter((e) => e.id !== tempId) } : prev,
+      );
+    }
+    setEditEntry(null);
+  };
+
+  const handleEditDelete = () => {
+    if (!editEntry) return;
+    const tempId = editEntry.entry.id;
+    setPlan((prev) =>
+      prev ? { ...prev, entries: prev.entries.filter((e) => e.id !== tempId) } : prev,
+    );
+    setEditEntry(null);
+  };
+
   // ============ 选中 / 复制 / 粘贴 ============
 
   const handleCopy = useCallback(async () => {
@@ -379,6 +434,8 @@ export default function WeekGridPage() {
         onCopy={() => void handleCopy()}
         onPaste={() => void handlePaste()}
         onChangeEntries={handleChangeEntries}
+        onEditEntry={(entry) => setEditEntry({ entry, createdNow: false })}
+        onCreateAt={handleCreateAt}
       />
       <aside className="w-64 shrink-0 border-l border-zinc-600 p-3">
         <div className="text-xs text-zinc-400">今日待办</div>
@@ -420,6 +477,16 @@ export default function WeekGridPage() {
           onConfirm={(dayStart, dayEnd) =>
             handleDaySettings(daySettings.weekday, dayStart, dayEnd)
           }
+        />
+      )}
+      {editEntry && (
+        <EntryEditDialog
+          key={editEntry.entry.id}
+          entry={editEntry.entry}
+          createdNow={editEntry.createdNow}
+          onClose={handleEditCancel}
+          onConfirm={handleEditConfirm}
+          onDelete={handleEditDelete}
         />
       )}
       <ConfirmDialog

@@ -41,6 +41,10 @@ interface WeekGridProps {
   onPaste: () => void;
   /** 拖拽/调整导致的事务变更（写入工作副本，随主保存入库）。 */
   onChangeEntries: (updater: (entries: WeekEntry[]) => WeekEntry[]) => void;
+  /** 双击事务：打开编辑模态。 */
+  onEditEntry?: (entry: WeekEntry) => void;
+  /** 双击无安排区域：在该时段新建事务。 */
+  onCreateAt?: (weekday: number, startMinute: number) => void;
 }
 
 const HEADER_ROW_PX = 32; // thead 行高（h-8，含边框）
@@ -95,6 +99,8 @@ export default function WeekGrid({
   onCopy,
   onPaste,
   onChangeEntries,
+  onEditEntry,
+  onCreateAt,
 }: WeekGridProps) {
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -371,6 +377,8 @@ export default function WeekGrid({
                             className="shrink-0 py-px"
                             style={{ height: cell.heightPx }}
                             onClick={() => onSelectEntry(null)}
+                            onDoubleClick={() => onCreateAt?.(d, cell.startMinute)}
+                            title="双击在此新建事务"
                           >
                             <div className="h-full rounded-xl opacity-0" />
                           </div>
@@ -379,6 +387,7 @@ export default function WeekGrid({
                             key={i}
                             className="shrink-0 py-px"
                             style={{ height: cell.heightPx }}
+                            onDoubleClick={() => onEditEntry?.(cell.entry!)}
                           >
                             <EntryCell
                               cell={cell}
