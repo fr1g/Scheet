@@ -7,7 +7,15 @@ import EntryEditDialog from "../components/week/EntryEditDialog";
 import PlanSettingsDialog from "../components/week/PlanSettingsDialog";
 import WeekGrid from "../components/week/WeekGrid";
 import WeekPlanTabs from "../components/week/WeekPlanTabs";
+import {
+  entryBackground,
+  minuteToHHMM,
+  parseEntryPlan,
+  serializeEntryPlan,
+  weekdayLabel,
+} from "../lib/weekgrid";
 import { getGlobalConfig } from "../lib/global-config";
+import TodoPanel from "../components/week/TodoPanel";
 import {
   createWeekPlan,
   deleteWeekPlan,
@@ -18,11 +26,6 @@ import {
   setActiveWeekPlan,
 } from "../lib/weeks";
 import { readClipboardText, writeClipboardText } from "../lib/clipboard";
-import {
-  parseEntryPlan,
-  serializeEntryPlan,
-  weekdayLabel,
-} from "../lib/weekgrid";
 import type { GlobalConfig } from "../types/global-config";
 import type { FullPlan, WeekEntry, WeekPlan } from "../types/weeks";
 import { setTitleState } from "../state/titleState";
@@ -52,8 +55,11 @@ export default function WeekGridPage() {
   const [confirmDelete, setConfirmDelete] = useState<WeekPlan | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
   const [pasteTargetWeekday, setPasteTargetWeekday] = useState<number | null>(null);
-  /** 聚焦窗口时嗅探：剪贴板当前是否持有合法事务 JSON。 */
-  const [clipboardHasPlan, setClipboardHasPlan] = useState(false);
+  /** 聚焦窗口时嗅探：剪贴板中的事务（null = 无/非事务 JSON）。 */
+  const [clipboardPlan, setClipboardPlan] = useState<
+    Omit<WeekEntry, "id" | "weekday"> | null
+  >(null);
+  const clipboardHasPlan = clipboardPlan != null;
   /** 编辑中的事务；createdNow=双击无安排区域刚创建，取消时撤销。 */
   const [editEntry, setEditEntry] = useState<{
     entry: WeekEntry;
@@ -252,9 +258,9 @@ export default function WeekGridPage() {
   const refreshClipboardState = useCallback(async () => {
     try {
       const raw = await readClipboardText();
-      setClipboardHasPlan(parseEntryPlan(raw) != null);
+      setClipboardPlan(parseEntryPlan(raw));
     } catch {
-      setClipboardHasPlan(false);
+      setClipboardPlan(null);
     }
   }, []);
 
@@ -328,7 +334,7 @@ export default function WeekGridPage() {
     const entry = plan.entries.find((e) => e.id === selectedEntryId);
     if (!entry) return;
     await writeClipboardText(serializeEntryPlan(entry));
-    setClipboardHasPlan(true);
+    setClipboardPlan(parseEntryPlan(serializeEntryPlan(entry)));
     showToast("已复制事务到剪贴板");
   }, [plan, selectedEntryId, showToast]);
 
@@ -439,11 +445,32 @@ export default function WeekGridPage() {
         onEditEntry={(entry) => setEditEntry({ entry, createdNow: false })}
         onCreateAt={handleCreateAt}
       />
-      <aside className="w-64 shrink-0 border-l border-zinc-600 p-3">
-        <div className="text-xs text-zinc-400">今日待办</div>
-        <div className="mt-2 text-[10px] text-zinc-500">
-          待办列表与剪贴板预览将在 M5 里程碑提供
-        </div>
+      <aside className="relative w-64 shrink-0 border-l border-zinc-600">
+        {clipboardPlan && (
+          <div className="absolute inset-x-3 top-3 z-20">
+            <div className="text-[10px] text-zinc-400">
+              剪贴板中的事务（点表头设目标后可粘贴）
+            </div>
+            <div
+              className="mt-1 flex flex-col rounded-xl px-2 py-1 text-xs text-zinc-100 shadow-lg"
+              style={{
+                background: entryBackground(clipboardPlan.entryType, clipboardPlan.color),
+              }}
+            >
+              <span className="text-[10px] leading-3 text-zinc-300">
+                {minuteToHHMM(clipboardPlan.startMinute)}
+              </span>
+              <span className="grid grow place-items-center py-1 text-center leading-tight">
+                {clipboardPlan.title ||
+                  (clipboardPlan.entryType === "normal" ? "普通事务" : "休息事务")}
+              </span>
+              <span className="text-[10px] leading-3 text-zinc-300">
+                {minuteToHHMM(clipboardPlan.startMinute + clipboardPlan.durationMinute)}
+              </span>
+            </div>
+          </div>
+        )}
+        <TodoPanel className={clipboardPlan ? "pt-24" : ""} />
       </aside>
       {tabMenu && (
         <ContextMenu

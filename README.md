@@ -15,4 +15,5 @@
   - 系统托盘驻留（左键回焦、菜单退出、关闭窗口隐藏到托盘，`src-tauri/src/tray.rs`）；
   - 本 README、AGENTS.md 项目规范与应用占位图标。
 - 生成代码已通过 tsc 类型检查、vite 构建、cargo 编译、Rust 单元测试与实机冒烟验证。
+- M1-M5 迭代（周课表网格/交互/冲突校验/提醒弹窗/snackbar/设置页/todo/剪贴板预览）均由 AI 按里程碑实现并提交，验收点记录见 [current.md](current.md) 与 [plan.md](plan.md)。
 - 后续迭代建议继续由 AI 按 [AGENTS.md](AGENTS.md) 的约定协作完成；人工负责需求定义、代码审阅与验收。

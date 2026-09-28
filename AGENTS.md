@@ -57,7 +57,9 @@ pnpm exec tauri icon <png>  # 重新生成 src-tauri/icons/（源图 1024x1024�
   - macOS: `~/Documents/scheet/data.db`
   - Linux: `~/Documents/scheet/data.db`（遵循 XDG 用户目录配置）
   - 目录不存在则递归创建；文档目录定位失败时回退到用户主目录。
-- SQLite 负责**应用数据**和**应用设置**。设置存于 `app_settings` 表（`key TEXT PRIMARY KEY, value TEXT(JSON)`）。
+- 三库分工（同目录）：`data.db`（app_settings/flags + 手动 reminders 表）、`weeks.db`（week_plans/week_entries/week_day_overrides 周表数据）、`todo-list.db`（todos + todo_meta）。
+- 设置存于 data.db 的 `app_settings` 表（`key TEXT PRIMARY KEY, value TEXT(JSON)`）。
+- todo 跨天规则：新一天首次被处理时，把上次处理日以来所有未完成 todo 复制到今天（todo.rs，调度线程日切时执行）。
 - WAL 日志模式。
 
 ### 应用设置
@@ -139,5 +141,6 @@ SQLite 中一切时间按三类存储，**不得混用**（约定实现见 `src-
 
 - 路由使用 `HashRouter`（桌面环境最稳定）。
 - Rust 命令统一返回 `Result<T, String>`；新增耗时 DB 操作一律 async 命令 + `spawn_blocking`。
-- 前端调用后端的封装放在 `src/lib/`，全局状态放 `src/state/`。
-- 应用主内容目前留空（`src/routes/HomePage.tsx`），等待后续迭代。
+- 前端调用后端的封装放在 `src/lib/`，全局状态放 `src/state/`（titleState/dateState 为 useSyncExternalStore 外部存储）。
+- 周课表页（WeekGridPage）：左侧周表 tab 列、中央绝对定位网格（冲突泳道并排）、右侧当日待办面板 + 剪贴板事务预览浮块。
+- 测试用例库见根目录 `测试用例.md`（黑白盒，按里程碑验收勾选）。

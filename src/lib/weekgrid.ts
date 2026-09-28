@@ -237,10 +237,10 @@ export function hexWithAlpha(hex: string, alpha: number): string | null {
  * 事务 cell 的背景色：自定义颜色叠加透明度；
  * 未自定义时按类型取默认色（普通=蓝、休息=琥珀，与原型同色相的深色变体）。
  */
-export function entryBackground(entry: WeekEntry): string {
-  const custom = entry.color ? hexWithAlpha(entry.color, CELL_COLOR_ALPHA) : null;
+export function entryBackground(entryType: EntryType, color: string | null): string {
+  const custom = color ? hexWithAlpha(color, CELL_COLOR_ALPHA) : null;
   if (custom) return custom;
-  return entry.entryType === "normal"
+  return entryType === "normal"
     ? "rgba(96, 165, 250, 0.15)" // blue-400
     : "rgba(251, 191, 36, 0.15)"; // amber-400
 }

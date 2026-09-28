@@ -548,7 +548,7 @@ function EntryCell({
   return (
     <div
       title={tooltip}
-      style={{ background: entryBackground(entry) }}
+      style={{ background: entryBackground(entry.entryType, entry.color) }}
       onPointerDown={onBodyPointerDown}
       className={`group relative h-full w-full flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline} ${selectionRing} ${
         dragging ? "cursor-grabbing" : "cursor-move"
