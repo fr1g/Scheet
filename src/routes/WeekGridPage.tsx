@@ -13,6 +13,7 @@ import {
 } from "../lib/weeks";
 import type { GlobalConfig } from "../types/global-config";
 import type { FullPlan, WeekPlan } from "../types/weeks";
+import { setTitleState } from "../state/titleState";
 
 /** 周表页：左侧 tab 列 + 中央网格。编辑在工作副本上进行，显式保存入库。 */
 export default function WeekGridPage() {
@@ -72,6 +73,17 @@ export default function WeekGridPage() {
   }, [selectedId, showToast]);
 
   const dirty = plan != null && JSON.stringify(plan) !== savedSnapshot;
+
+  // 同步标题栏/系统窗口标题所需的状态
+  useEffect(() => {
+    setTitleState({
+      currentPlanSlot:
+        plans.find((p) => p.id === currentId)?.slot ?? null,
+      selectedPlanSlot:
+        plans.find((p) => p.id === selectedId)?.slot ?? null,
+      planCount: plans.length,
+    });
+  }, [plans, currentId, selectedId]);
 
   const handleSelect = (id: number) => {
     if (id === selectedId) return;
