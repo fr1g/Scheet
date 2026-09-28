@@ -16,6 +16,7 @@ interface WeekPlanTabsProps {
 /**
  * 左侧纵向周表 tab 列：每个 tab 占窗口高度的 1/6（类似 Windows 属性标签页），
  * 选中的 tab 与右侧表区连通（右侧无边框 + 负外边距盖住内容区左边框）。
+ * 仅两个周表时按 单周/双周 展示。
  */
 export default function WeekPlanTabs({
   plans,
@@ -26,11 +27,20 @@ export default function WeekPlanTabs({
   onTabMenu,
 }: WeekPlanTabsProps) {
   const { t } = useTranslation();
+
+  const displayName = (index: number, plan: WeekPlan): string => {
+    if (plans.length === 2) {
+      return index === 0 ? t("titlebar.single") : t("titlebar.double");
+    }
+    return plan.name;
+  };
+
   return (
     <nav className="flex h-full w-16 shrink-0 flex-col">
-      {plans.map((plan) => {
+      {plans.map((plan, index) => {
         const selected = plan.id === selectedId;
         const isCurrent = plan.id === currentId;
+        const name = displayName(index, plan);
         return (
           <button
             key={plan.id}
@@ -40,11 +50,7 @@ export default function WeekPlanTabs({
               e.preventDefault();
               onTabMenu?.(e, plan);
             }}
-            title={
-              isCurrent
-                ? `${plan.name}（${t("tabs.current")}）`
-                : plan.name
-            }
+            title={isCurrent ? `${name}（${t("tabs.current")}）` : name}
             className={`relative h-1/6 w-full border text-left transition-colors ${
               selected
                 ? "z-10 -mr-px border-zinc-600 border-r-0 bg-zinc-700"
@@ -59,7 +65,7 @@ export default function WeekPlanTabs({
             </span>
             <span className="flex h-full w-full items-center justify-center px-1">
               <span className="line-clamp-2 text-center text-xs leading-tight text-zinc-100">
-                {plan.name}
+                {name}
               </span>
             </span>
           </button>

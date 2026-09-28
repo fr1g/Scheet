@@ -193,6 +193,13 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
             eprintln!("[db] 迁移 week_entries.end_alarm_mode 失败(已忽略): {e}");
         }
     }
+    // 统一默认周表命名（旧安装为"第一周表"；用户自己改过名的不会被触碰）
+    if let Err(e) = conn.execute(
+        "UPDATE week_plans SET name = '周表 1' WHERE slot = 1 AND name = '第一周表'",
+        [],
+    ) {
+        eprintln!("[db] 统一默认周表命名失败(已忽略): {e}");
+    }
     ensure_default_plan(conn)
 }
 
@@ -203,7 +210,7 @@ fn ensure_default_plan(conn: &Connection) -> Result<(), String> {
     if count == 0 {
         let now = now_str();
         conn.execute(
-            "INSERT INTO week_plans (slot, name, created_at, updated_at) VALUES (1, '第一周表', ?1, ?1)",
+            "INSERT INTO week_plans (slot, name, created_at, updated_at) VALUES (1, '周表 1', ?1, ?1)",
             [&now],
         )
         .map_err(|e| format!("创建默认周表失败: {e}"))?;

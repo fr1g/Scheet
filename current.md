@@ -31,3 +31,4 @@
 - 2026-09-29 M4-part2 完成（用户反馈批次）：取消更改按钮（恢复快照+确认模态）、Ctrl+S 保存、全局屏蔽默认右键菜单、framer-motion 过渡（snackbar/模态/右键菜单/Toast）、snackbar 缓慢闪烁琥珀 outline。37 测试绿，提交 ee015b5，待用户验收
 - 2026-09-29 M4-part3 完成（用户反馈）：Shift 悬停关闭按钮变"退出"（红色加宽），Shift+点击确认模态警告后 exit_application 直接退出。提交 cb1ffd7，应用运行中待验收
 - 2026-09-29 i18n 完成：i18next 中英双语（zh 为事实标准、en 镜像），语言偏好进全局设置（auto/zh/en）即时生效；GlobalConfig 提升到应用级上下文；全部组件文案接 t() 并白话化；Rust 推送改结构化数据（kind+fire_minute），文案前端生成；托盘菜单按语言设置。37 测试绿，提交 670984e，待用户验收
+- 2026-09-29 首屏优化：index.html 内联静态首屏（纯样式+系统语言文案+旋转动画，不依赖 JS/CSS 资源），React 挂载后自动替换；提交待记（见 git log）
