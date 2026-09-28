@@ -119,5 +119,12 @@ pub fn run() {
             if let tauri::RunEvent::Reopen { .. } = _event {
                 focus_main_window(_app);
             }
+            // 托盘驻留兜底：所有窗口被真实关闭/销毁时也不退出
+            // （code=None 为自发性退出；app.exit(0) 的 code=Some(0) 不受影响，托盘"退出"仍有效）
+            if let tauri::RunEvent::ExitRequested { code, api, .. } = _event {
+                if code.is_none() {
+                    api.prevent_exit();
+                }
+            }
         });
 }
