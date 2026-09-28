@@ -483,6 +483,7 @@ export default function WeekGridPage() {
         <EntryEditDialog
           key={editEntry.entry.id}
           entry={editEntry.entry}
+          config={config}
           createdNow={editEntry.createdNow}
           onClose={handleEditCancel}
           onConfirm={handleEditConfirm}

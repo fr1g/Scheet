@@ -7,6 +7,7 @@ import {
   buildDayCells,
   entryBackground,
   findConflicts,
+  humanizeMinutes,
   minuteToHHMM,
   orderedWeekdays,
   planGlobalWindow,
@@ -28,12 +29,12 @@ interface WeekGridProps {
   onDayMenu?: (e: React.MouseEvent, weekday: number) => void;
   /** 当前选中的事务（高亮 + 复制目标）。 */
   selectedEntryId: number | null;
-  /** 左键按下事务 cell：选中。 */
+  /** 按下事务 cell：选中。 */
   onSelectEntry: (entryId: number | null) => void;
   /** 左键点击表头：设定粘贴目标天（null = 无）。 */
   onPasteTarget: (weekday: number | null) => void;
   pasteTargetWeekday: number | null;
-  /** 剪贴板是否持有合法事务 JSON（聚焦窗口嗅探）；false 时表头点击不激活粘贴目标。 */
+  /** 剪贴板是否持有合法事务 JSON（聚焦窗口嗅探）。 */
   clipboardHasPlan: boolean;
   /** 复制选中事务到剪贴板。 */
   onCopy: () => void;
@@ -49,24 +50,41 @@ interface WeekGridProps {
 
 const HEADER_ROW_PX = 32; // thead 行高（h-8，含边框）
 const TD_PADDING_PX = 8; // tbody td 上下内边距合计（p-1）
-const DRAG_THRESHOLD_PX = 6; // 轴向判定阈值
 const MAX_DURATION_MINUTE = 1440;
 
 type DragState =
-  /** 按下未超过阈值：尚不能判定轴向。 */
+  /** 拖动 cell 顶部边缘：调整开始时间（结束不变）。 */
   | {
-      mode: "pending";
+      mode: "resize-start";
+      entryId: number;
+      dayStart: number;
+      startY: number;
+      baseStart: number;
+      baseEnd: number;
+      start: number;
+    }
+  /** 拖动 cell 底部边缘：调整结束时间（开始不变）。 */
+  | {
+      mode: "resize-end";
+      entryId: number;
+      startY: number;
+      baseStart: number;
+      baseEnd: number;
+      end: number;
+    }
+  /** 拖动 cell 本体：保持时长在当天任意时段重放（垂直）+ 换天（水平）。 */
+  | {
+      mode: "move";
       entryId: number;
       sourceWeekday: number;
       startX: number;
       startY: number;
-      baseDuration: number;
+      baseStart: number;
+      duration: number;
+      shift: number;
+      targetDay: number | null;
     }
-  /** 垂直拖拽：调整时长（5 分钟步进）。 */
-  | { mode: "resize"; entryId: number; startY: number; baseDuration: number; duration: number }
-  /** 水平拖拽：移动事务到其他天。 */
-  | { mode: "move"; entryId: number; sourceWeekday: number; targetDay: number | null }
-  /** 边缘横向拖拽：把该事务复制安排到其他天的同一时段。 */
+  /** 按住 cell 左右边缘横向拖拽：复制安排到其他天的同一时段。 */
   | { mode: "copy"; entryId: number; sourceWeekday: number; targetDay: number | null };
 
 function dayFromPoint(x: number, y: number): number | null {
@@ -75,8 +93,8 @@ function dayFromPoint(x: number, y: number): number | null {
   return value == null ? null : Number(value);
 }
 
-function clampDuration(minutes: number): number {
-  return Math.min(MAX_DURATION_MINUTE, Math.max(5, Math.round(minutes / 5) * 5));
+function snap5(deltaPx: number, pxPerMinute: number): number {
+  return Math.round(deltaPx / pxPerMinute / 5) * 5;
 }
 
 /**
@@ -107,7 +125,6 @@ export default function WeekGrid({
   const [wrapHeight, setWrapHeight] = useState(0);
   const { weekday: today } = useToday();
   const [drag, setDrag] = useState<DragState | null>(null);
-  const dragMovedRef = useRef(false);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -136,28 +153,58 @@ export default function WeekGrid({
     wrapHeight > 0 ? availablePx / spanMinutes : PX_PER_MINUTE_FALLBACK;
   const dragTargetDay = drag && "targetDay" in drag ? drag.targetDay : null;
 
-  const nextTempId = () => Math.min(0, ...plan.entries.map((e) => e.id)) - 1;
-
   // ============ 拖拽状态机 ============
 
-  const startBodyDrag = (e: React.PointerEvent, entry: WeekEntry) => {
+  const startMoveDrag = (e: React.PointerEvent, entry: WeekEntry) => {
     if (e.button !== 0) return;
     onSelectEntry(entry.id);
-    dragMovedRef.current = false;
     setDrag({
-      mode: "pending",
+      mode: "move",
       entryId: entry.id,
       sourceWeekday: entry.weekday,
       startX: e.clientX,
       startY: e.clientY,
-      baseDuration: entry.durationMinute,
+      baseStart: entry.startMinute,
+      duration: entry.durationMinute,
+      shift: 0,
+      targetDay: null,
     });
+  };
+
+  const startResizeDrag = (
+    e: React.PointerEvent,
+    entry: WeekEntry,
+    which: "start" | "end",
+  ) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const { dayStart } = resolveDayWindow(plan, entry.weekday, config);
+    dragMovedReset();
+    if (which === "start") {
+      setDrag({
+        mode: "resize-start",
+        entryId: entry.id,
+        dayStart,
+        startY: e.clientY,
+        baseStart: entry.startMinute,
+        baseEnd: entry.startMinute + entry.durationMinute,
+        start: entry.startMinute,
+      });
+    } else {
+      setDrag({
+        mode: "resize-end",
+        entryId: entry.id,
+        startY: e.clientY,
+        baseStart: entry.startMinute,
+        baseEnd: entry.startMinute + entry.durationMinute,
+        end: entry.startMinute + entry.durationMinute,
+      });
+    }
   };
 
   const startCopyDrag = (e: React.PointerEvent, entry: WeekEntry) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    dragMovedRef.current = false;
     setDrag({
       mode: "copy",
       entryId: entry.id,
@@ -169,74 +216,93 @@ export default function WeekGrid({
   useEffect(() => {
     if (!drag) return;
 
-    // 拖拽期间统一指针光标
     const prevCursor = document.body.style.cursor;
     document.body.style.cursor =
-      drag.mode === "resize"
+      drag.mode === "resize-start" || drag.mode === "resize-end"
         ? "ns-resize"
         : drag.mode === "copy"
           ? "copy"
           : "grabbing";
 
     const onPointerMove = (e: PointerEvent) => {
-      if (drag.mode === "pending") {
-        const dx = Math.abs(e.clientX - drag.startX);
-        const dy = Math.abs(e.clientY - drag.startY);
-        if (Math.max(dx, dy) < DRAG_THRESHOLD_PX) return;
-        dragMovedRef.current = true;
-        if (dy >= dx) {
-          setDrag({
-            mode: "resize",
-            entryId: drag.entryId,
-            startY: drag.startY,
-            baseDuration: drag.baseDuration,
-            duration: drag.baseDuration,
-          });
-        } else {
-          dragMovedRef.current = true;
-          setDrag({
-            mode: "move",
-            entryId: drag.entryId,
-            sourceWeekday: drag.sourceWeekday,
-            targetDay: dayFromPoint(e.clientX, e.clientY),
-          });
-        }
-        return;
-      }
-      if (drag.mode === "resize") {
-        const duration = clampDuration(
-          drag.baseDuration + (e.clientY - drag.startY) / pxPerMinute,
+      if (drag.mode === "resize-start") {
+        // 拖顶部：改开始时间，结束不变；至少保留 5 分钟
+        const start = Math.max(
+          drag.dayStart,
+          Math.min(drag.baseEnd - 5, drag.baseStart + snap5(e.clientY - drag.startY, pxPerMinute)),
         );
-        if (duration !== drag.duration) {
-          setDrag({ ...drag, duration });
+        if (start !== drag.start) {
+          setDrag({ ...drag, start });
           onChangeEntries((entries) =>
             entries.map((x) =>
-              x.id === drag.entryId ? { ...x, durationMinute: duration } : x,
+              x.id === drag.entryId
+                ? { ...x, startMinute: start, durationMinute: drag.baseEnd - start }
+                : x,
             ),
           );
         }
         return;
       }
+      if (drag.mode === "resize-end") {
+        // 拖底部：改结束时间（允许溢出当天结束时间，最长一整天）
+        const end = Math.min(
+          drag.baseStart + MAX_DURATION_MINUTE,
+          Math.max(drag.baseStart + 5, drag.baseEnd + snap5(e.clientY - drag.startY, pxPerMinute)),
+        );
+        if (end !== drag.end) {
+          setDrag({ ...drag, end });
+          onChangeEntries((entries) =>
+            entries.map((x) =>
+              x.id === drag.entryId ? { ...x, durationMinute: end - drag.baseStart } : x,
+            ),
+          );
+        }
+        return;
+      }
+      if (drag.mode === "copy") {
+        const targetDay = dayFromPoint(e.clientX, e.clientY);
+        if (targetDay !== drag.targetDay) {
+          setDrag({ ...drag, targetDay });
+        }
+        return;
+      }
+      // move：垂直=当天内重放（保持时长），水平=换天
+      const shift = snap5(e.clientY - drag.startY, pxPerMinute);
       const targetDay = dayFromPoint(e.clientX, e.clientY);
-      if (targetDay !== drag.targetDay) {
-        setDrag({ ...drag, targetDay });
+      if (shift !== drag.shift || targetDay !== drag.targetDay) {
+        setDrag({ ...drag, shift, targetDay });
+        const day = targetDay ?? drag.sourceWeekday;
+        const window = resolveDayWindow(plan, day, config);
+        const start = Math.max(
+          window.dayStart,
+          Math.min(
+            Math.max(window.dayStart, window.dayEnd - drag.duration),
+            drag.baseStart + shift,
+          ),
+        );
+        onChangeEntries((entries) =>
+          entries.map((x) =>
+            x.id === drag.entryId
+              ? { ...x, startMinute: start, weekday: day }
+              : x,
+          ),
+        );
       }
     };
 
     const onPointerUp = () => {
-      if (drag.mode === "move" && drag.targetDay != null && drag.targetDay !== drag.sourceWeekday) {
-        const target = drag.targetDay;
-        onChangeEntries((entries) =>
-          entries.map((x) => (x.id === drag.entryId ? { ...x, weekday: target } : x)),
-        );
-      } else if (
+      if (
         drag.mode === "copy" &&
         drag.targetDay != null &&
         drag.targetDay !== drag.sourceWeekday
       ) {
         const source = plan.entries.find((x) => x.id === drag.entryId);
         if (source) {
-          const copy: WeekEntry = { ...source, id: nextTempId(), weekday: drag.targetDay };
+          const copy: WeekEntry = {
+            ...source,
+            id: Math.min(0, ...plan.entries.map((x) => x.id)) - 1,
+            weekday: drag.targetDay,
+          };
           onChangeEntries((entries) => [...entries, copy]);
         }
       }
@@ -255,13 +321,17 @@ export default function WeekGrid({
       window.removeEventListener("pointercancel", onPointerCancel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drag, pxPerMinute, plan.entries, onChangeEntries]);
+  }, [drag, pxPerMinute, plan, config, onChangeEntries]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-zinc-600 px-3 py-1.5">
         <h1 className="text-sm text-zinc-100">{plan.plan.name}</h1>
-        {dirty && <span className="text-xs text-zinc-400">未保存 ●</span>}
+        {dirty && (
+          <span className="animate-pulse rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-300">
+            未保存更改 ●
+          </span>
+        )}
         <div className="flex-1" />
         <button
           type="button"
@@ -366,7 +436,14 @@ export default function WeekGrid({
                 const trailing = (globalEnd - dayEnd) * pxPerMinute;
                 return (
                   <td key={d} data-day={d} className="border border-zinc-600 p-1 align-top">
-                    <div className="flex h-full flex-col overflow-hidden">
+                    <div className="relative flex h-full flex-col overflow-hidden">
+                      {/* 底层标记当天的开始/结束时间（无安排区域可见，被事务 cell 覆盖） */}
+                      <span className="pointer-events-none absolute left-1 top-0.5 z-0 text-[10px] leading-3 text-zinc-500">
+                        {minuteToHHMM(dayStart)}
+                      </span>
+                      <span className="pointer-events-none absolute bottom-0.5 left-1 z-0 text-[10px] leading-3 text-zinc-500">
+                        {minuteToHHMM(dayEnd)}
+                      </span>
                       {leading > 0 && (
                         <div className="shrink-0 py-px" style={{ height: leading }} />
                       )}
@@ -385,7 +462,7 @@ export default function WeekGrid({
                         ) : (
                           <div
                             key={i}
-                            className="shrink-0 py-px"
+                            className="relative z-10 shrink-0 py-px"
                             style={{ height: cell.heightPx }}
                             onDoubleClick={() => onEditEntry?.(cell.entry!)}
                           >
@@ -394,8 +471,14 @@ export default function WeekGrid({
                               conflicted={conflictIds.has(cell.entry!.id)}
                               selected={selectedEntryId === cell.entry!.id}
                               dragging={drag?.entryId === cell.entry!.id}
-                              onBodyPointerDown={(e) => startBodyDrag(e, cell.entry!)}
-                              onEdgePointerDown={(e) => startCopyDrag(e, cell.entry!)}
+                              onBodyPointerDown={(e) => startMoveDrag(e, cell.entry!)}
+                              onCopyPointerDown={(e) => startCopyDrag(e, cell.entry!)}
+                              onResizeStartDown={(e) =>
+                                startResizeDrag(e, cell.entry!, "start")
+                              }
+                              onResizeEndDown={(e) =>
+                                startResizeDrag(e, cell.entry!, "end")
+                              }
                             />
                           </div>
                         ),
@@ -415,21 +498,29 @@ export default function WeekGrid({
   );
 }
 
-/** 每个 cell 的占位槽：槽高=分钟比例高度，内层留 1px 垂直缝形成卡片间隔。 */
+function dragMovedReset(): void {
+  /* 预留：如需在 resize 后抑制双击可在此扩展 */
+}
+
+/** 事务 cell：主体=移动（重放/换天），四边=调整（上开始/下结束）或复制（左右）。 */
 function EntryCell({
   cell,
   conflicted,
   selected,
   dragging,
   onBodyPointerDown,
-  onEdgePointerDown,
+  onCopyPointerDown,
+  onResizeStartDown,
+  onResizeEndDown,
 }: {
   cell: DayCellModel;
   conflicted: boolean;
   selected: boolean;
   dragging: boolean;
   onBodyPointerDown: (e: React.PointerEvent) => void;
-  onEdgePointerDown: (e: React.PointerEvent) => void;
+  onCopyPointerDown: (e: React.PointerEvent) => void;
+  onResizeStartDown: (e: React.PointerEvent) => void;
+  onResizeEndDown: (e: React.PointerEvent) => void;
 }) {
   const entry = cell.entry!;
   const showTimes = cell.heightPx - 2 >= TIME_LABEL_MIN_HEIGHT;
@@ -440,9 +531,11 @@ function EntryCell({
       : "";
   const selectionRing = selected ? "ring-2 ring-zinc-100/80" : "";
   const typeLabel = entry.entryType === "normal" ? "普通事务" : "休息事务";
-  const tooltip = `${minuteToHHMM(cell.startMinute)}~${minuteToHHMM(cell.realEndMinute)} ${
-    entry.title || typeLabel
-  }${cell.overflow ? "（超出当天结束时间）" : ""}`;
+  const tooltip = `${minuteToHHMM(cell.startMinute)}~${minuteToHHMM(cell.realEndMinute)} · 时长 ${humanizeMinutes(
+    entry.durationMinute,
+  )} · ${entry.title || typeLabel}${cell.overflow ? "（超出当天结束时间）" : ""}`;
+  const handle =
+    "absolute z-10 opacity-0 transition-colors group-hover:bg-zinc-100/25 group-hover:opacity-100";
 
   return (
     <div
@@ -453,14 +546,25 @@ function EntryCell({
         dragging ? "cursor-grabbing" : "cursor-move"
       }`}
     >
-      {/* 左右边缘把手：横向拖拽把事务复制安排到其他天的同一时段 */}
       <div
-        onPointerDown={onEdgePointerDown}
-        className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-ew-resize rounded-l-xl opacity-0 transition-colors group-hover:bg-zinc-100/25 group-hover:opacity-100"
+        onPointerDown={onResizeStartDown}
+        title="拖动调整开始时间"
+        className={`inset-x-0 top-0 h-1.5 cursor-ns-resize rounded-t-xl ${handle}`}
       />
       <div
-        onPointerDown={onEdgePointerDown}
-        className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-ew-resize rounded-r-xl opacity-0 transition-colors group-hover:bg-zinc-100/25 group-hover:opacity-100"
+        onPointerDown={onResizeEndDown}
+        title="拖动调整结束时间"
+        className={`inset-x-0 bottom-0 h-1.5 cursor-ns-resize rounded-b-xl ${handle}`}
+      />
+      <div
+        onPointerDown={onCopyPointerDown}
+        title="横向拖动：复制安排到其他天的同一时段"
+        className={`inset-y-0 left-0 w-1.5 cursor-ew-resize rounded-l-xl ${handle}`}
+      />
+      <div
+        onPointerDown={onCopyPointerDown}
+        title="横向拖动：复制安排到其他天的同一时段"
+        className={`inset-y-0 right-0 w-1.5 cursor-ew-resize rounded-r-xl ${handle}`}
       />
       {showTimes && (
         <span className="text-[10px] leading-3 text-zinc-300">

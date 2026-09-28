@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+:root {
+  /* 原生控件（时间拨盘/下拉/数字步进）走深色渲染 */
+  color-scheme: dark;
+}
+
 html,
 body,
 #root {

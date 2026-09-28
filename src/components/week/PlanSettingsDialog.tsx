@@ -81,7 +81,7 @@ export function TimeField({
   );
 }
 
-/** 通用的模态外壳（HeadlessUI Dialog）。 */
+/** 通用的模态外壳（HeadlessUI Dialog）。footer 缺省为"取消/确认"，可整体替换。 */
 export function DialogShell({
   title,
   children,
@@ -89,6 +89,7 @@ export function DialogShell({
   onConfirm,
   canConfirm = true,
   confirmText = "确定",
+  footer,
 }: {
   title: string;
   children: React.ReactNode;
@@ -96,6 +97,8 @@ export function DialogShell({
   onConfirm: () => void;
   canConfirm?: boolean;
   confirmText?: string;
+  /** 提供时替换默认页脚（编辑模态用它放"删除/取消/保存"组合）。 */
+  footer?: React.ReactNode;
 }) {
   return (
     <Dialog open onClose={onClose} className="relative z-50">
@@ -104,23 +107,25 @@ export function DialogShell({
         <DialogPanel className="w-full max-w-md rounded-xl border border-zinc-600 bg-zinc-800 p-4">
           <DialogTitle className="text-sm font-medium text-zinc-100">{title}</DialogTitle>
           <div className="mt-3">{children}</div>
-          <div className="mt-4 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={!canConfirm}
-              className="rounded bg-blue-500 px-3 py-1.5 text-xs text-white transition-colors enabled:hover:bg-blue-400 disabled:opacity-40"
-            >
-              {confirmText}
-            </button>
-          </div>
+          {footer ?? (
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={!canConfirm}
+                className="rounded bg-blue-500 px-3 py-1.5 text-xs text-white transition-colors enabled:hover:bg-blue-400 disabled:opacity-40"
+              >
+                {confirmText}
+              </button>
+            </div>
+          )}
         </DialogPanel>
       </div>
     </Dialog>

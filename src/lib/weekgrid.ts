@@ -3,7 +3,7 @@
  * 与 Rust 侧逻辑保持一致（保存的权威校验在 weeks.rs，这里用于即时渲染）。
  */
 
-import type { Conflict, FullPlan, WeekEntry } from "../types/weeks";
+import type { AlarmMode, Conflict, EntryType, FullPlan, WeekEntry } from "../types/weeks";
 import type { GlobalConfig } from "../types/global-config";
 
 /** 像素/分钟的兜底值（窗口尺寸未测得时使用）。 */
@@ -17,6 +17,15 @@ export function minuteToHHMM(minute: number): string {
   const h = Math.floor(minute / 60);
   const m = minute % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** 分钟数 → "x 小时 x 分钟"（x 分钟）。 */
+export function humanizeMinutes(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} 分钟`;
+  if (m === 0) return `${h} 小时`;
+  return `${h} 小时 ${m} 分钟`;
 }
 
 export interface DayCellModel {
@@ -114,6 +123,48 @@ export function resolveDayWindow(
   const dayEnd =
     o?.dayEndMinute ?? plan.plan.dayEndMinute ?? config.dayEndMinute;
   return { dayStart, dayEnd };
+}
+
+export interface ResolvedAlarmDisplay {
+  /** "builtin" | "none" | alarms 文件名。 */
+  file: "builtin" | "none" | string;
+  fileSource: string;
+  mode: AlarmMode;
+  modeSource: string;
+}
+
+/** 铃声解析链（类型默认 → 全局默认 → 内置），供编辑模态展示继承值。 */
+export function resolveAlarmDisplay(
+  entryType: EntryType,
+  config: GlobalConfig,
+): ResolvedAlarmDisplay {
+  const typeFile =
+    entryType === "normal" ? config.alarmNormalFile : config.alarmRestFile;
+  const typeMode =
+    entryType === "normal" ? config.alarmNormalMode : config.alarmRestMode;
+  const file = typeFile ?? config.alarmAllFile ?? "builtin";
+  const fileSource = typeFile
+    ? "类型默认"
+    : config.alarmAllFile
+      ? "全局默认"
+      : "内置";
+  const mode = typeMode ?? config.alarmAllMode ?? "once";
+  const modeSource = typeMode
+    ? "类型默认"
+    : config.alarmAllMode
+      ? "全局默认"
+      : "内置";
+  return { file, fileSource, mode, modeSource };
+}
+
+export function alarmFileLabel(value: "builtin" | "none" | string): string {
+  if (value === "builtin") return "内置铃声";
+  if (value === "none") return "不提醒";
+  return value;
+}
+
+export function alarmModeLabel(mode: AlarmMode): string {
+  return mode === "loop" ? "循环播放" : "播放一次";
 }
 
 /** 同一天内互相重叠的提醒事务（与 Rust find_conflicts 一致）。 */

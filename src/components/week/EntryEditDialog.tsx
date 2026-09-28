@@ -2,10 +2,15 @@ import { useEffect, useState } from "react";
 import { playAlarmSound, stopAlarmSound } from "../../lib/alarm-sound";
 import { listAlarmSounds } from "../../lib/clipboard";
 import {
+  alarmFileLabel,
+  alarmModeLabel,
   hexWithAlpha,
+  humanizeMinutes,
   minuteToTimeInput,
+  resolveAlarmDisplay,
   timeInputToMinute,
 } from "../../lib/weekgrid";
+import type { GlobalConfig } from "../../types/global-config";
 import type { AlarmMode, EntryType, WeekEntry } from "../../types/weeks";
 import { DialogShell, TimeField } from "./PlanSettingsDialog";
 
@@ -13,8 +18,27 @@ import { DialogShell, TimeField } from "./PlanSettingsDialog";
 type AlarmFileChoice = "inherit" | "builtin" | "none" | (string & {});
 type AlarmModeChoice = "inherit" | AlarmMode;
 
+/**
+ * 时长输入解析：支持纯分钟数（"175"）与 "小时.分钟" 小数形式（"1.30" → 1 小时 30 分钟）。
+ * 返回分钟数（非 5 的倍数也会返回，由提交时 2舍3入），非法返回 null。
+ */
+export function parseDurationInput(raw: string): number | null {
+  const s = raw.trim();
+  if (!s) return null;
+  if (s.includes(".")) {
+    const [h, m] = s.split(".");
+    const hours = Number(h);
+    const minutes = m === "" ? 0 : Number(m);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+    return hours * 60 + minutes;
+  }
+  const value = Number(s);
+  return Number.isFinite(value) ? value : null;
+}
+
 interface EntryEditDialogProps {
   entry: WeekEntry;
+  config: GlobalConfig;
   /** true = 双击无安排区域刚创建的临时事务：取消时一并撤销。 */
   createdNow: boolean;
   onClose: () => void;
@@ -25,6 +49,7 @@ interface EntryEditDialogProps {
 /** 事务编辑模态：双击事务编辑 / 双击无安排区域新建。 */
 export default function EntryEditDialog({
   entry,
+  config,
   createdNow,
   onClose,
   onConfirm,
@@ -50,8 +75,13 @@ export default function EntryEditDialog({
     return () => void stopAlarmSound().catch(() => undefined);
   }, []);
 
+  const resolved = resolveAlarmDisplay(entryType, config);
   const startMinute = timeInputToMinute(start);
-  const durationMinute = Number(duration);
+  const durationMinutes = parseDurationInput(duration);
+  const snappedDuration =
+    durationMinutes == null
+      ? null
+      : Math.min(1440, Math.max(5, Math.round(durationMinutes / 5) * 5));
   const colorOk = color === "" || /^#[0-9a-fA-F]{6}$/.test(color);
   const titleOk = entryType === "rest" || title.trim().length > 0;
   const timesOk =
@@ -60,32 +90,43 @@ export default function EntryEditDialog({
     startMinute >= 0 &&
     startMinute <= 1435 &&
     startMinute % 5 === 0 &&
-    Number.isInteger(durationMinute) &&
-    durationMinute > 0 &&
-    durationMinute <= 1440 &&
-    durationMinute % 5 === 0;
-  const canConfirm = titleOk && timesOk && colorOk;
+    durationMinutes != null &&
+    !Number.isNaN(durationMinutes) &&
+    durationMinutes > 0;
+  const canConfirm = titleOk && timesOk && colorOk && snappedDuration != null;
 
-  const previewDisabled = alarmChoice === "none" || alarmChoice === "inherit";
+  const previewFile =
+    alarmChoice === "inherit"
+      ? resolved.file === "builtin"
+        ? ""
+        : resolved.file === "none"
+          ? null
+          : resolved.file
+      : alarmChoice === "builtin"
+        ? ""
+        : alarmChoice === "none"
+          ? null
+          : alarmChoice;
+  const previewMode: AlarmMode = modeChoice === "inherit" ? resolved.mode : modeChoice;
+  const previewDisabled = previewFile == null;
 
   const handlePreview = async () => {
-    const file = alarmChoice === "builtin" ? "" : String(alarmChoice);
-    const mode: AlarmMode = modeChoice === "loop" ? "loop" : "once";
+    if (previewFile == null) return;
     try {
-      await playAlarmSound(file, mode);
+      await playAlarmSound(previewFile, previewMode);
     } catch (e: unknown) {
       console.error("试听失败", e);
     }
   };
 
   const confirm = () => {
-    if (!canConfirm || startMinute == null) return;
+    if (!canConfirm || startMinute == null || snappedDuration == null) return;
     onConfirm({
       ...entry,
       entryType,
       title: title.trim(),
       startMinute,
-      durationMinute,
+      durationMinute: snappedDuration,
       alarmFile: alarmChoice === "inherit" ? null : alarmChoice,
       alarmMode: modeChoice === "inherit" ? null : modeChoice,
       color: color === "" ? null : color.toUpperCase(),
@@ -103,7 +144,34 @@ export default function EntryEditDialog({
       onClose={onClose}
       onConfirm={confirm}
       canConfirm={canConfirm}
-      confirmText="保存到工作副本"
+      footer={
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded px-3 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-500/15"
+          >
+            删除此事务
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+            >
+              {createdNow ? "取消（撤销新建）" : "取消"}
+            </button>
+            <button
+              type="button"
+              onClick={confirm}
+              disabled={!canConfirm}
+              className="rounded bg-blue-500 px-3 py-1.5 text-xs text-white transition-colors enabled:hover:bg-blue-400 disabled:opacity-40"
+            >
+              保存到工作副本
+            </button>
+          </div>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 gap-2">
         {(["normal", "rest"] as EntryType[]).map((t) => (
@@ -136,18 +204,30 @@ export default function EntryEditDialog({
       <div className="mt-3 grid grid-cols-2 gap-3">
         <TimeField label="开始时间" value={start} onChange={setStart} />
         <label className="block text-xs text-zinc-300">
-          时长（分钟，5 的倍数）
+          时长（分钟；小数按 小时.分钟 解析）
           <input
-            type="number"
-            min={5}
-            max={1440}
-            step={5}
+            type="text"
+            inputMode="decimal"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
+            placeholder="如 95 或 1.35"
             className={inputClass}
           />
         </label>
       </div>
+      <p className="mt-1 text-[10px] text-zinc-500">
+        保存时自动 2舍3入到 5 的倍数
+        {snappedDuration != null && durationMinutes != null && durationMinutes > 0 && (
+          <>
+            ：将持续 {humanizeMinutes(snappedDuration)}
+            {durationMinutes !== snappedDuration && (
+              <span className="text-zinc-400">
+                （输入值 {humanizeMinutes(durationMinutes)}）
+              </span>
+            )}
+          </>
+        )}
+      </p>
 
       <div className="mt-3 grid grid-cols-2 gap-3">
         <label className="block text-xs text-zinc-300">
@@ -157,7 +237,9 @@ export default function EntryEditDialog({
             onChange={(e) => setAlarmChoice(e.target.value as AlarmFileChoice)}
             className={selectClass}
           >
-            <option value="inherit">未设置（继承类型/全局）</option>
+            <option value="inherit">
+              未设置（继承: {alarmFileLabel(resolved.file)} · {resolved.fileSource}）
+            </option>
             <option value="builtin">内置默认铃声</option>
             <option value="none">不提醒</option>
             {alarmFiles.map((f) => (
@@ -174,7 +256,9 @@ export default function EntryEditDialog({
             onChange={(e) => setModeChoice(e.target.value as AlarmModeChoice)}
             className={selectClass}
           >
-            <option value="inherit">未设置（继承类型/全局）</option>
+            <option value="inherit">
+              未设置（继承: {alarmModeLabel(resolved.mode)} · {resolved.modeSource}）
+            </option>
             <option value="once">播放一次</option>
             <option value="loop">循环播放</option>
           </select>
@@ -187,7 +271,7 @@ export default function EntryEditDialog({
           disabled={previewDisabled}
           className="rounded px-3 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
         >
-          试听
+          试听（按所选模式）
         </button>
         <button
           type="button"
@@ -233,33 +317,6 @@ export default function EntryEditDialog({
       {!titleOk && (
         <p className="mt-2 text-[10px] text-red-400">普通事务必须填写标题</p>
       )}
-
-      <div className="mt-4 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded px-3 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-500/15"
-        >
-          删除此事务
-        </button>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
-          >
-            {createdNow ? "取消（撤销新建）" : "取消"}
-          </button>
-          <button
-            type="button"
-            onClick={confirm}
-            disabled={!canConfirm}
-            className="rounded bg-blue-500 px-3 py-1.5 text-xs text-white transition-colors enabled:hover:bg-blue-400 disabled:opacity-40"
-          >
-            保存到工作副本
-          </button>
-        </div>
-      </div>
     </DialogShell>
   );
 }
