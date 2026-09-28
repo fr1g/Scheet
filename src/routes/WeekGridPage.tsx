@@ -285,6 +285,8 @@ export default function WeekGridPage() {
       alarmFile: null,
       alarmMode: null,
       color: null,
+      endAlarmFile: null,
+      endAlarmMode: null,
     };
     setPlan({ ...plan, entries: [...plan.entries, entry] });
     setEditEntry({ entry, createdNow: true });

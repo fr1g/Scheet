@@ -272,6 +272,8 @@ export function serializeEntryPlan(entry: WeekEntry): string {
     durationMinute: entry.durationMinute,
     alarmFile: entry.alarmFile,
     alarmMode: entry.alarmMode,
+    endAlarmFile: entry.endAlarmFile,
+    endAlarmMode: entry.endAlarmMode,
     color: entry.color,
   });
 }
@@ -301,22 +303,82 @@ export function parseEntryPlan(raw: string): Omit<WeekEntry, "id" | "weekday"> |
     ) {
       return null;
     }
-    const alarmFile =
-      parsed.alarmFile == null ? null : typeof parsed.alarmFile === "string" ? parsed.alarmFile : null;
-    const alarmMode = parsed.alarmMode === "loop" ? "loop" : parsed.alarmMode === "once" ? "once" : null;
-    const color = parsed.color == null ? null : typeof parsed.color === "string" ? parsed.color : null;
+    const optionalString = (v: unknown): string | null =>
+      v == null || typeof v !== "string" ? null : v;
+    const optionalMode = (v: unknown): AlarmMode | null =>
+      v === "loop" ? "loop" : v === "once" ? "once" : null;
     return {
       entryType,
       title: typeof parsed.title === "string" ? parsed.title : "",
       startMinute,
       durationMinute,
-      alarmFile,
-      alarmMode,
-      color,
+      alarmFile: optionalString(parsed.alarmFile),
+      alarmMode: optionalMode(parsed.alarmMode),
+      endAlarmFile: optionalString(parsed.endAlarmFile),
+      endAlarmMode: optionalMode(parsed.endAlarmMode),
+      color: optionalString(parsed.color),
     };
   } catch {
     return null;
   }
+}
+
+export interface ResolvedAlarmChain {
+  file: "builtin" | "none" | string;
+  fileSource: string;
+  mode: AlarmMode;
+  modeSource: string;
+}
+
+/**
+ * 铃声解析链的前端镜像（与 Rust resolve_alarm 一致）。
+ * 开始铃：事务 → 类型默认 → 全局默认 → 内置；
+ * 结束铃：事务结束 → 事务开始 → 类型结束 → 类型 → 全局结束 → 全局 → 内置。
+ */
+export function resolveAlarmChain(
+  kind: "start" | "end",
+  entryType: EntryType,
+  config: GlobalConfig,
+): ResolvedAlarmChain {
+  const typeFile =
+    entryType === "normal" ? config.alarmNormalFile : config.alarmRestFile;
+  const typeMode =
+    entryType === "normal" ? config.alarmNormalMode : config.alarmRestMode;
+  const typeEndFile =
+    entryType === "normal" ? config.alarmNormalEndFile : config.alarmRestEndFile;
+  const typeEndMode =
+    entryType === "normal" ? config.alarmNormalEndMode : config.alarmRestEndMode;
+
+  if (kind === "start") {
+    const file = typeFile ?? config.alarmAllFile ?? "builtin";
+    const fileSource = typeFile ? "类型" : config.alarmAllFile ? "全局" : "内置";
+    const mode = typeMode ?? config.alarmAllMode ?? "once";
+    const modeSource = typeMode ? "类型" : config.alarmAllMode ? "全局" : "内置";
+    return { file, fileSource, mode, modeSource };
+  }
+  const file =
+    typeEndFile ?? typeFile ?? config.alarmAllEndFile ?? config.alarmAllFile ?? "builtin";
+  const fileSource = typeEndFile
+    ? "类型(结束)"
+    : typeFile
+      ? "类型"
+      : config.alarmAllEndFile
+        ? "全局(结束)"
+        : config.alarmAllFile
+          ? "全局"
+          : "内置";
+  const mode =
+    typeEndMode ?? typeMode ?? config.alarmAllEndMode ?? config.alarmAllMode ?? "once";
+  const modeSource = typeEndMode
+    ? "类型(结束)"
+    : typeMode
+      ? "类型"
+      : config.alarmAllEndMode
+        ? "全局(结束)"
+        : config.alarmAllMode
+          ? "全局"
+          : "内置";
+  return { file, fileSource, mode, modeSource };
 }
 
 /** 分钟数 → time 输入框值 "HH:MM"；null → 空串（表示未设置/继承）。 */

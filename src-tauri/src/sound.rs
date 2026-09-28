@@ -5,14 +5,17 @@
 //! - 未指定文件、文件名非法或文件不存在/无法解码时，回退为内置默认提示音
 //!   （`assets/default-alarm.wav`，合成铃声，只播放一次）。
 //! - 全局同一时刻只保留一个播放引擎：新播放会替换当前播放；
-//!   循环播放会一直持续，直到被新播放替换、调用 `stop` 或应用退出。
+//!   循环播放由看护线程驱动——每轮播完后静默 5 秒再续播下一轮，
+//!   直到被新播放替换、调用 `stop` 或应用退出。
 //!
 //! 硬性约定：播放失败（无音频设备、解码失败等）只记录日志并返回 Err，绝不 panic。
 
 use std::fs::File;
 use std::io::{BufReader, Cursor};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::time::Duration;
 
 use rodio::source::Source;
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player};
@@ -21,6 +24,10 @@ use tauri::command;
 
 /// 内置默认提示音（构建期嵌入，无外部文件依赖）。
 const DEFAULT_ALARM_WAV: &[u8] = include_bytes!("../assets/default-alarm.wav");
+/// 循环模式下两轮播放之间的静默间隔。
+const LOOP_GAP: Duration = Duration::from_secs(5);
+/// 循环看护线程的轮询间隔。
+const LOOP_TICK: Duration = Duration::from_millis(200);
 
 /// 提示音播放模式。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,27 +72,35 @@ pub fn validate_alarm_file_name(name: &str) -> Result<(), String> {
 }
 
 /// 当前播放引擎；None 表示没有在播放。
-/// Player 先于 _device 析构，避免设备句柄先行关闭。
+/// 世代号：每次 play/stop 递增，用于让旧的循环看护线程失效。
 struct SoundEngine {
     player: Player,
     _device: MixerDeviceSink,
 }
 
-static ENGINE: Mutex<Option<SoundEngine>> = Mutex::new(None);
+static ENGINE: Mutex<Option<(u64, SoundEngine)>> = Mutex::new(None);
+static GENERATION: AtomicU64 = AtomicU64::new(0);
 
 /// 播放提示音（会替换当前正在播放的声音）。
 pub fn play(alarm_file: &str, mode: AlarmMode) -> Result<(), String> {
     stop();
+    let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
     let device = DeviceSinkBuilder::open_default_sink()
         .map_err(|e| format!("[sound] 打开音频设备失败(本次播放跳过): {e}"))?;
     let player = Player::connect_new(&device.mixer());
-    let source = load_source(alarm_file, mode)?;
+    let source = load_source(alarm_file)?;
     player.append(source);
     let mut engine = ENGINE.lock().map_err(|_| "[sound] 音频引擎锁已中毒")?;
-    *engine = Some(SoundEngine {
-        player,
-        _device: device,
-    });
+    *engine = Some((
+        generation,
+        SoundEngine {
+            player,
+            _device: device,
+        },
+    ));
+    if mode == AlarmMode::Loop {
+        spawn_loop_watcher(generation, alarm_file.trim().to_string());
+    }
     Ok(())
 }
 
@@ -93,8 +108,9 @@ pub fn play(alarm_file: &str, mode: AlarmMode) -> Result<(), String> {
 pub fn stop() {
     match ENGINE.lock() {
         Ok(mut engine) => {
-            if let Some(current) = engine.take() {
-                current.player.stop();
+            if engine.take().is_some() {
+                // 世代号递增使可能存在的循环看护线程失效
+                GENERATION.fetch_add(1, Ordering::SeqCst);
             }
         }
         Err(_) => eprintln!("[sound] 音频引擎锁已中毒，无法停止播放"),
@@ -108,8 +124,8 @@ fn resolve_alarm_path(name: &str) -> Result<PathBuf, String> {
 }
 
 /// 加载待播放音源：用户文件优先，任何失败回退内置默认提示音。
-/// 默认提示音恒定只播放一次，与请求的 mode 无关。
-fn load_source(alarm_file: &str, mode: AlarmMode) -> Result<Box<dyn Source + Send>, String> {
+/// 循环由看护线程驱动，因此这里恒定只加载"一轮"。
+fn load_source(alarm_file: &str) -> Result<Box<dyn Source + Send>, String> {
     if !alarm_file.trim().is_empty() {
         match resolve_alarm_path(alarm_file) {
             Ok(path) => {
@@ -118,14 +134,7 @@ fn load_source(alarm_file: &str, mode: AlarmMode) -> Result<Box<dyn Source + Sen
                 } else {
                     match File::open(&path) {
                         Ok(file) => match Decoder::new(BufReader::new(file)) {
-                            Ok(decoder) => {
-                                return Ok(match mode {
-                                    AlarmMode::Loop => {
-                                        Box::new(decoder.repeat_infinite())
-                                    }
-                                    AlarmMode::Once => Box::new(decoder),
-                                });
-                            }
+                            Ok(decoder) => return Ok(Box::new(decoder)),
                             Err(e) => {
                                 eprintln!("[sound] 解码失败({e}), 回退默认提示音");
                             }
@@ -142,6 +151,47 @@ fn load_source(alarm_file: &str, mode: AlarmMode) -> Result<Box<dyn Source + Sen
     let decoder = Decoder::new(Cursor::new(DEFAULT_ALARM_WAV))
         .map_err(|e| format!("内置默认提示音解码失败: {e}"))?;
     Ok(Box::new(decoder))
+}
+
+/// 循环看护线程：当前一轮播完后静默 [`LOOP_GAP`] 再续播下一轮，
+/// 直到引擎被替换（世代号变化）或停止。
+fn spawn_loop_watcher(generation: u64, alarm_file: String) {
+    let spawned = std::thread::Builder::new().name("alarm-loop".into()).spawn(move || loop {
+        std::thread::sleep(LOOP_TICK);
+        {
+            let guard = match ENGINE.lock() {
+                Ok(guard) => guard,
+                Err(_) => return,
+            };
+            match guard.as_ref() {
+                Some((g, engine)) if *g == generation => {
+                    if !engine.player.empty() {
+                        continue; // 仍在播放
+                    }
+                }
+                _ => return, // 已被替换或停止
+            }
+        }
+        // 一轮结束：静默间隔后续播
+        std::thread::sleep(LOOP_GAP);
+        let mut guard = match ENGINE.lock() {
+            Ok(guard) => guard,
+            Err(_) => return,
+        };
+        match guard.as_mut() {
+            Some((g, engine)) if *g == generation => match load_source(&alarm_file) {
+                Ok(source) => engine.player.append(source),
+                Err(e) => {
+                    eprintln!("[sound] 循环续播失败(已停止): {e}");
+                    return;
+                }
+            },
+            _ => return,
+        }
+    });
+    if let Err(e) = spawned {
+        eprintln!("[sound] 循环看护线程启动失败(将只播放一轮): {e}");
+    }
 }
 
 #[command]

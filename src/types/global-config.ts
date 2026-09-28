@@ -21,5 +21,12 @@ export interface GlobalConfig {
   alarmNormalMode: AlarmMode | null;
   alarmRestFile: string | null;
   alarmRestMode: AlarmMode | null;
+  /** 结束铃声链（未设置时回落到对应的开始铃声链）。 */
+  alarmAllEndFile: string | null;
+  alarmAllEndMode: AlarmMode | null;
+  alarmNormalEndFile: string | null;
+  alarmNormalEndMode: AlarmMode | null;
+  alarmRestEndFile: string | null;
+  alarmRestEndMode: AlarmMode | null;
 }
 

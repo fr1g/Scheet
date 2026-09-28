@@ -80,6 +80,10 @@ pub struct WeekEntry {
     pub alarm_file: Option<String>,
     /// None=继承下一级。
     pub alarm_mode: Option<AlarmMode>,
+    /// 结束铃声（None 时回落到开始铃声链）；格式同 alarm_file。
+    pub end_alarm_file: Option<String>,
+    /// 结束铃声播放模式（None 时回落到开始铃声链）。
+    pub end_alarm_mode: Option<AlarmMode>,
     /// 自定义颜色 #RRGGBB；None 时按类型使用默认色（普通=蓝、休息=琥珀）。
     pub color: Option<String>,
 }
@@ -157,6 +161,8 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
             alarm_file TEXT,
             alarm_mode TEXT CHECK (alarm_mode IS NULL OR alarm_mode IN ('once', 'loop')),
             color TEXT,
+            end_alarm_file TEXT,
+            end_alarm_mode TEXT CHECK (end_alarm_mode IS NULL OR end_alarm_mode IN ('once', 'loop')),
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -175,6 +181,16 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
     if let Err(e) = conn.execute("ALTER TABLE week_entries ADD COLUMN color TEXT", []) {
         if !e.to_string().contains("duplicate column") {
             eprintln!("[db] 迁移 week_entries.color 失败(已忽略): {e}");
+        }
+    }
+    if let Err(e) = conn.execute("ALTER TABLE week_entries ADD COLUMN end_alarm_file TEXT", []) {
+        if !e.to_string().contains("duplicate column") {
+            eprintln!("[db] 迁移 week_entries.end_alarm_file 失败(已忽略): {e}");
+        }
+    }
+    if let Err(e) = conn.execute("ALTER TABLE week_entries ADD COLUMN end_alarm_mode TEXT", []) {
+        if !e.to_string().contains("duplicate column") {
+            eprintln!("[db] 迁移 week_entries.end_alarm_mode 失败(已忽略): {e}");
         }
     }
     ensure_default_plan(conn)
@@ -292,7 +308,7 @@ pub fn get_full_plan(conn: &Connection, plan_id: i64) -> Result<FullPlan, String
     let mut stmt = conn
         .prepare(
             "SELECT id, plan_id, weekday, start_minute, duration_minute, entry_type, title,
-                    alarm_file, alarm_mode, color
+                    alarm_file, alarm_mode, color, end_alarm_file, end_alarm_mode
              FROM week_entries WHERE plan_id = ?1 ORDER BY weekday, start_minute",
         )
         .map_err(|e| format!("读取事务失败: {e}"))?;
@@ -300,6 +316,7 @@ pub fn get_full_plan(conn: &Connection, plan_id: i64) -> Result<FullPlan, String
         .query_map([plan_id], |row| {
             let entry_type: String = row.get("entry_type")?;
             let alarm_mode: Option<String> = row.get("alarm_mode")?;
+            let end_alarm_mode: Option<String> = row.get("end_alarm_mode")?;
             Ok(WeekEntry {
                 id: row.get("id")?,
                 weekday: row.get("weekday")?,
@@ -310,6 +327,8 @@ pub fn get_full_plan(conn: &Connection, plan_id: i64) -> Result<FullPlan, String
                 alarm_file: row.get("alarm_file")?,
                 alarm_mode: alarm_mode.map(|m| AlarmMode::from_db(&m)),
                 color: row.get("color")?,
+                end_alarm_file: row.get("end_alarm_file")?,
+                end_alarm_mode: end_alarm_mode.map(|m| AlarmMode::from_db(&m)),
             })
         })
         .map_err(|e| format!("读取事务失败: {e}"))?;
@@ -401,6 +420,11 @@ fn validate_entry(entry: &WeekEntry) -> Result<(), String> {
             return Err(format!("事务 {} 的颜色必须是 #RRGGBB 格式", entry.id));
         }
     }
+    match &entry.end_alarm_file {
+        None => {}
+        Some(f) if f == "builtin" || f == "none" => {}
+        Some(file) => crate::sound::validate_alarm_file_name(file)?,
+    }
     Ok(())
 }
 
@@ -479,8 +503,9 @@ pub fn save_plan(conn: &Connection, payload: &SavePlanPayload) -> Result<SaveOut
         tx.execute(
             "INSERT INTO week_entries
                 (plan_id, weekday, start_minute, duration_minute, entry_type, title,
-                 alarm_file, alarm_mode, color, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
+                 alarm_file, alarm_mode, color, end_alarm_file, end_alarm_mode,
+                 created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12)",
             params![
                 payload.id,
                 entry.weekday,
@@ -491,6 +516,8 @@ pub fn save_plan(conn: &Connection, payload: &SavePlanPayload) -> Result<SaveOut
                 entry.alarm_file,
                 entry.alarm_mode.map(|m| m.as_db()),
                 entry.color,
+                entry.end_alarm_file,
+                entry.end_alarm_mode.map(|m| m.as_db()),
                 now_str(),
             ],
         )
@@ -760,6 +787,8 @@ mod tests {
             alarm_file: None,
             alarm_mode: None,
             color: None,
+            end_alarm_file: None,
+            end_alarm_mode: None,
         }
     }
 

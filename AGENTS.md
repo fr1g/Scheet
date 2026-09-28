@@ -78,21 +78,24 @@ pnpm exec tauri icon <png>  # 重新生成 src-tauri/icons/（源图 1024x1024�
 - 修改位置必须调用后端命令 `set_window_controls_position` 持久化到 SQLite，命令返回保存后的完整 `AppSettings`。
 - 涉及的 Tauri 权限在 `src-tauri/capabilities/default.json`（minimize / close / start-dragging）。
 
-### 提醒与系统通知
+### 提醒与通知弹窗
 
 - Rust 模块 `reminders.rs`：提醒模型 + SQLite `reminders` 表（title/body/fire_at/status/created_at，
   fire_at 统一 RFC3339 UTC 存储，status ∈ pending/fired/cancelled）。命令：`create_reminder`（fire_at 接受带时区的 RFC3339）、
   `cancel_reminder`、`list_reminders`。
 - 调度线程（`start_scheduler`，scheduler.rs）每 1000ms 轮询：到期 pending 提醒、
-  当前周表的今日提醒事件（开始/结束铃）、日期切换（重置事件去重集 + todo 日切滚动 +
-  emit `scheet://date-changed` 供前端刷新日期相关 UI）；
-  应用关闭期间到期的手动提醒会在下次启动后补发（周课表事件不补发，新一天首轮只标记不触发）。
-- Rust 模块 `notify.rs` 平台分发，**硬性约定：任何通知失败只记录日志绝不 panic**（无通知服务、无 WinRT、权限被禁时应用照常运行）：
-  - Windows：`tauri-winrt-notification`（WinRT Toast），点击横幅 → `on_activated` → 聚焦主窗口；Toast 非 `Send`，须在同线程内构建并展示。
-  - macOS：`notify-rust`；启动时 `set_application` 归属应用（dev 归属 Terminal，与官方插件一致），点击横幅由系统激活应用；
-    通知权限通过"首次启动投递探测通知触发系统弹窗"获取，结果存于 app_settings 的 `macNotificationsProbed` 标志（只探测一次）。
-  - Linux：`notify-rust`（D-Bus），注册 `default` 动作，点击横幅 → 聚焦主窗口。
-- 发送无论成败均标记 fired，避免重复轰炸；失败详情走 eprintln 日志。
+  当前周表的今日提醒事件（开始/结束铃，按"时间窗"触发——只触发自上次轮询以来新到期的提醒，
+  因此保存/编辑周表不会让区间内的时间点意外响铃；新一天首轮只推进水位线不触发）；
+  日期切换时重置水位线 + todo 日切滚动 + emit `scheet://date-changed` 供前端刷新日期 UI；
+  应用关闭期间到期的手动提醒会在下次启动后补发（周课表事件不补发）。
+- 提醒"推送"形态：**置顶弹窗子窗口**（`popup.rs`，label=alarm-popup），**不用系统通知**——
+  部分 Windows 环境（勿扰模式等）系统通知不可见。弹窗展示事务信息+实时秒表时钟，
+  点击弹窗 = 停止响铃 + 关闭弹窗 + 聚焦主窗口；主窗口获得焦点时弹窗自动关闭。
+  旧实现 `notify.rs`（WinRT Toast/notify-rust）保留备用但已停用。
+- Rust 模块 `notify.rs`（已停用，保留备用）：WinRT Toast / notify-rust 系统通知，
+  **任何通知失败只记录日志绝不 panic**。
+- 任何铃声播放失败只记录日志绝不 panic（无音频设备时应用照常运行）；
+  发送/播放无论成败均标记 reminders 为 fired，避免重复轰炸。
 
 ### 托盘驻留
 

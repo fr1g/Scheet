@@ -26,6 +26,9 @@ export interface WeekEntry {
   /** null=继承下一级；"builtin"=内置铃声；"none"=不提醒；其他=alarms 文件名。 */
   alarmFile: string | null;
   alarmMode: AlarmMode | null;
+  /** 结束铃声（null 时回落到开始铃声链）；格式同 alarmFile。 */
+  endAlarmFile: string | null;
+  endAlarmMode: AlarmMode | null;
   /** 自定义颜色 #RRGGBB；null 时按类型使用默认色（普通=蓝、休息=琥珀）。 */
   color: string | null;
 }

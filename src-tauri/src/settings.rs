@@ -124,6 +124,13 @@ pub struct GlobalConfig {
     pub alarm_normal_mode: Option<AlarmMode>,
     pub alarm_rest_file: Option<String>,
     pub alarm_rest_mode: Option<AlarmMode>,
+    /// 结束铃声链（未设置时回落到对应的开始铃声链）。
+    pub alarm_all_end_file: Option<String>,
+    pub alarm_all_end_mode: Option<AlarmMode>,
+    pub alarm_normal_end_file: Option<String>,
+    pub alarm_normal_end_mode: Option<AlarmMode>,
+    pub alarm_rest_end_file: Option<String>,
+    pub alarm_rest_end_mode: Option<AlarmMode>,
 }
 
 impl Default for GlobalConfig {
@@ -138,6 +145,12 @@ impl Default for GlobalConfig {
             alarm_normal_mode: None,
             alarm_rest_file: None,
             alarm_rest_mode: None,
+            alarm_all_end_file: None,
+            alarm_all_end_mode: None,
+            alarm_normal_end_file: None,
+            alarm_normal_end_mode: None,
+            alarm_rest_end_file: None,
+            alarm_rest_end_mode: None,
         }
     }
 }
@@ -163,6 +176,12 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         alarm_normal_mode: mode("alarmNormalMode")?,
         alarm_rest_file: get_setting(conn, "alarmRestFile")?,
         alarm_rest_mode: mode("alarmRestMode")?,
+        alarm_all_end_file: get_setting(conn, "alarmAllEndFile")?,
+        alarm_all_end_mode: mode("alarmAllEndMode")?,
+        alarm_normal_end_file: get_setting(conn, "alarmNormalEndFile")?,
+        alarm_normal_end_mode: mode("alarmNormalEndMode")?,
+        alarm_rest_end_file: get_setting(conn, "alarmRestEndFile")?,
+        alarm_rest_end_mode: mode("alarmRestEndMode")?,
     })
 }
 
@@ -179,11 +198,16 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
     set_setting(conn, "dayStartMinute", &cfg.day_start_minute.to_string())?;
     set_setting(conn, "dayEndMinute", &cfg.day_end_minute.to_string())?;
     set_setting(conn, "firstDayOfWeek", cfg.first_day_of_week.as_db())?;
-    for (key, value) in [
+    // (键, 值) 统一写入；None 表示清除该键（回退默认）
+    let file_entries = [
         ("alarmAllFile", &cfg.alarm_all_file),
         ("alarmNormalFile", &cfg.alarm_normal_file),
         ("alarmRestFile", &cfg.alarm_rest_file),
-    ] {
+        ("alarmAllEndFile", &cfg.alarm_all_end_file),
+        ("alarmNormalEndFile", &cfg.alarm_normal_end_file),
+        ("alarmRestEndFile", &cfg.alarm_rest_end_file),
+    ];
+    for (key, value) in file_entries {
         match value {
             Some(v) => set_setting(conn, key, v)?,
             None => {
@@ -192,11 +216,15 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
             }
         }
     }
-    for (key, value) in [
+    let mode_entries = [
         ("alarmAllMode", cfg.alarm_all_mode),
         ("alarmNormalMode", cfg.alarm_normal_mode),
         ("alarmRestMode", cfg.alarm_rest_mode),
-    ] {
+        ("alarmAllEndMode", cfg.alarm_all_end_mode),
+        ("alarmNormalEndMode", cfg.alarm_normal_end_mode),
+        ("alarmRestEndMode", cfg.alarm_rest_end_mode),
+    ];
+    for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,
             None => {

@@ -1,7 +1,10 @@
 mod clipboard;
 mod clock;
 mod db;
+// 系统通知实现保留备用（当前提醒推送改用 popup.rs 的置顶弹窗方案）
+#[allow(dead_code)]
 mod notify;
+mod popup;
 mod reminders;
 mod scheduler;
 mod settings;
@@ -73,6 +76,12 @@ pub fn run() {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // 主窗口获得焦点时自动关闭提醒弹窗
+            if let tauri::WindowEvent::Focused(true) = event {
+                if window.label() == "main" {
+                    popup::dismiss(window.app_handle());
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             settings::get_app_settings,
@@ -99,6 +108,7 @@ pub fn run() {
             clipboard::read_clipboard_text,
             clipboard::write_clipboard_text,
             clipboard::list_alarm_sounds,
+            popup::dismiss_alarm_popup,
         ])
         .build(tauri::generate_context!())
         .expect("Scheet 初始化失败")

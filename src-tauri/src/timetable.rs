@@ -47,36 +47,67 @@ pub struct AlarmEvent {
     pub mode: AlarmMode,
 }
 
-fn ringtone_chain(
+/// 铃声解析链。
+///
+/// 开始铃：事务 → 类型默认 → 全局默认 → 内置。
+/// 结束铃：事务结束 → 事务开始 → 类型结束默认 → 类型默认 → 全局结束默认 → 全局默认 → 内置
+/// （即未单独设置结束铃声时，自然回落到开始铃声，保持向后兼容）。
+pub(crate) fn resolve_alarm(
+    kind: AlarmKind,
     entry: &WeekEntry,
     cfg: &GlobalConfig,
-) -> Ringtone {
-    let type_level = match entry.entry_type {
-        EntryType::Normal => cfg.alarm_normal_file.as_deref(),
-        EntryType::Rest => cfg.alarm_rest_file.as_deref(),
+) -> (Ringtone, AlarmMode) {
+    let (type_file, type_mode) = match entry.entry_type {
+        EntryType::Normal => (cfg.alarm_normal_file.as_deref(), cfg.alarm_normal_mode),
+        EntryType::Rest => (cfg.alarm_rest_file.as_deref(), cfg.alarm_rest_mode),
     };
-    let chosen = entry
-        .alarm_file
-        .as_deref()
-        .or(type_level)
-        .or(cfg.alarm_all_file.as_deref());
-    match chosen {
+    let (type_end_file, type_end_mode) = match entry.entry_type {
+        EntryType::Normal => (
+            cfg.alarm_normal_end_file.as_deref(),
+            cfg.alarm_normal_end_mode,
+        ),
+        EntryType::Rest => (cfg.alarm_rest_end_file.as_deref(), cfg.alarm_rest_end_mode),
+    };
+
+    let (file, mode) = match kind {
+        AlarmKind::Start => (
+            entry
+                .alarm_file
+                .as_deref()
+                .or(type_file)
+                .or(cfg.alarm_all_file.as_deref()),
+            entry
+                .alarm_mode
+                .or(type_mode)
+                .or(cfg.alarm_all_mode)
+                .unwrap_or(AlarmMode::Once),
+        ),
+        AlarmKind::End => (
+            entry
+                .end_alarm_file
+                .as_deref()
+                .or(entry.alarm_file.as_deref())
+                .or(type_end_file)
+                .or(type_file)
+                .or(cfg.alarm_all_end_file.as_deref())
+                .or(cfg.alarm_all_file.as_deref()),
+            entry
+                .end_alarm_mode
+                .or(entry.alarm_mode)
+                .or(type_end_mode)
+                .or(type_mode)
+                .or(cfg.alarm_all_end_mode)
+                .or(cfg.alarm_all_mode)
+                .unwrap_or(AlarmMode::Once),
+        ),
+    };
+
+    let ringtone = match file {
         None | Some("builtin") => Ringtone::Builtin,
         Some("none") => Ringtone::Silent,
-        Some(file) => Ringtone::File(file.to_string()),
-    }
-}
-
-fn mode_chain(entry: &WeekEntry, cfg: &GlobalConfig) -> AlarmMode {
-    let type_level = match entry.entry_type {
-        EntryType::Normal => cfg.alarm_normal_mode,
-        EntryType::Rest => cfg.alarm_rest_mode,
+        Some(f) => Ringtone::File(f.to_string()),
     };
-    entry
-        .alarm_mode
-        .or(type_level)
-        .or(cfg.alarm_all_mode)
-        .unwrap_or(AlarmMode::Once)
+    (ringtone, mode)
 }
 
 /// 计算某天（weekday: 1=周一..7=周日）的提醒事件。
@@ -97,8 +128,8 @@ pub fn compute_day_events(
 
     let mut events = Vec::new();
     for (i, entry) in today.iter().enumerate() {
-        let ringtone = ringtone_chain(entry, cfg);
-        let mode = mode_chain(entry, cfg);
+        let (start_ringtone, start_mode) = resolve_alarm(AlarmKind::Start, entry, cfg);
+        let (end_ringtone, end_mode) = resolve_alarm(AlarmKind::End, entry, cfg);
         let end_minute = entry.start_minute + entry.duration_minute;
 
         events.push(AlarmEvent {
@@ -107,8 +138,8 @@ pub fn compute_day_events(
             entry_type: entry.entry_type,
             title: entry.title.clone(),
             fire_minute: entry.start_minute,
-            ringtone: ringtone.clone(),
-            mode,
+            ringtone: start_ringtone,
+            mode: start_mode,
         });
 
         // 链式结束铃：下一个提醒事务恰好在本事务结束时开始则不响结束铃
@@ -123,8 +154,8 @@ pub fn compute_day_events(
                 entry_type: entry.entry_type,
                 title: entry.title.clone(),
                 fire_minute: end_minute.min(day_end_minute),
-                ringtone,
-                mode,
+                ringtone: end_ringtone,
+                mode: end_mode,
             });
         }
     }
@@ -146,6 +177,8 @@ mod tests {
             alarm_file: None,
             alarm_mode: None,
             color: None,
+            end_alarm_file: None,
+            end_alarm_mode: None,
         }
     }
 
@@ -203,24 +236,64 @@ mod tests {
         let mut e = entry(1, 1, 360, 30);
         e.entry_type = EntryType::Normal;
         // 事务未设置 → 类型级
-        assert_eq!(ringtone_chain(&e, &cfg), Ringtone::File("normal.mp3".into()));
-        assert_eq!(mode_chain(&e, &cfg), AlarmMode::Loop);
+        assert_eq!(
+            resolve_alarm(AlarmKind::Start, &e, &cfg).0,
+            Ringtone::File("normal.mp3".into())
+        );
+        assert_eq!(resolve_alarm(AlarmKind::Start, &e, &cfg).1, AlarmMode::Loop);
         // 事务级覆盖
         e.alarm_file = Some("tx.mp3".into());
         e.alarm_mode = Some(AlarmMode::Once);
-        assert_eq!(ringtone_chain(&e, &cfg), Ringtone::File("tx.mp3".into()));
-        assert_eq!(mode_chain(&e, &cfg), AlarmMode::Once);
+        assert_eq!(
+            resolve_alarm(AlarmKind::Start, &e, &cfg).0,
+            Ringtone::File("tx.mp3".into())
+        );
+        assert_eq!(resolve_alarm(AlarmKind::Start, &e, &cfg).1, AlarmMode::Once);
         // none 静音
         e.alarm_file = Some("none".into());
-        assert_eq!(ringtone_chain(&e, &cfg), Ringtone::Silent);
+        assert_eq!(resolve_alarm(AlarmKind::Start, &e, &cfg).0, Ringtone::Silent);
         // 休息事务 → rest 级（未设置）→ all 级
         let mut r = entry(2, 1, 360, 30);
         r.entry_type = EntryType::Rest;
-        assert_eq!(ringtone_chain(&r, &cfg), Ringtone::File("all.mp3".into()));
+        assert_eq!(
+            resolve_alarm(AlarmKind::Start, &r, &cfg).0,
+            Ringtone::File("all.mp3".into())
+        );
         // 全链未设置 → 内置默认
         cfg.alarm_all_file = None;
         r.alarm_file = None;
-        assert_eq!(ringtone_chain(&r, &cfg), Ringtone::Builtin);
-        assert_eq!(mode_chain(&r, &cfg), AlarmMode::Once);
+        assert_eq!(resolve_alarm(AlarmKind::Start, &r, &cfg).0, Ringtone::Builtin);
+        assert_eq!(resolve_alarm(AlarmKind::Start, &r, &cfg).1, AlarmMode::Once);
+    }
+
+    #[test]
+    fn end_bell_falls_back_to_start_chain_then_overrides() {
+        let mut cfg = GlobalConfig::default();
+        cfg.alarm_all_file = Some("start-all.mp3".into());
+        let mut e = entry(1, 1, 360, 30);
+
+        // 未设置任何结束铃声 → 回落到开始铃声链
+        assert_eq!(
+            resolve_alarm(AlarmKind::End, &e, &cfg).0,
+            Ringtone::File("start-all.mp3".into())
+        );
+        // 全局结束默认优先于全局开始默认
+        cfg.alarm_all_end_file = Some("end-all.mp3".into());
+        assert_eq!(
+            resolve_alarm(AlarmKind::End, &e, &cfg).0,
+            Ringtone::File("end-all.mp3".into())
+        );
+        // 类型结束默认优先于全局结束默认
+        cfg.alarm_normal_end_file = Some("end-normal.mp3".into());
+        assert_eq!(
+            resolve_alarm(AlarmKind::End, &e, &cfg).0,
+            Ringtone::File("end-normal.mp3".into())
+        );
+        // 事务结束铃声最高优先
+        e.end_alarm_file = Some("end-tx.mp3".into());
+        assert_eq!(
+            resolve_alarm(AlarmKind::End, &e, &cfg).0,
+            Ringtone::File("end-tx.mp3".into())
+        );
     }
 }

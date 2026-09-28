@@ -7,7 +7,7 @@ import {
   hexWithAlpha,
   humanizeMinutes,
   minuteToTimeInput,
-  resolveAlarmDisplay,
+  resolveAlarmChain,
   timeInputToMinute,
 } from "../../lib/weekgrid";
 import type { GlobalConfig } from "../../types/global-config";
@@ -65,6 +65,12 @@ export default function EntryEditDialog({
   const [modeChoice, setModeChoice] = useState<AlarmModeChoice>(
     entry.alarmMode ?? "inherit",
   );
+  const [endAlarmChoice, setEndAlarmChoice] = useState<AlarmFileChoice>(
+    entry.endAlarmFile ?? "inherit",
+  );
+  const [endModeChoice, setEndModeChoice] = useState<AlarmModeChoice>(
+    entry.endAlarmMode ?? "inherit",
+  );
   const [color, setColor] = useState(entry.color ?? "");
   const [alarmFiles, setAlarmFiles] = useState<string[]>([]);
 
@@ -75,7 +81,9 @@ export default function EntryEditDialog({
     return () => void stopAlarmSound().catch(() => undefined);
   }, []);
 
-  const resolved = resolveAlarmDisplay(entryType, config);
+  const startChain = resolveAlarmChain("start", entryType, config);
+  const endChain = resolveAlarmChain("end", entryType, config);
+
   const startMinute = timeInputToMinute(start);
   const durationMinutes = parseDurationInput(duration);
   const snappedDuration =
@@ -95,25 +103,27 @@ export default function EntryEditDialog({
     durationMinutes > 0;
   const canConfirm = titleOk && timesOk && colorOk && snappedDuration != null;
 
-  const previewFile =
-    alarmChoice === "inherit"
-      ? resolved.file === "builtin"
-        ? ""
-        : resolved.file === "none"
-          ? null
-          : resolved.file
-      : alarmChoice === "builtin"
-        ? ""
-        : alarmChoice === "none"
-          ? null
-          : alarmChoice;
-  const previewMode: AlarmMode = modeChoice === "inherit" ? resolved.mode : modeChoice;
-  const previewDisabled = previewFile == null;
+  const previewFileFor = (kind: "start" | "end"): string | null => {
+    const choice = kind === "start" ? alarmChoice : endAlarmChoice;
+    const chain = kind === "start" ? startChain : endChain;
+    if (choice === "inherit") {
+      return chain.file === "builtin" ? "" : chain.file === "none" ? null : chain.file;
+    }
+    if (choice === "builtin") return "";
+    if (choice === "none") return null;
+    return choice;
+  };
+  const previewModeFor = (kind: "start" | "end"): AlarmMode => {
+    const choice = kind === "start" ? modeChoice : endModeChoice;
+    const chain = kind === "start" ? startChain : endChain;
+    return choice === "inherit" ? chain.mode : choice;
+  };
 
-  const handlePreview = async () => {
-    if (previewFile == null) return;
+  const handlePreview = async (kind: "start" | "end") => {
+    const file = previewFileFor(kind);
+    if (file == null) return;
     try {
-      await playAlarmSound(previewFile, previewMode);
+      await playAlarmSound(file, previewModeFor(kind));
     } catch (e: unknown) {
       console.error("试听失败", e);
     }
@@ -129,14 +139,16 @@ export default function EntryEditDialog({
       durationMinute: snappedDuration,
       alarmFile: alarmChoice === "inherit" ? null : alarmChoice,
       alarmMode: modeChoice === "inherit" ? null : modeChoice,
+      endAlarmFile: endAlarmChoice === "inherit" ? null : endAlarmChoice,
+      endAlarmMode: endModeChoice === "inherit" ? null : endModeChoice,
       color: color === "" ? null : color.toUpperCase(),
     });
   };
 
   const selectClass =
-    "mt-1 w-full rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400";
+    "mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400";
   const inputClass =
-    "mt-1 w-full rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400";
+    "mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400";
 
   return (
     <DialogShell
@@ -229,91 +241,136 @@ export default function EntryEditDialog({
         )}
       </p>
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <label className="block text-xs text-zinc-300">
-          铃声
-          <select
-            value={alarmChoice}
-            onChange={(e) => setAlarmChoice(e.target.value as AlarmFileChoice)}
-            className={selectClass}
-          >
-            <option value="inherit">
-              未设置（继承: {alarmFileLabel(resolved.file)} · {resolved.fileSource}）
-            </option>
-            <option value="builtin">内置默认铃声</option>
-            <option value="none">不提醒</option>
-            {alarmFiles.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-xs text-zinc-300">
-          播放模式
-          <select
-            value={modeChoice}
-            onChange={(e) => setModeChoice(e.target.value as AlarmModeChoice)}
-            className={selectClass}
-          >
-            <option value="inherit">
-              未设置（继承: {alarmModeLabel(resolved.mode)} · {resolved.modeSource}）
-            </option>
-            <option value="once">播放一次</option>
-            <option value="loop">循环播放</option>
-          </select>
-        </label>
-      </div>
-      <div className="mt-2 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => void handlePreview()}
-          disabled={previewDisabled}
-          className="rounded px-3 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
-        >
-          试听（按所选模式）
-        </button>
-        <button
-          type="button"
-          onClick={() => void stopAlarmSound().catch(() => undefined)}
-          className="rounded px-3 py-1 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
-        >
-          停止
-        </button>
-        {alarmChoice === "none" && (
-          <span className="text-[10px] text-zinc-500">
-            不提醒：静音且不推送，仅弹应用内提醒
-          </span>
-        )}
-      </div>
+      <details className="mt-3 rounded-lg border border-zinc-600/60">
+        <summary className="cursor-pointer px-2 py-1.5 text-xs text-zinc-300 select-none">
+          铃声与外观设置
+        </summary>
+        <div className="px-2 pb-2 pt-1">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs text-zinc-300">
+              开始铃声
+              <select
+                value={alarmChoice}
+                onChange={(e) => setAlarmChoice(e.target.value as AlarmFileChoice)}
+                className={selectClass}
+              >
+                <option value="inherit">
+                  {alarmFileLabel(startChain.file)}（{startChain.fileSource}）
+                </option>
+                <option value="builtin">内置默认铃声</option>
+                <option value="none">不提醒</option>
+                {alarmFiles.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-xs text-zinc-300">
+              结束铃声
+              <select
+                value={endAlarmChoice}
+                onChange={(e) => setEndAlarmChoice(e.target.value as AlarmFileChoice)}
+                className={selectClass}
+              >
+                <option value="inherit">
+                  {alarmFileLabel(endChain.file)}（{endChain.fileSource}）
+                </option>
+                <option value="builtin">内置默认铃声</option>
+                <option value="none">不提醒</option>
+                {alarmFiles.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <label className="block text-xs text-zinc-300">
+              开始播放模式
+              <select
+                value={modeChoice}
+                onChange={(e) => setModeChoice(e.target.value as AlarmModeChoice)}
+                className={selectClass}
+              >
+                <option value="inherit">
+                  {alarmModeLabel(startChain.mode)}（{startChain.modeSource}）
+                </option>
+                <option value="once">播放一次</option>
+                <option value="loop">循环播放</option>
+              </select>
+            </label>
+            <label className="block text-xs text-zinc-300">
+              结束播放模式
+              <select
+                value={endModeChoice}
+                onChange={(e) => setEndModeChoice(e.target.value as AlarmModeChoice)}
+                className={selectClass}
+              >
+                <option value="inherit">
+                  {alarmModeLabel(endChain.mode)}（{endChain.modeSource}）
+                </option>
+                <option value="once">播放一次</option>
+                <option value="loop">循环播放</option>
+              </select>
+            </label>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void handlePreview("start")}
+              disabled={previewFileFor("start") == null}
+              className="rounded px-3 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
+            >
+              试听开始
+            </button>
+            <button
+              type="button"
+              onClick={() => void handlePreview("end")}
+              disabled={previewFileFor("end") == null}
+              className="rounded px-3 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
+            >
+              试听结束
+            </button>
+            <button
+              type="button"
+              onClick={() => void stopAlarmSound().catch(() => undefined)}
+              className="rounded px-3 py-1 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+            >
+              停止
+            </button>
+          </div>
 
-      <label className="mt-3 block text-xs text-zinc-300">
-        颜色（hex，留空按类型默认；实际渲染叠加透明度）
-        <div className="mt-1 flex items-center gap-2">
-          <input
-            type="text"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            placeholder="#RRGGBB"
-            className={inputClass}
-          />
-          <span
-            className="h-7 w-7 shrink-0 rounded border border-zinc-600"
-            style={{
-              background:
-                color === ""
-                  ? entryType === "normal"
-                    ? "rgba(96, 165, 250, 0.35)"
-                    : "rgba(251, 191, 36, 0.35)"
-                  : (hexWithAlpha(color, 0.35) ?? "transparent"),
-            }}
-          />
+          <label className="mt-3 block text-xs text-zinc-300">
+            颜色（hex，留空按类型默认；实际渲染叠加透明度）
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="#RRGGBB"
+                className={inputClass}
+              />
+              <span
+                className="h-7 w-7 shrink-0 rounded border border-zinc-600"
+                style={{
+                  background:
+                    color === ""
+                      ? entryType === "normal"
+                        ? "rgba(96, 165, 250, 0.35)"
+                        : "rgba(251, 191, 36, 0.35)"
+                      : (hexWithAlpha(color, 0.35) ?? "transparent"),
+                }}
+              />
+            </div>
+          </label>
+          {!colorOk && (
+            <p className="mt-2 text-[10px] text-red-400">颜色必须是 #RRGGBB 格式</p>
+          )}
         </div>
-      </label>
+      </details>
 
-      {!colorOk && (
-        <p className="mt-2 text-[10px] text-red-400">颜色必须是 #RRGGBB 格式</p>
-      )}
       {!titleOk && (
         <p className="mt-2 text-[10px] text-red-400">普通事务必须填写标题</p>
       )}
