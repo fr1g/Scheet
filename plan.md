@@ -74,9 +74,9 @@
 
 ## M5 todo + 剪贴板预览 + 收尾
 
-- [ ] M5.1 右侧当日 todo 面板（增删/勾选）+ 日切自动复制
-- [ ] M5.2 todo 区上方剪贴板预览浮块（focus 嗅探 objectType:ScheetPlan）
-- [ ] M5.3 AGENTS.md / README 实现地图更新 + release 构建冒烟 → **最终验收**
+- [x] M5.1 右侧当日 todo 面板（增删/勾选）+ 日切自动复制（useToday 驱动刷新）。提交 b063cc4
+- [x] M5.2 todo 区上方剪贴板预览浮块（focus 嗅探 objectType:ScheetPlan，渲染为 cell 样式预览）。提交 b063cc4
+- [x] M5.3 AGENTS/README 收尾（文档已更新）+ release 构建冒烟通过（release/scheet.exe 14MB 独立运行验证）。提交 b063cc4 → **M1-M5 全部完成，最终验收**
 
 ## 明确不做（后续升级项）
 
