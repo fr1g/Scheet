@@ -1,0 +1,153 @@
+/**
+ * 周表网格的纯函数工具：cell 模型构建、冲突计算、时间格式化。
+ * 与 Rust 侧逻辑保持一致（保存的权威校验在 weeks.rs，这里用于即时渲染）。
+ */
+
+import type { Conflict, FullPlan, WeekEntry } from "../types/weeks";
+import type { GlobalConfig } from "../types/global-config";
+
+/** 像素/分钟：与用户原型比例一致（30 分钟 ≈ 96px）。 */
+export const PX_PER_MINUTE = 3.2;
+
+/** cell 内嵌时间标签的最小高度（低于此值降级为 hover tooltip）。 */
+export const TIME_LABEL_MIN_HEIGHT = 72;
+
+/** 分钟数 → "HH:MM"（允许 24:00 表示溢出到次日）。 */
+export function minuteToHHMM(minute: number): string {
+  const h = Math.floor(minute / 60);
+  const m = minute % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+export interface DayCellModel {
+  kind: "entry" | "unplanned";
+  entry?: WeekEntry;
+  startMinute: number;
+  /** 渲染用结束分钟（溢出已钳制到当天结束）。 */
+  endMinute: number;
+  /** 真实结束分钟（时间标签/tooltip 显示用）。 */
+  realEndMinute: number;
+  heightPx: number;
+  /** 结束时间超出当天结束时间（黄 outline 警告）。 */
+  overflow: boolean;
+}
+
+/** 把某天的事务列表构建为顺排 cell 模型（含视觉隐藏的无安排空隙）。 */
+export function buildDayCells(
+  entries: WeekEntry[],
+  weekday: number,
+  dayStart: number,
+  dayEnd: number,
+): DayCellModel[] {
+  const day = entries
+    .filter((e) => e.weekday === weekday)
+    .sort((a, b) => a.startMinute - b.startMinute);
+  const cells: DayCellModel[] = [];
+  let cursor = dayStart;
+
+  for (const entry of day) {
+    if (entry.startMinute > cursor) {
+      cells.push({
+        kind: "unplanned",
+        startMinute: cursor,
+        endMinute: entry.startMinute,
+        realEndMinute: entry.startMinute,
+        heightPx: (entry.startMinute - cursor) * PX_PER_MINUTE,
+        overflow: false,
+      });
+    }
+    const realEnd = entry.startMinute + entry.durationMinute;
+    const clampedEnd = Math.min(realEnd, dayEnd);
+    const overflow = realEnd > dayEnd;
+    if (clampedEnd > entry.startMinute) {
+      cells.push({
+        kind: "entry",
+        entry,
+        startMinute: entry.startMinute,
+        endMinute: clampedEnd,
+        realEndMinute: realEnd,
+        heightPx: (clampedEnd - entry.startMinute) * PX_PER_MINUTE,
+        overflow,
+      });
+    }
+    cursor = Math.max(cursor, clampedEnd);
+  }
+
+  if (cursor < dayEnd) {
+    cells.push({
+      kind: "unplanned",
+      startMinute: cursor,
+      endMinute: dayEnd,
+      realEndMinute: dayEnd,
+      heightPx: (dayEnd - cursor) * PX_PER_MINUTE,
+      overflow: false,
+    });
+  }
+  return cells;
+}
+
+/** 解析某天的起止窗口：日覆盖 → 周表 → 全局（与 Rust resolve_day_window 一致）。 */
+export function resolveDayWindow(
+  plan: FullPlan,
+  weekday: number,
+  config: GlobalConfig,
+): { dayStart: number; dayEnd: number } {
+  const o = plan.overrides.find((o) => o.weekday === weekday);
+  const dayStart =
+    o?.dayStartMinute ?? plan.plan.dayStartMinute ?? config.dayStartMinute;
+  const dayEnd =
+    o?.dayEndMinute ?? plan.plan.dayEndMinute ?? config.dayEndMinute;
+  return { dayStart, dayEnd };
+}
+
+/** 同一天内互相重叠的提醒事务（与 Rust find_conflicts 一致）。 */
+export function findConflicts(entries: WeekEntry[]): Conflict[] {
+  const conflicts: Conflict[] = [];
+  for (let day = 1; day <= 7; day++) {
+    const list = entries
+      .filter((e) => e.weekday === day)
+      .sort((a, b) => a.startMinute - b.startMinute);
+    for (let i = 0; i < list.length; i++) {
+      const aEnd = list[i].startMinute + list[i].durationMinute;
+      for (let j = i + 1; j < list.length; j++) {
+        if (list[j].startMinute < aEnd) {
+          conflicts.push({
+            aId: list[i].id,
+            bId: list[j].id,
+            weekday: day,
+          });
+        } else {
+          break;
+        }
+      }
+    }
+  }
+  return conflicts;
+}
+
+/** ISO 周几的显示列顺序（1=周一..7=周日）。 */
+export function orderedWeekdays(firstDayOfWeek: "mon" | "sun"): number[] {
+  return firstDayOfWeek === "sun"
+    ? [7, 1, 2, 3, 4, 5, 6]
+    : [1, 2, 3, 4, 5, 6, 7];
+}
+
+const WEEKDAY_LABELS: Record<number, string> = {
+  1: "周一",
+  2: "周二",
+  3: "周三",
+  4: "周四",
+  5: "周五",
+  6: "周六",
+  7: "周日",
+};
+
+export function weekdayLabel(weekday: number): string {
+  return WEEKDAY_LABELS[weekday] ?? "";
+}
+
+/** 本地今天对应的 ISO 周几（1=周一..7=周日）。 */
+export function todayWeekday(): number {
+  const day = new Date().getDay(); // 0=周日
+  return day === 0 ? 7 : day;
+}

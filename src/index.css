@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-zinc-700 text-zinc-100 antialiased;
+  margin: 0;
+  overflow: hidden;
+  user-select: none;
+}

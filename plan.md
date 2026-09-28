@@ -1,0 +1,80 @@
+# Scheet 周课表实现计划
+
+> 依据 fn-req.md 整理，2026-09-27 批准。执行进度日志见 [current.md](current.md)。
+> 推进方式：按里程碑验收——每个里程碑完成即 `cargo test` + `pnpm build` + 冒烟，暂停等验收后再继续。
+
+## 已确认决策
+
+- 编辑弹窗 = **单页模态窗**（HeadlessUI Dialog，与主窗共用加载/设置上下文）
+- 冲突语义 = **拒绝保存**：编辑/粘贴可临时产生冲突（红 outline + 临时 snackbar），保存时若有冲突则拒绝并提示消除；消除后红 outline 消失，若该项需黄 outline 则替换为黄
+- 执行节奏 = 按里程碑验收，每阶段带测试
+
+## 需求解读（fn-req.md → 设计映射）
+
+- 以周为单位、5 分钟最小粒度编排事务；7 天横排为列，每列从上到下 = 表头单元格（周几）+ 表体单元格（顺排的事务列）；**不为每个 5 分钟建单元格**（无安排空隙合并为视觉隐藏 cell，随事务 cell 顺排；高度∝时长）
+- 事务三类：普通/休息（提醒事务，需设时长）、无安排（由空隙自动派生，不入库）
+- 一天起止时间解析链：天覆盖 → 周表 → 全局设置（默认 06:00–23:59）
+- 周表：至多 6 个（首表默认存在不可删），左侧纵向 tab 列 7 槽位（6 表 + 添加按钮）；"当周"设置后按槽位顺序循环轮换
+- 提醒链：事务开始/结束 → 系统通知 + 铃声 + 右下角 snackbar【确认】停止；铃声与播放模式按 **事务→事务类型→全局** fallback；取值 ∈ {未设置(继承), builtin 内置铃声, none 不提醒, 文件名}；"不提醒"= 静音+不推送但仍弹 snackbar
+- 链式结束铃：相邻无空隔的一串提醒事务只播开始铃，最后一个（其后是空隙/无安排/日末）才在结束时播结束铃；超出当天空余的事务在当天结束时间播结束铃（黄 outline 警告，不算冲突）
+- 交互：单击选中 → Ctrl+C/按钮复制事务 JSON（首键固定 `"objectType":"ScheetPlan"`）；点表头选目标天 → Ctrl+V/按钮粘贴同时段；悬浮 cell 边缘横向拖拽快速排到其他天；上下拖拽调时长（5 分钟步进）、左右拖拽换天；双击编辑
+- 右侧：当日 todo list（todo-list.db 按天存，日切自动复制昨日未完成）+ 悬浮剪贴板预览块（窗口聚焦时读取嗅探）
+
+## 总体架构
+
+- **三库分工**（同在 Documents/scheet/）：`data.db`（app_settings/flags + 手动 reminders 表）、`weeks.db`（周表+事务+日覆盖）、`todo-list.db`（todos+meta）。通知/铃声/托盘/webview2 模块原样复用。
+- **db.rs 重构**：Db 泛化为 `LazyDb`（按文件名惰性打开 + 各自建表/迁移），manage 三个实例；alarms 目录随 data.db 初始化。
+- **时间模型**：事务存 `start_minute`(0–1439) + `duration_minute`（5 的倍数）；渲染时相对当天窗口偏移换算像素。
+- **轮换**：app_settings 存 `activePlanId` + `rotationAnchorDate`（设定当周时的"每周第一天"日期）；Rust 读取时计算 `(锚点序 + 整周数) % 周表数`。
+- **剪贴板**：Rust 侧 arboard 读写文本，前端只在 focus/粘贴时经命令读取。
+
+## M1 后端地基（weeks.db + todo-list.db + 事件计算）
+
+- [x] M1.1 db.rs → LazyDb 三库重构（data.db schema 不变，alarms 逻辑保留）
+- [x] M1.2 weeks.rs：week_plans / week_entries / week_day_overrides 表 + CRUD、保存冲突检测（拒绝写入）、轮换计算命令
+- [x] M1.3 timetable.rs：今日提醒事件计算（开始铃/链式结束铃/溢出钳制/铃声解析链）+ 调度线程集成 + scheet://alarm 事件
+- [x] M1.4 todo.rs：todos 表 + 命令 + 跨天滚动（启动与日切）
+- [x] M1.5 settings.rs 扩展：全局起止时间、每周第一天、铃声解析链三组键
+- [x] M1.6 clipboard.rs：arboard 读写 + list_alarm_sounds
+- [x] M1.7 cargo test 全绿（31 个）+ tauri dev 冒烟回归（三库/默认周表/日切游标验证通过）→ **已到验收点**
+- [x] M1.8（验收反馈加固）clock.rs 时间存储约定：时间点统一 UTC RFC3339（解析保留偏移、落库转 UTC）、日历日本地日期、时刻表时间用分钟数；weeks/todo/reminders 全部切换并审计，34 测试绿
+
+## M2 周表网格渲染
+
+- [x] M2.1 前端类型镜像 + IPC 封装（types/weeks、types/global-config、lib/weeks、lib/global-config、lib/weekgrid 纯函数）
+- [x] M2.2 路由与页面骨架（/ WeekGridPage、/settings 占位页）
+- [x] M2.3 左侧纵向 tab 列（动态 1~6 槽 + 添加按钮满员消失 + 当周绿点标记 + 切换脏确认模态）
+- [x] M2.4 7 天列渲染：flex 顺排（可见事务 cell + 隐藏无安排 cell）、cell 三段式（时间标签阈值 72px、中部标题）、3.2px/分钟、深色适配（蓝/琥珀 15% 透明度）、今天列标记
+- [x] M2.5 冲突红 outline（前端实时计算）+ 溢出黄 outline + tooltip、保存按钮/脏标记/保存流程（Rust 权威校验 + toast）、表体纵向滚动 + 天表头 sticky
+- [x] M2.6 pnpm build 通过 + 34 测试绿 + tauri dev 冒烟（修复 Vite 监视 EBUSY：ignore src-tauri/**）→ **已到验收点，dev 实例留运行中供查看**
+
+## M3 交互与冲突
+
+- [ ] M3.1 选中/复制/粘贴（Ctrl+C/V 与按钮、ScheetPlan JSON、表头粘贴目标）
+- [ ] M3.2 拖拽三件套（边缘横向排期、上下调时长 5 分钟步进、左右换天）
+- [ ] M3.3 双击编辑模态（类型/标题/时长/铃声选择+试听/模式）
+- [ ] M3.4 保存冲突拒绝 + 临时 snackbar + outline 切换规则
+- [ ] M3.5 验收 → **暂停验收**
+
+## M4 提醒链路与设置页
+
+- [ ] M4.1 前端监听 scheet://alarm → 右下角 snackbar +【确认】停止铃声（loop 持续/once 30s 自动消退）
+- [ ] M4.2 设置页（全局起止时间、每周第一天、铃声解析链三组、窗口控制按钮组位置）
+- [ ] M4.3 E2E 提醒验收（2 分钟后事务：通知+铃声+snackbar；none 只弹 snackbar；循环确认即停）→ **暂停验收**
+
+## M5 todo + 剪贴板预览 + 收尾
+
+- [ ] M5.1 右侧当日 todo 面板（增删/勾选）+ 日切自动复制
+- [ ] M5.2 todo 区上方剪贴板预览浮块（focus 嗅探 objectType:ScheetPlan）
+- [ ] M5.3 AGENTS.md / README 实现地图更新 + release 构建冒烟 → **最终验收**
+
+## 明确不做（后续升级项）
+
+- 事务独立窗口编辑（本期模态窗，结构上预留升级）
+- 周表/数据导入导出、轮换手动跳转、事务颜色自定义
+
+## 设计备注
+
+- 事务"标题"为合理推断字段（需求未明说，但编辑/通知/snackbar 需要名称承载）
+- 周表内 weekday 统一存 ISO 周一=1..周日=7，显示顺序由"每周第一天"设置决定
+- todo 滚动按需求原文取"上一天"（日历上的昨天）
