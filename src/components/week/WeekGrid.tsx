@@ -1,4 +1,4 @@
-import { SaveIcon, SettingIcon } from "tdesign-icons-react";
+import { SaveIcon, SettingIcon, CopyIcon, PasteIcon } from "tdesign-icons-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import type { GlobalConfig } from "../../types/global-config";
@@ -13,10 +13,10 @@ import {
   PX_PER_MINUTE as PX_PER_MINUTE_FALLBACK,
   resolveDayWindow,
   TIME_LABEL_MIN_HEIGHT,
-  todayWeekday,
   weekdayLabel,
   type DayCellModel,
 } from "../../lib/weekgrid";
+import { useToday } from "../../state/dateState";
 
 interface WeekGridProps {
   plan: FullPlan;
@@ -26,6 +26,17 @@ interface WeekGridProps {
   onSave: () => void;
   /** 右键表头：打开当天设置菜单。 */
   onDayMenu?: (e: React.MouseEvent, weekday: number) => void;
+  /** 当前选中的事务（高亮 + 复制目标）。 */
+  selectedEntryId: number | null;
+  /** 左键点击事务 cell：选中/取消。 */
+  onSelectEntry: (entryId: number | null) => void;
+  /** 左键点击表头：设定粘贴目标天（null = 无）。 */
+  onPasteTarget: (weekday: number | null) => void;
+  pasteTargetWeekday: number | null;
+  /** 复制选中事务到剪贴板。 */
+  onCopy: () => void;
+  /** 把剪贴板事务粘贴到粘贴目标天。 */
+  onPaste: () => void;
 }
 
 /** thead 行高（h-8，含边框）。 */
@@ -45,10 +56,17 @@ export default function WeekGrid({
   saving,
   onSave,
   onDayMenu,
+  selectedEntryId,
+  onSelectEntry,
+  onPasteTarget,
+  pasteTargetWeekday,
+  onCopy,
+  onPaste,
 }: WeekGridProps) {
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [wrapHeight, setWrapHeight] = useState(0);
+  const { weekday: today } = useToday();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -61,7 +79,6 @@ export default function WeekGrid({
   }, []);
 
   const days = orderedWeekdays(config.firstDayOfWeek);
-  const today = todayWeekday();
   const conflictIds = new Set<number>();
   for (const c of findConflicts(plan.entries)) {
     conflictIds.add(c.aId);
@@ -93,6 +110,26 @@ export default function WeekGrid({
         </button>
         <button
           type="button"
+          onClick={onCopy}
+          disabled={selectedEntryId == null}
+          title="复制选中事务 (Ctrl+C)"
+          className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
+        >
+          <CopyIcon size="13px" />
+          复制
+        </button>
+        <button
+          type="button"
+          onClick={onPaste}
+          disabled={pasteTargetWeekday == null}
+          title="粘贴到粘贴目标天 (Ctrl+V)"
+          className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
+        >
+          <PasteIcon size="13px" />
+          粘贴
+        </button>
+        <button
+          type="button"
           onClick={onSave}
           disabled={!dirty || saving}
           className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
@@ -115,16 +152,22 @@ export default function WeekGrid({
               {days.map((d) => (
                 <th
                   key={d}
+                  onClick={() => onPasteTarget(pasteTargetWeekday === d ? null : d)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     onDayMenu?.(e, d);
                   }}
-                  title="右键打开当天设置"
-                  className="h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100"
+                  title={pasteTargetWeekday === d ? "粘贴目标（点击取消）" : "左键设为粘贴目标，右键打开当天设置"}
+                  className={`h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100 transition-colors ${
+                    pasteTargetWeekday === d ? "cursor-pointer bg-zinc-600/70" : "cursor-pointer"
+                  }`}
                 >
                   {weekdayLabel(d)}
                   {d === today && (
                     <span className="ml-1 text-[10px] text-blue-300">今天</span>
+                  )}
+                  {pasteTargetWeekday === d && (
+                    <span className="ml-1 text-[10px] text-emerald-300">粘贴目标</span>
                   )}
                 </th>
               ))}
@@ -158,6 +201,7 @@ export default function WeekGrid({
                             key={i}
                             className="shrink-0 py-px"
                             style={{ height: cell.heightPx }}
+                            onClick={() => onSelectEntry(null)}
                           >
                             <div className="h-full rounded-xl opacity-0" />
                           </div>
@@ -166,10 +210,12 @@ export default function WeekGrid({
                             key={i}
                             className="shrink-0 py-px"
                             style={{ height: cell.heightPx }}
+                            onClick={() => onSelectEntry(cell.entry!.id)}
                           >
                             <EntryCell
                               cell={cell}
                               conflicted={conflictIds.has(cell.entry!.id)}
+                              selected={selectedEntryId === cell.entry!.id}
                             />
                           </div>
                         ),
@@ -196,9 +242,11 @@ export default function WeekGrid({
 function EntryCell({
   cell,
   conflicted,
+  selected,
 }: {
   cell: DayCellModel;
   conflicted: boolean;
+  selected: boolean;
 }) {
   const entry = cell.entry!;
   const showTimes = cell.heightPx - 2 >= TIME_LABEL_MIN_HEIGHT;
@@ -207,6 +255,7 @@ function EntryCell({
     : cell.overflow
       ? "outline outline-2 outline-amber-400"
       : "";
+  const selectionRing = selected ? "ring-2 ring-zinc-100/80" : "";
   const typeLabel = entry.entryType === "normal" ? "普通事务" : "休息事务";
   const tooltip = `${minuteToHHMM(cell.startMinute)}~${minuteToHHMM(cell.realEndMinute)} ${
     entry.title || typeLabel
@@ -216,7 +265,7 @@ function EntryCell({
     <div
       title={tooltip}
       style={{ background: entryBackground(entry) }}
-      className={`h-full w-full flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline}`}
+      className={`h-full w-full flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline} ${selectionRing}`}
     >
       {showTimes && (
         <span className="text-[10px] leading-3 text-zinc-300">

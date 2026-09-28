@@ -19,7 +19,7 @@ use crate::timetable::{self, AlarmEvent, AlarmKind, Ringtone};
 use crate::todo;
 use crate::weeks::{self, EntryType};
 
-const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(500);
+const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(1000);
 
 /// 推送给前端的提醒事件载荷（snackbar 数据）。
 #[derive(Debug, Clone, Serialize)]
@@ -32,6 +32,14 @@ struct AlarmEventPayload {
     /// "builtin" | "none" | alarms 文件名。
     ringtone: String,
     mode: AlarmMode,
+}
+
+/// 日期切换事件载荷（标题栏日期、"今天"列标记刷新）。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DateChangedPayload {
+    date: String,
+    weekday: u32,
 }
 
 pub fn start(app: AppHandle, data: Arc<DataDb>, weeks: Arc<WeeksDb>, todo_db: Arc<TodoDb>) {
@@ -51,6 +59,14 @@ pub fn start(app: AppHandle, data: Arc<DataDb>, weeks: Arc<WeeksDb>, todo_db: Ar
                 let date_changed = last_date != Some(today);
                 if date_changed {
                     fired.clear();
+                    // 通知前端刷新日期相关 UI（标题栏日期、"今天"列标记）
+                    let payload = DateChangedPayload {
+                        date: today.format("%Y-%m-%d").to_string(),
+                        weekday: today.weekday().num_days_from_monday() as u32 + 1,
+                    };
+                    if let Err(e) = app.emit("scheet://date-changed", payload) {
+                        eprintln!("[scheduler] 日期切换事件推送失败: {e}");
+                    }
                     if let Err(e) = todo_db.with_conn(|conn| todo::ensure_rollover(conn)) {
                         eprintln!("[scheduler] todo 日切滚动失败: {e}");
                     }

@@ -192,6 +192,65 @@ export function todayWeekday(): number {
   return day === 0 ? 7 : day;
 }
 
+// ============ 事务剪贴板（ScheetPlan JSON） ============
+
+/** 事务序列化为剪贴板 JSON；首键固定为 "objectType": "ScheetPlan"。 */
+export function serializeEntryPlan(entry: WeekEntry): string {
+  return JSON.stringify({
+    objectType: "ScheetPlan",
+    entryType: entry.entryType,
+    title: entry.title,
+    startMinute: entry.startMinute,
+    durationMinute: entry.durationMinute,
+    alarmFile: entry.alarmFile,
+    alarmMode: entry.alarmMode,
+    color: entry.color,
+  });
+}
+
+/** 解析剪贴板文本为事务（不含 id/weekday，由粘贴方赋予）；不合法返回 null。 */
+export function parseEntryPlan(raw: string): Omit<WeekEntry, "id" | "weekday"> | null {
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const keys = Object.keys(parsed);
+    if (keys.length === 0 || keys[0] !== "objectType" || parsed.objectType !== "ScheetPlan") {
+      return null;
+    }
+    const entryType = parsed.entryType === "rest" ? "rest" : parsed.entryType === "normal" ? "normal" : null;
+    const startMinute = parsed.startMinute;
+    const durationMinute = parsed.durationMinute;
+    if (
+      entryType == null ||
+      typeof startMinute !== "number" ||
+      !Number.isInteger(startMinute) ||
+      startMinute < 0 ||
+      startMinute > 1435 ||
+      startMinute % 5 !== 0 ||
+      typeof durationMinute !== "number" ||
+      !Number.isInteger(durationMinute) ||
+      durationMinute <= 0 ||
+      durationMinute % 5 !== 0
+    ) {
+      return null;
+    }
+    const alarmFile =
+      parsed.alarmFile == null ? null : typeof parsed.alarmFile === "string" ? parsed.alarmFile : null;
+    const alarmMode = parsed.alarmMode === "loop" ? "loop" : parsed.alarmMode === "once" ? "once" : null;
+    const color = parsed.color == null ? null : typeof parsed.color === "string" ? parsed.color : null;
+    return {
+      entryType,
+      title: typeof parsed.title === "string" ? parsed.title : "",
+      startMinute,
+      durationMinute,
+      alarmFile,
+      alarmMode,
+      color,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** 分钟数 → time 输入框值 "HH:MM"；null → 空串（表示未设置/继承）。 */
 export function minuteToTimeInput(minute: number | null): string {
   return minute == null ? "" : minuteToHHMM(minute);

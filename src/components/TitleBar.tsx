@@ -3,12 +3,14 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { buildAppTitle } from "../lib/apptitle";
 import { useSettings } from "../state/SettingsContext";
 import { useTitleState } from "../state/titleState";
+import { useToday } from "../state/dateState";
 import WindowControls from "./WindowControls";
 
 /** 应用标题：显示在窗口控制按钮的相反一侧，并同步到系统窗口标题。 */
 function AppTitle() {
   const titleState = useTitleState();
-  const title = buildAppTitle(titleState);
+  const { date } = useToday();
+  const title = buildAppTitle(titleState, date);
 
   useEffect(() => {
     void getCurrentWindow().setTitle(title);

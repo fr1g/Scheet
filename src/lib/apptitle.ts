@@ -19,19 +19,12 @@ export function weekLabel(
   return `第${slot}周`;
 }
 
-export function todayLocalISO(): string {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
-export function buildAppTitle(state: TitleState): string {
+export function buildAppTitle(state: TitleState, date: string): string {
   const current = weekLabel(state.currentPlanSlot, state.planCount);
   if (!current) {
     return "Scheet";
   }
-  let title = `${current}，${todayLocalISO()} - Scheet`;
+  let title = `${current}，${date} - Scheet`;
   if (
     state.selectedPlanSlot != null &&
     state.selectedPlanSlot !== state.currentPlanSlot

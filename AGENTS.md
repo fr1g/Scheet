@@ -83,7 +83,10 @@ pnpm exec tauri icon <png>  # 重新生成 src-tauri/icons/（源图 1024x1024�
 - Rust 模块 `reminders.rs`：提醒模型 + SQLite `reminders` 表（title/body/fire_at/status/created_at，
   fire_at 统一 RFC3339 UTC 存储，status ∈ pending/fired/cancelled）。命令：`create_reminder`（fire_at 接受带时区的 RFC3339）、
   `cancel_reminder`、`list_reminders`。
-- 调度线程（`start_scheduler`）每 500ms 查询到期 pending 提醒并发送通知；应用关闭期间到期的提醒会在下次启动后补发。
+- 调度线程（`start_scheduler`，scheduler.rs）每 1000ms 轮询：到期 pending 提醒、
+  当前周表的今日提醒事件（开始/结束铃）、日期切换（重置事件去重集 + todo 日切滚动 +
+  emit `scheet://date-changed` 供前端刷新日期相关 UI）；
+  应用关闭期间到期的手动提醒会在下次启动后补发（周课表事件不补发，新一天首轮只标记不触发）。
 - Rust 模块 `notify.rs` 平台分发，**硬性约定：任何通知失败只记录日志绝不 panic**（无通知服务、无 WinRT、权限被禁时应用照常运行）：
   - Windows：`tauri-winrt-notification`（WinRT Toast），点击横幅 → `on_activated` → 聚焦主窗口；Toast 非 `Send`，须在同线程内构建并展示。
   - macOS：`notify-rust`；启动时 `set_application` 归属应用（dev 归属 Terminal，与官方插件一致），点击横幅由系统激活应用；

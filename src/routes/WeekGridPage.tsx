@@ -16,6 +16,12 @@ import {
   saveWeekPlan,
   setActiveWeekPlan,
 } from "../lib/weeks";
+import { readClipboardText, writeClipboardText } from "../lib/clipboard";
+import {
+  parseEntryPlan,
+  serializeEntryPlan,
+  weekdayLabel,
+} from "../lib/weekgrid";
 import type { GlobalConfig } from "../types/global-config";
 import type { FullPlan, WeekPlan } from "../types/weeks";
 import { setTitleState } from "../state/titleState";
@@ -43,6 +49,8 @@ export default function WeekGridPage() {
     initialEnd: number | null;
   } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<WeekPlan | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
+  const [pasteTargetWeekday, setPasteTargetWeekday] = useState<number | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -222,6 +230,69 @@ export default function WeekGridPage() {
     );
   };
 
+  // ============ 选中 / 复制 / 粘贴 ============
+
+  const handleCopy = useCallback(async () => {
+    if (!plan || selectedEntryId == null) return;
+    const entry = plan.entries.find((e) => e.id === selectedEntryId);
+    if (!entry) return;
+    await writeClipboardText(serializeEntryPlan(entry));
+    showToast("已复制事务到剪贴板");
+  }, [plan, selectedEntryId, showToast]);
+
+  const handlePaste = useCallback(async () => {
+    if (pasteTargetWeekday == null) return;
+    try {
+      const raw = await readClipboardText();
+      const base = parseEntryPlan(raw);
+      if (!base) {
+        showToast("剪贴板中没有可用的事务数据");
+        return;
+      }
+      setPlan((prev) => {
+        if (!prev) return prev;
+        // 新条目使用递减的负数临时 id（仅用于冲突配对，保存后重建）
+        const tempId = Math.min(0, ...prev.entries.map((e) => e.id)) - 1;
+        return {
+          ...prev,
+          entries: [
+            ...prev.entries,
+            { ...base, id: tempId, weekday: pasteTargetWeekday },
+          ],
+        };
+      });
+      showToast(`已粘贴到${weekdayLabel(pasteTargetWeekday)}（重叠冲突已标红）`);
+    } catch (e) {
+      showToast(String(e));
+    }
+  }, [pasteTargetWeekday, showToast]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      const key = e.key.toLowerCase();
+      if (key === "c" && selectedEntryId != null) {
+        e.preventDefault();
+        void handleCopy();
+      } else if (key === "v" && pasteTargetWeekday != null) {
+        e.preventDefault();
+        void handlePaste();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleCopy, handlePaste, selectedEntryId, pasteTargetWeekday]);
+
   /** 当天设置确认：更新/移除工作副本中的日覆盖。 */
   const handleDaySettings = (
     weekday: number,
@@ -265,6 +336,12 @@ export default function WeekGridPage() {
         saving={saving}
         onSave={handleSave}
         onDayMenu={(e, weekday) => setDayMenu({ x: e.clientX, y: e.clientY, weekday })}
+        selectedEntryId={selectedEntryId}
+        onSelectEntry={setSelectedEntryId}
+        onPasteTarget={setPasteTargetWeekday}
+        pasteTargetWeekday={pasteTargetWeekday}
+        onCopy={() => void handleCopy()}
+        onPaste={() => void handlePaste()}
       />
       <aside className="w-64 shrink-0 border-l border-zinc-600 p-3">
         <div className="text-xs text-zinc-400">今日待办</div>
