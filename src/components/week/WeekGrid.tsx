@@ -102,8 +102,14 @@ export default function WeekGrid({
         </button>
       </div>
 
-      <div ref={wrapRef} className="min-h-0 flex-1 overflow-x-auto">
-        <table className="h-full w-full min-w-[840px] table-fixed border-collapse">
+      <div
+        ref={wrapRef}
+        className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden"
+      >
+        <table
+          className="h-full w-full min-w-[840px] table-fixed border-collapse"
+          style={wrapHeight > 0 ? { height: wrapHeight } : undefined}
+        >
           <thead>
             <tr>
               {days.map((d) => (

@@ -17,3 +17,4 @@
 - 2026-09-28 M2 验收反馈修复：①settings/reminders 的 State 参数错配（Arc<LazyDb>→Arc<DataDb>，此前冒烟"三库已建"实为调度线程所为、前端停在错误屏——冒烟盲区教训）；②AppShell 加载/错误态保留标题栏（修复窗口无法拖动/关闭）；③事务自定义颜色（week_entries.color #RRGGBB+15% 透明度，默认蓝/琥珀）。git 初始提交 cf94a1e + 修复提交 68b243a；35 测试绿，debug 探针确认设置加载成功
 - 2026-09-28 M2.8 精修：表占满窗口高度+cell 动态比例（ResizeObserver、7 天统一比例、垫片对齐）、全局窄半透明滚动条、tab 六分高+笔记本式选中连通、右侧 todo 预留区、最小窗口 1080x700。提交 19e70d4，HMR 已生效待验收
 - 2026-09-28 M2.9 追加：标题栏应用标题 `第x周，YYYY-MM-DD - Scheet`（两表=单周/双周；选中≠当周时追加 `(选中: ...)`），同步系统窗口标题（core:window:allow-set-title）。用 titleState 外部存储桥接周表页状态，提交 f0ed4ba
+- 2026-09-28 M3.0 完成：右键菜单系统——tab 菜单（周表设置弹窗：名称+周表级起止时间→工作副本；设为当周→setActiveWeekPlan 写锚点；删除→危险模态确认+deleteWeekPlan，首表不显示）；表头菜单（当天设置→日覆盖写工作副本，留空清除）。新增 ContextMenu/PlanSettingsDialog/DaySettingsDialog 组件与时间输入辅助。提交 272b809，应用运行中待验收；继续 M3.1 复制粘贴

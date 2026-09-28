@@ -221,7 +221,7 @@ pub fn list_plans(conn: &Connection) -> Result<Vec<WeekPlan>, String> {
     Ok(plans)
 }
 
-pub fn create_plan(conn: &Connection, name: &str) -> Result<WeekPlan, String> {
+pub fn create_plan(conn: &Connection, name: Option<&str>) -> Result<WeekPlan, String> {
     let existing = list_plans(conn)?;
     if existing.len() >= MAX_PLANS {
         return Err(format!("最多只能有 {MAX_PLANS} 个周表"));
@@ -229,6 +229,11 @@ pub fn create_plan(conn: &Connection, name: &str) -> Result<WeekPlan, String> {
     let slot = (1..=MAX_PLANS as i64)
         .find(|s| !existing.iter().any(|p| p.slot == *s))
         .ok_or_else(|| format!("最多只能有 {MAX_PLANS} 个周表"))?;
+    // 自动命名跟随槽位号（槽位唯一 → 名称唯一），按数量命名会在删除后重号
+    let name = match name {
+        Some(n) => n.to_string(),
+        None => format!("周表 {slot}"),
+    };
     let now = now_str();
     conn.execute(
         "INSERT INTO week_plans (slot, name, created_at, updated_at) VALUES (?1, ?2, ?3, ?3)",
@@ -238,7 +243,7 @@ pub fn create_plan(conn: &Connection, name: &str) -> Result<WeekPlan, String> {
     Ok(WeekPlan {
         id: conn.last_insert_rowid(),
         slot,
-        name: name.to_string(),
+        name,
         day_start_minute: None,
         day_end_minute: None,
     })
@@ -623,19 +628,7 @@ pub async fn create_week_plan(
     let db = db.inner().clone();
     Ok(
         tauri::async_runtime::spawn_blocking(move || {
-            db.with_conn(|conn| {
-                let name = match name {
-                    Some(n) => n,
-                    None => {
-                        // 未提供名称时按槽位自动命名
-                        let count: i64 = conn
-                            .query_row("SELECT COUNT(*) FROM week_plans", [], |r| r.get(0))
-                            .map_err(|e| format!("读取周表失败: {e}"))?;
-                        format!("周表 {}", count + 1)
-                    }
-                };
-                create_plan(conn, &name)
-            })
+            db.with_conn(|conn| create_plan(conn, name.as_deref()))
         })
         .await
         .map_err(|e| e.to_string())??,
@@ -809,14 +802,41 @@ mod tests {
         let first = list_plans(&conn).unwrap().remove(0);
         assert_eq!(first.slot, 1);
         for _ in 0..5 {
-            create_plan(&conn, "x").unwrap();
+            create_plan(&conn, Some("x")).unwrap();
         }
-        assert!(create_plan(&conn, "y").is_err()); // 第 7 个被拒
+        assert!(create_plan(&conn, Some("y")).is_err()); // 第 7 个被拒
         assert!(delete_plan(&conn, first.id).is_err()); // 首表不可删
         let second = list_plans(&conn).unwrap().remove(1);
         delete_plan(&conn, second.id).unwrap();
-        let created = create_plan(&conn, "z").unwrap();
+        let created = create_plan(&conn, Some("z")).unwrap();
         assert_eq!(created.slot, second.slot); // 槽位回收
+    }
+
+    #[test]
+    fn auto_name_follows_slot_not_count() {
+        let conn = weeks_conn(); // 槽位 1：第一周表
+        for _ in 0..5 {
+            create_plan(&conn, None).unwrap(); // 周表 2..=6
+        }
+        // 删除槽位 4（周表 4）后新建：应占用槽位 4 并命名为 周表 4，而不是第二个 周表 6
+        let four = list_plans(&conn)
+            .unwrap()
+            .into_iter()
+            .find(|p| p.slot == 4)
+            .unwrap();
+        delete_plan(&conn, four.id).unwrap();
+        let recreated = create_plan(&conn, None).unwrap();
+        assert_eq!(recreated.slot, 4);
+        assert_eq!(recreated.name, "周表 4");
+
+        let mut names: Vec<String> = list_plans(&conn)
+            .unwrap()
+            .into_iter()
+            .map(|p| p.name)
+            .collect();
+        names.sort();
+        let unique_count = names.iter().collect::<std::collections::HashSet<_>>().len();
+        assert_eq!(names.len(), unique_count); // 名称无重复
     }
 
     #[test]
@@ -924,7 +944,7 @@ mod tests {
     fn rotation_end_to_end() {
         let weeks = weeks_conn();
         let data = data_conn();
-        create_plan(&weeks, "第二周表").unwrap(); // id=2
+        create_plan(&weeks, Some("第二周表")).unwrap(); // id=2
         // 未设置当周 → 第一个
         assert_eq!(current_plan_id(&weeks, &data).unwrap(), 1);
 
