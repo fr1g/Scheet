@@ -5,12 +5,21 @@
 //! 窗口关闭按钮只是隐藏窗口（见 lib.rs 的 CloseRequested 处理）。
 
 use tauri::{
+    command,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle,
 };
 
 const ITEM_SHOW: &str = "show";
 const ITEM_QUIT: &str = "quit";
+
+/// 直接退出应用（前端 Shift+关闭 的确认退出路径，与托盘菜单"退出"等价）。
+#[command]
+pub async fn exit_application(app: AppHandle) -> Result<(), String> {
+    app.exit(0);
+    Ok(())
+}
 
 pub fn create(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, ITEM_SHOW, "显示主窗口", true, None::<&str>)?;

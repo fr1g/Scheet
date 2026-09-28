@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import ConfirmDialog from "./ConfirmDialog";
+import { exitApplication } from "../lib/app";
 import { buildAppTitle } from "../lib/apptitle";
 import { useSettings } from "../state/SettingsContext";
 import { useTitleState } from "../state/titleState";
@@ -26,14 +28,39 @@ function AppTitle() {
 export default function TitleBar() {
   const { settings } = useSettings();
   const position = settings?.windowControls.position ?? "right";
+  const [confirmExit, setConfirmExit] = useState(false);
 
   return (
-    <header className="flex h-10 shrink-0 items-stretch">
-      {position === "right" && <AppTitle />}
-      {position === "left" && <WindowControls position="left" />}
-      <div data-tauri-drag-region className="min-w-0 flex-1" />
-      {position === "right" && <WindowControls position="right" />}
-      {position !== "right" && <AppTitle />}
-    </header>
+    <>
+      <header className="flex h-10 shrink-0 items-stretch">
+        {position === "right" && <AppTitle />}
+        {position === "left" && (
+          <WindowControls
+            position="left"
+            onExitRequest={() => setConfirmExit(true)}
+          />
+        )}
+        <div data-tauri-drag-region className="min-w-0 flex-1" />
+        {position === "right" && (
+          <WindowControls
+            position="right"
+            onExitRequest={() => setConfirmExit(true)}
+          />
+        )}
+        {position !== "right" && <AppTitle />}
+      </header>
+      <ConfirmDialog
+        open={confirmExit}
+        title="退出 Scheet"
+        message="退出后将无法收到提醒（包括循环响铃），直到重新打开应用。确定退出？"
+        confirmText="退出"
+        danger
+        onConfirm={() => {
+          setConfirmExit(false);
+          void exitApplication().catch(() => undefined);
+        }}
+        onCancel={() => setConfirmExit(false)}
+      />
+    </>
   );
 }

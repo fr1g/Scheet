@@ -109,6 +109,7 @@ pub fn run() {
             clipboard::write_clipboard_text,
             clipboard::list_alarm_sounds,
             popup::dismiss_alarm_popup,
+            tray::exit_application,
         ])
         .build(tauri::generate_context!())
         .expect("Scheet 初始化失败")
