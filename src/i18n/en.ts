@@ -21,6 +21,14 @@ export default {
     confirm: "Quit",
   },
   tabs: { add: "New plan", current: "Current week" },
+  weeks: {
+    w1: "Plan 1",
+    w2: "Plan 2",
+    w3: "Plan 3",
+    w4: "Plan 4",
+    w5: "Plan 5",
+    w6: "Plan 6",
+  },
   days: {
     1: "Mon",
     2: "Tue",

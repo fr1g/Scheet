@@ -193,12 +193,23 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
             eprintln!("[db] 迁移 week_entries.end_alarm_mode 失败(已忽略): {e}");
         }
     }
-    // 统一默认周表命名（旧安装为"第一周表"；用户自己改过名的不会被触碰）
-    if let Err(e) = conn.execute(
-        "UPDATE week_plans SET name = '周表 1' WHERE slot = 1 AND name = '第一周表'",
-        [],
-    ) {
-        eprintln!("[db] 统一默认周表命名失败(已忽略): {e}");
+    // 迁移：默认周表的标记名统一为键 weeks.w1..w6（i18n 层负责友好显示；
+    // 只触碰系统生成的默认名，用户自己改过名的不会被触碰）
+    for slot in 1..=6 {
+        let old_names: &[&str] = if slot == 1 {
+            &["第一周表", "周表 1"]
+        } else {
+            &["周表 {slot}"]
+        };
+        for old_name in old_names {
+            let old_name = old_name.replace("{slot}", &slot.to_string());
+            if let Err(e) = conn.execute(
+                "UPDATE week_plans SET name = ?1 WHERE slot = ?2 AND name = ?3",
+                rusqlite::params![format!("weeks.w{slot}"), slot, old_name],
+            ) {
+                eprintln!("[db] 迁移周表命名失败(已忽略, slot {slot}): {e}");
+            }
+        }
     }
     ensure_default_plan(conn)
 }
@@ -210,7 +221,7 @@ fn ensure_default_plan(conn: &Connection) -> Result<(), String> {
     if count == 0 {
         let now = now_str();
         conn.execute(
-            "INSERT INTO week_plans (slot, name, created_at, updated_at) VALUES (1, '周表 1', ?1, ?1)",
+            "INSERT INTO week_plans (slot, name, created_at, updated_at) VALUES (1, 'weeks.w1', ?1, ?1)",
             [&now],
         )
         .map_err(|e| format!("创建默认周表失败: {e}"))?;
@@ -252,10 +263,10 @@ pub fn create_plan(conn: &Connection, name: Option<&str>) -> Result<WeekPlan, St
     let slot = (1..=MAX_PLANS as i64)
         .find(|s| !existing.iter().any(|p| p.slot == *s))
         .ok_or_else(|| format!("最多只能有 {MAX_PLANS} 个周表"))?;
-    // 自动命名跟随槽位号（槽位唯一 → 名称唯一），按数量命名会在删除后重号
+    // 自动命名用键 weeks.w{slot}（槽位唯一 → 键唯一），友好名称由 i18n 层展示
     let name = match name {
         Some(n) => n.to_string(),
-        None => format!("周表 {slot}"),
+        None => format!("weeks.w{slot}"),
     };
     let now = now_str();
     conn.execute(
@@ -863,7 +874,7 @@ mod tests {
         delete_plan(&conn, four.id).unwrap();
         let recreated = create_plan(&conn, None).unwrap();
         assert_eq!(recreated.slot, 4);
-        assert_eq!(recreated.name, "周表 4");
+        assert_eq!(recreated.name, "weeks.w4");
 
         let mut names: Vec<String> = list_plans(&conn)
             .unwrap()

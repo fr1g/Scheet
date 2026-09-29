@@ -1,5 +1,6 @@
 import { AddIcon } from "tdesign-icons-react";
 import { useTranslation } from "react-i18next";
+import { usePlanName } from "../../lib/weekgrid";
 import type { WeekPlan } from "../../types/weeks";
 
 interface WeekPlanTabsProps {
@@ -27,12 +28,13 @@ export default function WeekPlanTabs({
   onTabMenu,
 }: WeekPlanTabsProps) {
   const { t } = useTranslation();
+  const planName = usePlanName();
 
   const displayName = (index: number, plan: WeekPlan): string => {
     if (plans.length === 2) {
       return index === 0 ? t("titlebar.single") : t("titlebar.double");
     }
-    return plan.name;
+    return planName(plan.name);
   };
 
   return (

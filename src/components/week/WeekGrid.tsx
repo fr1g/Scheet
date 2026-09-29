@@ -22,6 +22,8 @@ import { useToday } from "../../state/dateState";
 interface WeekGridProps {
   plan: FullPlan;
   config: GlobalConfig;
+  /** 选中周表的展示名（双表时为 单周/双周，键名已解析）。 */
+  displayName: string;
   dirty: boolean;
   saving: boolean;
   onSave: () => void;
@@ -106,6 +108,7 @@ function snap5(deltaPx: number, pxPerMinute: number): number {
 export default function WeekGrid({
   plan,
   config,
+  displayName,
   dirty,
   saving,
   onSave,
@@ -332,7 +335,7 @@ export default function WeekGrid({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-zinc-600 px-3 py-1.5">
-        <h1 className="text-sm text-zinc-100">{plan.plan.name}</h1>
+        <h1 className="text-sm text-zinc-100">{displayName}</h1>
         {dirty && (
           <>
             <span className="animate-pulse rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-300">

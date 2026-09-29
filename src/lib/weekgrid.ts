@@ -3,6 +3,7 @@
  * 与 Rust 侧逻辑保持一致（保存的权威校验在 weeks.rs，这里用于即时渲染）。
  */
 
+import { useTranslation } from "react-i18next";
 import type { AlarmMode, Conflict, EntryType, FullPlan, WeekEntry } from "../types/weeks";
 import type { GlobalConfig } from "../types/global-config";
 
@@ -168,6 +169,20 @@ export function resolveAlarmDisplay(
       ? "全局默认"
       : "内置";
   return { file, fileSource, mode, modeSource };
+}
+
+/** 系统生成的周表名（键）形态，如 weeks.w3。 */
+export const PLAN_NAME_KEY_RE = /^weeks\.w[1-6]$/;
+
+/** 是否为系统生成的周表键名（weeks.wN）。 */
+export function isPlanNameKey(raw: string): boolean {
+  return PLAN_NAME_KEY_RE.test(raw);
+}
+
+/** 键名 → 友好名称（i18n）；用户自定义名原样返回。组件内使用。 */
+export function usePlanName(): (raw: string) => string {
+  const { t } = useTranslation();
+  return (raw: string) => (PLAN_NAME_KEY_RE.test(raw) ? t(raw) : raw);
 }
 
 /** 同一天内互相重叠的提醒事务（与 Rust find_conflicts 一致）。 */

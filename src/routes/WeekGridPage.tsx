@@ -13,9 +13,11 @@ import WeekGrid from "../components/week/WeekGrid";
 import { readClipboardText, writeClipboardText } from "../lib/clipboard";
 import {
   entryBackground,
+  isPlanNameKey,
   minuteToHHMM,
   parseEntryPlan,
   serializeEntryPlan,
+  usePlanName,
 } from "../lib/weekgrid";
 import {
   createWeekPlan,
@@ -68,6 +70,7 @@ export default function WeekGridPage() {
     createdNow: boolean;
   } | null>(null);
 
+  const planName = usePlanName();
   const showToast = useCallback((message: string) => {
     setToast(message);
     window.clearTimeout(toastTimer.current);
@@ -111,6 +114,15 @@ export default function WeekGridPage() {
 
   const dirty = plan != null && JSON.stringify(plan) !== savedSnapshot;
 
+  // 仅两个周表时，选中周表的展示名用 单周/双周
+  const selectedPlanDisplayName = (() => {
+    const index = plans.findIndex((p) => p.id === selectedId);
+    if (plans.length === 2 && index >= 0) {
+      return t(index === 0 ? "titlebar.single" : "titlebar.double");
+    }
+    return planName(plan?.plan.name ?? "");
+  })();
+
   // 同步标题栏/系统窗口标题所需的状态
   useEffect(() => {
     setTitleState({
@@ -133,7 +145,7 @@ export default function WeekGridPage() {
     try {
       const created = await createWeekPlan();
       await loadPlans(created.id);
-      showToast(t("toasts.planCreated", { name: created.name }));
+      showToast(t("toasts.planCreated", { name: planName(created.name) }));
     } catch (e: unknown) {
       showToast(String(e));
     }
@@ -340,7 +352,7 @@ export default function WeekGridPage() {
     try {
       await setActiveWeekPlan(target.id);
       await loadPlans(selectedId);
-      showToast(t("toasts.setAsCurrent", { name: target.name }));
+      showToast(t("toasts.setAsCurrent", { name: planName(target.name) }));
     } catch (e: unknown) {
       showToast(String(e));
     }
@@ -350,7 +362,7 @@ export default function WeekGridPage() {
     try {
       await deleteWeekPlan(target.id);
       await loadPlans(selectedId === target.id ? null : selectedId);
-      showToast(t("toasts.planDeleted", { name: target.name }));
+      showToast(t("toasts.planDeleted", { name: planName(target.name) }));
     } catch (e: unknown) {
       showToast(String(e));
     }
@@ -399,12 +411,16 @@ export default function WeekGridPage() {
     dayStart: number | null,
     dayEnd: number | null,
   ) => {
+    const raw = planSettings?.name;
     setPlanSettings(null);
+    // 键名（weeks.wN）未被打字修改时保持键，避免把标记原文写进库
+    const finalName =
+      raw && isPlanNameKey(raw) && name === planName(raw) ? raw : name;
     setPlan((prev) =>
       prev
         ? {
             ...prev,
-            plan: { ...prev.plan, name, dayStartMinute: dayStart, dayEndMinute: dayEnd },
+            plan: { ...prev.plan, name: finalName, dayStartMinute: dayStart, dayEndMinute: dayEnd },
           }
         : prev,
     );
@@ -463,6 +479,7 @@ export default function WeekGridPage() {
       <WeekGrid
         plan={plan}
         config={config}
+        displayName={selectedPlanDisplayName}
         dirty={dirty}
         saving={saving}
         onSave={() => void handleSave()}
@@ -559,7 +576,9 @@ export default function WeekGridPage() {
             key="confirm-delete"
             open
             title={t("confirms.deletePlanTitle")}
-            message={t("confirms.deletePlanMessage", { name: confirmDelete.name })}
+            message={t("confirms.deletePlanMessage", {
+              name: planName(confirmDelete.name),
+            })}
             confirmText={t("confirms.deleteConfirm")}
             danger
             onConfirm={() => {
