@@ -1,4 +1,4 @@
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -467,7 +467,12 @@ export default function WeekGridPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+      className="flex h-full min-h-0"
+    >
       <WeekPlanTabs
         plans={plans}
         selectedId={selectedId}
@@ -619,6 +624,6 @@ export default function WeekGridPage() {
         )}
       </AnimatePresence>
       <Toast message={toast} />
-    </div>
+    </motion.div>
   );
 }

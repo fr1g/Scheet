@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import { ArrowLeftIcon, SaveIcon } from "tdesign-icons-react";
 import Toast from "../components/Toast";
 import { TimeField } from "../components/week/PlanSettingsDialog";
@@ -267,7 +268,13 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
+      className="flex h-full min-h-0 flex-col"
+    >
       <div className="flex items-center gap-2 border-b border-zinc-600 px-3 py-1.5">
         <button
           type="button"
@@ -393,6 +400,6 @@ export default function SettingsPage() {
       </div>
 
       <Toast message={toast} />
-    </div>
+    </motion.div>
   );
 }

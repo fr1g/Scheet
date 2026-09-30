@@ -1,5 +1,6 @@
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import AlarmSnackbar from "./components/AlarmSnackbar";
 import ErrorScreen from "./components/ErrorScreen";
@@ -13,6 +14,7 @@ import AlarmPopupPage from "./routes/AlarmPopupPage";
 
 function AppShell() {
   const { status } = useSettings();
+  const location = useLocation();
   // 提醒弹窗子窗口自绘全部内容：不渲染主窗口标题栏
   const isPopup = getCurrentWindow().label === "alarm-popup";
 
@@ -32,11 +34,13 @@ function AppShell() {
   } else {
     content = (
       <>
-        <Routes>
-          <Route path="/" element={<WeekGridPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/alarm-popup" element={<AlarmPopupPage />} />
-        </Routes>
+        <AnimatePresence mode="wait" initial={false}>
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<WeekGridPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/alarm-popup" element={<AlarmPopupPage />} />
+          </Routes>
+        </AnimatePresence>
         {!isPopup && <AlarmSnackbar />}
       </>
     );
