@@ -3,7 +3,6 @@
 //!
 //! 霞鹜文楷 Mono 为默认界面字体；其余内置字体与系统默认字体可在设置中选择。
 //! 所有内置字体均为 Regular 单字重（粗体由系统合成），gzip 压缩控制包体体积。
-//! Maple Mono NF CN（NF 图标对 UI 无用）待网络恢复后补入。
 
 use std::fs;
 use std::io::Read;
@@ -29,6 +28,10 @@ const EMBEDDED_FONTS: &[(&str, &[u8])] = &[
     (
         "oppo-sans.ttf",
         include_bytes!("../assets/fonts/oppo-sans.ttf.gz"),
+    ),
+    (
+        "maple-mono-nf-cn.ttf",
+        include_bytes!("../assets/fonts/maple-mono-nf-cn.ttf.gz"),
     ),
 ];
 
