@@ -186,6 +186,7 @@ export default {
   },
   settings: {
     title: "Settings",
+    tabs: { general: "General", bells: "Reminders", appearance: "Appearance", about: "About" },
     back: "Back",
     unsaved: "Unsaved changes",
     save: "Save settings",
@@ -236,6 +237,12 @@ export default {
     startAfterEnd: "The start must be before the end",
     badBellFile: "That sound file name doesn't work: {{name}}",
     badFont: "Invalid interface font selection",
+  },
+  about: {
+    tagline: "Plan your week, 5 minutes at a time",
+    intro: "Scheet is a local-first weekly planner: lay out tasks and breaks in 5-minute slots, get a popup and a sound when they start or end, and keep a daily to-do list on the right. All data stays on your own device.",
+    collaborators: "Collaborators",
+    aiNote: "AI-assisted development",
   },
   duration: {
     hM: "{{h}} h {{m}} min",

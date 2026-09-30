@@ -189,6 +189,7 @@ export default {
   },
   settings: {
     title: "设置",
+    tabs: { general: "通用", bells: "提醒铃声", appearance: "外观", about: "关于" },
     back: "返回",
     unsaved: "有改动没保存",
     save: "保存设置",
@@ -238,6 +239,12 @@ export default {
     startAfterEnd: "开始时间要比结束时间早",
     badBellFile: "铃声文件名不对：{{name}}",
     badFont: "界面字体选择不合法",
+  },
+  about: {
+    tagline: "以周为单位，安排你的生活",
+    intro: "Scheet 是一款本地优先的周课表应用：以 5 分钟为粒度编排一周的普通事务与休息，到点自动弹窗响铃提醒，右侧还有每日待办清单。所有数据都保存在你自己的电脑上。",
+    collaborators: "协作者",
+    aiNote: "AI 协作开发",
   },
   duration: {
     hM: "{{h}} 小时 {{m}} 分钟",
