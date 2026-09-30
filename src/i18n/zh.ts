@@ -24,6 +24,7 @@ export default {
     confirm: "退出",
   },
   tabs: { add: "新建周表", current: "当周" },
+  timeField: { clear: "清除（恢复继承）" },
   weeks: {
     w1: "周表 1",
     w2: "周表 2",
@@ -93,11 +94,13 @@ export default {
   planSettings: {
     title: "这一周的设置",
     name: "名字",
+    clearTitle: "清除（恢复继承全局）",
     start: "每天从（不填就按全局的）",
     end: "每天到（不填就按全局的）",
   },
   daySettings: {
     title: "{{day}} 的设置",
+    clearTitle: "清除覆盖（回退周表/全局）",
     start: "这天从（不填就清除）",
     end: "这天到（不填就清除）",
     hint: "先用这天的，再用这周的，最后是全局的。",

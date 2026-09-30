@@ -29,6 +29,7 @@ export default {
     w5: "Plan 5",
     w6: "Plan 6",
   },
+  timeField: { clear: "Clear (back to inherited)" },
   days: {
     1: "Mon",
     2: "Tue",
@@ -90,11 +91,13 @@ export default {
   planSettings: {
     title: "Plan settings",
     name: "Name",
+    clearTitle: "Clear (back to global)",
     start: "Day starts (empty = use global)",
     end: "Day ends (empty = use global)",
   },
   daySettings: {
     title: "{{day}} settings",
+    clearTitle: "Clear override (fall back)",
     start: "Day starts (empty = clear)",
     end: "Day ends (empty = clear)",
     hint: "This day first, then the plan, then global.",

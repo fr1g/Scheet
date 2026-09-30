@@ -50,8 +50,18 @@ export default function DaySettingsDialog({
           label={t("daySettings.start")}
           value={start}
           onChange={setStart}
+          clearable
+          clearTitle={t("daySettings.clearTitle")}
+          onClear={() => setStart("")}
         />
-        <TimeField label={t("daySettings.end")} value={end} onChange={setEnd} />
+        <TimeField
+          label={t("daySettings.end")}
+          value={end}
+          onChange={setEnd}
+          clearable
+          clearTitle={t("daySettings.clearTitle")}
+          onClear={() => setEnd("")}
+        />
       </div>
       <p className="mt-2 text-[10px] text-zinc-500">{t("daySettings.hint")}</p>
     </DialogShell>

@@ -1,9 +1,12 @@
 import { Dialog, DialogTitle } from "@headlessui/react";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { CloseIcon } from "tdesign-icons-react";
 import {
   minuteToTimeInput,
   timeInputToMinute,
+  usePlanName,
 } from "../../lib/weekgrid";
 import type { WeekPlan } from "../../types/weeks";
 
@@ -15,7 +18,7 @@ export function DialogShell({
   onClose,
   onConfirm,
   canConfirm = true,
-  confirmText = "确定",
+  confirmText,
   footer,
 }: {
   title: string;
@@ -27,6 +30,7 @@ export function DialogShell({
   /** 提供时替换默认页脚（编辑模态用它放"删除/取消/保存"组合）。 */
   footer?: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <Dialog open onClose={onClose} className="relative z-50">
       <motion.div
@@ -54,7 +58,7 @@ export function DialogShell({
                 onClick={onClose}
                 className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
               >
-                取消
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -62,7 +66,7 @@ export function DialogShell({
                 disabled={!canConfirm}
                 className="rounded bg-blue-500 px-3 py-1.5 text-xs text-white transition-colors enabled:hover:bg-blue-400 disabled:opacity-40"
               >
-                {confirmText}
+                {confirmText ?? t("common.confirm")}
               </button>
             </div>
           )}
@@ -85,7 +89,9 @@ export default function PlanSettingsDialog({
   onClose,
   onConfirm,
 }: PlanSettingsDialogProps) {
-  const [name, setName] = useState(plan.name);
+  const { t } = useTranslation();
+  const planName = usePlanName();
+  const [name, setName] = useState(planName(plan.name));
   const [start, setStart] = useState(minuteToTimeInput(plan.dayStartMinute));
   const [end, setEnd] = useState(minuteToTimeInput(plan.dayEndMinute));
 
@@ -106,9 +112,14 @@ export default function PlanSettingsDialog({
   };
 
   return (
-    <DialogShell title="周表设置" onClose={onClose} onConfirm={confirm} canConfirm={canConfirm}>
+    <DialogShell
+      title={t("planSettings.title")}
+      onClose={onClose}
+      onConfirm={confirm}
+      canConfirm={canConfirm}
+    >
       <label className="block text-xs text-zinc-300">
-        名称
+        {t("planSettings.name")}
         <input
           type="text"
           value={name}
@@ -117,8 +128,22 @@ export default function PlanSettingsDialog({
         />
       </label>
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <TimeField label="一天开始（留空继承全局）" value={start} onChange={setStart} />
-        <TimeField label="一天结束（留空继承全局）" value={end} onChange={setEnd} />
+        <TimeField
+          label={t("planSettings.start")}
+          value={start}
+          onChange={setStart}
+          clearable
+          clearTitle={t("planSettings.clearTitle")}
+          onClear={() => setStart("")}
+        />
+        <TimeField
+          label={t("planSettings.end")}
+          value={end}
+          onChange={setEnd}
+          clearable
+          clearTitle={t("planSettings.clearTitle")}
+          onClear={() => setEnd("")}
+        />
       </div>
     </DialogShell>
   );
@@ -129,13 +154,21 @@ export function TimeField({
   value,
   onChange,
   suffix,
+  clearable = false,
+  onClear,
+  clearTitle,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   /** 输入框右侧的附加操作（如"填入现在的时间"）。 */
   suffix?: React.ReactNode;
+  /** 可留空的时间设置：值非空时显示清除按钮（恢复继承）。 */
+  clearable?: boolean;
+  onClear?: () => void;
+  clearTitle?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <label className="block text-xs text-zinc-300">
       {label}
@@ -148,6 +181,16 @@ export function TimeField({
           className="min-w-0 flex-1 rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
         />
         {suffix}
+        {clearable && value && (
+          <button
+            type="button"
+            onClick={() => (onClear ? onClear() : onChange(""))}
+            title={clearTitle ?? t("timeField.clear")}
+            className="shrink-0 rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-600 hover:text-zinc-100"
+          >
+            <CloseIcon size="12px" />
+          </button>
+        )}
       </div>
     </label>
   );
