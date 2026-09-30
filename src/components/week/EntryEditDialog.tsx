@@ -4,6 +4,7 @@ import { playAlarmSound, stopAlarmSound } from "../../lib/alarm-sound";
 import { listAlarmSounds } from "../../lib/clipboard";
 import {
   hexWithAlpha,
+  minuteToHHMM,
   minuteToTimeInput,
   resolveAlarmChain,
   timeInputToMinute,
@@ -101,6 +102,25 @@ export default function EntryEditDialog({
     !Number.isNaN(durationMinutes) &&
     durationMinutes > 0;
   const canConfirm = titleOk && timesOk && colorOk && snappedDuration != null;
+
+  // 开始时间不是 5 的倍数时，给出就近取整建议（2舍3入）
+  const needsStartSnap =
+    startMinute != null &&
+    !Number.isNaN(startMinute) &&
+    startMinute >= 0 &&
+    startMinute <= 1439 &&
+    startMinute % 5 !== 0;
+  const suggestedStart =
+    needsStartSnap && startMinute != null
+      ? Math.min(1435, Math.max(0, Math.round(startMinute / 5) * 5))
+      : null;
+
+  const fillNow = () => {
+    const d = new Date();
+    setStart(
+      `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+    );
+  };
 
   const previewFileFor = (kind: "start" | "end"): string | null => {
     const choice = kind === "start" ? alarmChoice : endAlarmChoice;
@@ -216,7 +236,21 @@ export default function EntryEditDialog({
       </label>
 
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <TimeField label={t("entry.start")} value={start} onChange={setStart} />
+        <TimeField
+          label={t("entry.start")}
+          value={start}
+          onChange={setStart}
+          suffix={
+            <button
+              type="button"
+              onClick={fillNow}
+              title={t("entry.nowTitle")}
+              className="shrink-0 rounded px-1.5 py-1 text-[10px] text-zinc-100 transition-colors hover:bg-zinc-600"
+            >
+              {t("entry.now")}
+            </button>
+          }
+        />
         <label className="block text-xs text-zinc-300">
           {t("entry.duration")}
           <input
@@ -229,6 +263,20 @@ export default function EntryEditDialog({
           />
         </label>
       </div>
+      {needsStartSnap && suggestedStart != null && (
+        <p className="mt-1 text-[10px] text-amber-300">
+          {t("entry.startSnapHint", {
+            time: minuteToHHMM(suggestedStart),
+          })}
+          <button
+            type="button"
+            onClick={() => setStart(minuteToHHMM(suggestedStart))}
+            className="ml-1 underline transition-colors hover:text-zinc-100"
+          >
+            {t("entry.startSnapApply", { time: minuteToHHMM(suggestedStart) })}
+          </button>
+        </p>
+      )}
       <p className="mt-1 text-[10px] text-zinc-500">
         {t("entry.snapHint")}
         {snappedDuration != null && durationMinutes != null && durationMinutes > 0 && (

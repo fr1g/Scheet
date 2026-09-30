@@ -128,21 +128,27 @@ export function TimeField({
   label,
   value,
   onChange,
+  suffix,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  /** 输入框右侧的附加操作（如"填入现在的时间"）。 */
+  suffix?: React.ReactNode;
 }) {
   return (
     <label className="block text-xs text-zinc-300">
       {label}
-      <input
-        type="time"
-        step={300}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
-      />
+      <div className="mt-1 flex items-center gap-1">
+        <input
+          type="time"
+          step={300}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-w-0 flex-1 rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
+        />
+        {suffix}
+      </div>
     </label>
   );
 }
