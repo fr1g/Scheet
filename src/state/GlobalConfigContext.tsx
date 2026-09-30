@@ -9,6 +9,7 @@ import {
 } from "react";
 import { applyLanguage } from "../i18n";
 import { getGlobalConfig, setGlobalConfig } from "../lib/global-config";
+import { applyUiFont, registerBundledFontFaces } from "../lib/fonts";
 import type { GlobalConfig } from "../types/global-config";
 
 interface GlobalConfigContextValue {
@@ -43,10 +44,21 @@ export function GlobalConfigProvider({ children }: { children: ReactNode }) {
     };
   }, [attempt]);
 
-  // 语言偏好变化 → 切换 i18n
+  // 语言偏好变化 → 切换 i18n；界面字体变化 → 切换字体
   useEffect(() => {
     if (config) applyLanguage(config.uiLanguage);
   }, [config?.uiLanguage]);
+
+  useEffect(() => {
+    if (config) applyUiFont(config.uiFont);
+  }, [config?.uiFont]);
+
+  // 注册内置字体的 @font-face（两个窗口都需要）
+  useEffect(() => {
+    void registerBundledFontFaces().catch((e: unknown) =>
+      console.error("注册内置字体失败", e),
+    );
+  }, []);
 
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
 

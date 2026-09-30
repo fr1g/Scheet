@@ -104,6 +104,16 @@ impl UiLanguage {
     }
 }
 
+/// 允许的界面字体 id（system = 系统默认字体）。
+pub const UI_FONT_IDS: &[&str] = &[
+    "system",
+    "lxgw-wenkai-mono",
+    "lxgw-wenkai",
+    "maple-mono-nf-cn",
+    "harmonyos-sans-sc",
+    "oppo-sans",
+];
+
 /// 每周第一天。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -160,6 +170,8 @@ pub struct GlobalConfig {
     pub alarm_rest_end_mode: Option<AlarmMode>,
     /// 界面语言：auto=跟随系统。
     pub ui_language: UiLanguage,
+    /// 界面字体：system=系统默认；其余为内置字体 id（默认 lxgw-wenkai-mono）。
+    pub ui_font: String,
 }
 
 impl Default for GlobalConfig {
@@ -181,6 +193,7 @@ impl Default for GlobalConfig {
             alarm_rest_end_file: None,
             alarm_rest_end_mode: None,
             ui_language: UiLanguage::Auto,
+            ui_font: "lxgw-wenkai-mono".to_string(),
         }
     }
 }
@@ -215,6 +228,9 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         ui_language: get_setting(conn, "uiLanguage")?
             .map(|s| UiLanguage::from_db(&s))
             .unwrap_or(UiLanguage::Auto),
+        ui_font: get_setting(conn, "uiFont")?
+            .filter(|s| UI_FONT_IDS.contains(&s.as_str()))
+            .unwrap_or_else(|| "lxgw-wenkai-mono".to_string()),
     })
 }
 
@@ -258,6 +274,7 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
         ("alarmRestEndMode", cfg.alarm_rest_end_mode),
     ];
     set_setting(conn, "uiLanguage", cfg.ui_language.as_db())?;
+    set_setting(conn, "uiFont", &cfg.ui_font)?;
     for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,

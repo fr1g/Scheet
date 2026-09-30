@@ -1,6 +1,7 @@
 mod clipboard;
 mod clock;
 mod db;
+mod fonts;
 // 系统通知实现保留备用（当前提醒推送改用 popup.rs 的置顶弹窗方案）
 #[allow(dead_code)]
 mod notify;
@@ -34,6 +35,9 @@ pub fn run() {
     // 便携单文件 exe 不经过安装器，须在创建窗口前自行保证 WebView2 可用
     #[cfg(windows)]
     webview2::ensure_runtime();
+
+    // 首启解压内置字体到数据目录（同步执行，一次性开销）
+    fonts::ensure_bundled_fonts();
 
     tauri::Builder::default()
         .manage(Arc::new(db::DataDb(db::LazyDb::new(
@@ -110,6 +114,7 @@ pub fn run() {
             clipboard::list_alarm_sounds,
             popup::dismiss_alarm_popup,
             tray::exit_application,
+            fonts::get_fonts_dir,
         ])
         .build(tauri::generate_context!())
         .expect("Scheet 初始化失败")

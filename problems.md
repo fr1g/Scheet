@@ -87,6 +87,11 @@
 ### P20 设置页与网格页使用各自的配置快照
 - 设置页保存后，网格页的天窗口等立即从上下文取新值（响应式）；但已打开的编辑模态内不会热更新继承提示（同 P19）。
 
+### P21 内置字体包体与许可证
+- **现状**：内置 4 字体 Regular 单字重（霞鹜文楷 Mono 24.4MB / 霞鹜文楷 25.6MB / HarmonyOS Sans SC 7.9MB / OPPO Sans R 9.7MB），gzip 压缩后约 36MB 进包体。Maple Mono NF CN 待网络恢复后补入（Maple Sans 本身尚未发布，仅 Maple Mono 系列）。
+- **许可证**：霞鹜文楷与 Maple 为 OFL 1.1（允许打包/商用，衍生需保持 OFL）；HarmonyOS Sans 与 OPPO Sans 免费商用、嵌入式使用被普遍认可，正式商用分发前建议核对官方 EULA 最终版。
+- **注意**：Regular 单字重，粗体由渲染器合成；字体文件解压到 `Documents/scheet/fonts/`，删除该目录文件后重启应用会重新解压。
+
 ## 已解决（历史记录）
 
 - ~~Windows 时间拨盘黑图标/白底~~ → `:root color-scheme: dark`。

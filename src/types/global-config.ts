@@ -30,5 +30,7 @@ export interface GlobalConfig {
   alarmRestEndMode: AlarmMode | null;
   /** 界面语言：auto=跟随系统。 */
   uiLanguage: "auto" | "zh" | "en";
+  /** 界面字体：system=系统默认；其余为内置字体 id。 */
+  uiFont: string;
 }
 

@@ -11,6 +11,9 @@ import {
   minuteToTimeInput,
   timeInputToMinute,
 } from "../lib/weekgrid";
+import { BUNDLED_FONTS } from "../lib/fonts";
+
+const UI_FONT_IDS = ["system", ...BUNDLED_FONTS.map((f) => f.id)];
 import { useSettings } from "../state/SettingsContext";
 import type { GlobalConfig } from "../types/global-config";
 import type { AlarmMode } from "../types/weeks";
@@ -138,6 +141,10 @@ export default function SettingsPage() {
       showToast(t("settings.startAfterEnd"));
       return;
     }
+    if (!UI_FONT_IDS.includes(draft.uiFont)) {
+      showToast(t("settings.badFont"));
+      return null;
+    }
     for (const key of LEVELS.map((l) => l.fileKey)) {
       const value = draft[key];
       if (value != null && value !== "builtin" && value !== "none") {
@@ -254,6 +261,13 @@ export default function SettingsPage() {
     );
   };
 
+  const fontPreviewFamily = (fontId: string): string => {
+    const font = BUNDLED_FONTS.find((f) => f.id === fontId);
+    return font
+      ? `"${font.family}", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif`
+      : '"Segoe UI", "Microsoft YaHei", system-ui, sans-serif';
+  };
+
   const levelRow = (labelKey: string, fileKey: FileKey, modeKey: ModeKey, kind: "start" | "end") => (
     <div className="rounded-lg border border-zinc-600/60 p-3">
       <div className="text-xs text-zinc-200">
@@ -335,6 +349,33 @@ export default function SettingsPage() {
                   {d === "mon" ? t("settings.monday") : t("settings.sunday")}
                 </button>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className={sectionTitle}>{t("settings.uiFont")}</h2>
+            <div className="mt-2 max-w-md">
+              <select
+                value={draft.uiFont}
+                onChange={(e) =>
+                  setDraft((prev) => (prev ? { ...prev, uiFont: e.target.value } : prev))
+                }
+                className={inputClass}
+              >
+                <option value="system">{t("settings.fontSystem")}</option>
+                {BUNDLED_FONTS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.family}
+                    {f.id === "lxgw-wenkai-mono" ? t("settings.fontDefault") : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div
+              className="mt-2 rounded-lg border border-zinc-600/60 p-3 text-sm text-zinc-100"
+              style={{ fontFamily: fontPreviewFamily(draft.uiFont) }}
+            >
+              {t("settings.fontPreviewText")}
             </div>
           </section>
 

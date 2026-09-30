@@ -223,6 +223,10 @@ export default {
     posRight: "Right (minimize, close)",
     posHidden: "Hidden",
     positionHint: "Click to apply right away.",
+    uiFont: "Interface font",
+    fontSystem: "System default",
+    fontDefault: "(default)",
+    fontPreviewText: "Preview AaBbCc 123 — The quick brown fox.",
     language: "语言 / Language",
     languageHint: "Applies right away; tray menu follows after restart.",
     langAuto: "System",
@@ -231,6 +235,7 @@ export default {
     timeInvalid: "That time doesn't look right",
     startAfterEnd: "The start must be before the end",
     badBellFile: "That sound file name doesn't work: {{name}}",
+    badFont: "Invalid interface font selection",
   },
   duration: {
     hM: "{{h}} h {{m}} min",

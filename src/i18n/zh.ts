@@ -225,6 +225,10 @@ export default {
     posRight: "在右边（最小化、关闭）",
     posHidden: "不显示",
     positionHint: "点一下马上生效。",
+    uiFont: "界面字体",
+    fontSystem: "系统默认字体",
+    fontDefault: "（默认）",
+    fontPreviewText: "预览 AaBbCc 123 —— 天地玄黄，宇宙洪荒。",
     language: "语言 / Language",
     languageHint: "马上生效；托盘菜单的文字重启后跟随。",
     langAuto: "跟随系统",
@@ -233,6 +237,7 @@ export default {
     timeInvalid: "时间没填对",
     startAfterEnd: "开始时间要比结束时间早",
     badBellFile: "铃声文件名不对：{{name}}",
+    badFont: "界面字体选择不合法",
   },
   duration: {
     hM: "{{h}} 小时 {{m}} 分钟",
