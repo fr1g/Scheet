@@ -42,3 +42,4 @@
 - 2026-09-29 新建 problems.md：汇总已知坑与平台待确认项（macOS Dock/弹窗/通知行为、WebView2 首启、时间窗边界等），供真机验收逐项核对
 - 修复：设置页 hook 顺序违规（handleSave/闸门顺序）导致点击设置白屏崩溃；全部 hook 移至渲染闸门前，闸门后 draft 收窄为非空；pnpm build + cargo test 37 绿
 - ErrorBoundary 错误面板新增"重启窗口"按钮：hash 置回主视图 + 整页 reload，彻底重置前端状态
+- 设置页补入场淡入动画（0.15s，与主界面一致）；此前"退出设置有过渡"实为 WeekGridPage 入场动画，路由级 AnimatePresence 包 Routes 无 motion 组件故 exit 从未生效

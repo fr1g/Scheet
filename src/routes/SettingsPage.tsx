@@ -447,7 +447,12 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+      className="flex h-full min-h-0 flex-col"
+    >
       <div className="flex items-center gap-2 border-b border-zinc-600 px-3 py-1.5">
         <button
           type="button"
@@ -508,6 +513,6 @@ export default function SettingsPage() {
       </div>
 
       <Toast message={toast} />
-    </div>
+    </motion.div>
   );
 }
