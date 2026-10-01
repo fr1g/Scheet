@@ -32,5 +32,11 @@ export interface GlobalConfig {
   uiLanguage: "auto" | "zh" | "en";
   /** 界面字体：system=系统默认；其余为内置字体 id。 */
   uiFont: string;
+  /** 界面字号：sm / base / lg。 */
+  uiFontSize: "sm" | "base" | "lg";
+  /** WebView2 硬件加速（默认开；修改后重启应用生效）。 */
+  webviewHwAccel: boolean;
+  /** WebView2 平滑滚动（默认关；修改后重启应用生效）。 */
+  webviewSmoothScrolling: boolean;
 }
 

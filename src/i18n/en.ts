@@ -1,5 +1,10 @@
 /** English resources. Mirrors the structure of zh.ts (the source of truth). */
 export default {
+  common: {
+    cancel: "Cancel",
+    confirm: "Confirm",
+    stop: "Stop",
+  },
   loading: { text: "Opening…" },
   error: { title: "Something went wrong", retry: "Try again" },
   titlebar: {
@@ -186,7 +191,13 @@ export default {
   },
   settings: {
     title: "Settings",
-    tabs: { general: "General", bells: "Reminders", appearance: "Appearance", about: "About" },
+    tabs: {
+      general: "General",
+      bells: "Reminders",
+      appearance: "Appearance",
+      advanced: "Advanced",
+      about: "About",
+    },
     back: "Back",
     unsaved: "Unsaved changes",
     save: "Save settings",
@@ -240,6 +251,24 @@ export default {
     startAfterEnd: "The start must be before the end",
     badBellFile: "That sound file name doesn't work: {{name}}",
     badFont: "Invalid interface font selection",
+    badFontSize: "Invalid font size choice",
+    bellsOpenDir: "Open alarms folder",
+    bellsRefresh: "Refresh",
+    bellsMissing: "Some configured alarm source files are missing: {{names}}",
+    openFontDir: "Open fonts folder",
+    fontSize: "Font size",
+    fontSizeSm: "Small",
+    fontSizeBase: "Default",
+    fontSizeLg: "Large",
+    fontSizeHint: "Scales all text across the interface.",
+    webview: "Display engine (takes effect after restart)",
+    webviewHint: "Save after toggling, then restart the app for changes to apply.",
+    advHwAccel: "Hardware acceleration",
+    advHwAccelHint: "Smoother rendering; turn off if your GPU shows glitches or black blocks.",
+    advSmooth: "Smooth scrolling",
+    advSmoothHint: "Adds inertia animation to wheel scrolling (off by default in WebView2).",
+    on: "On",
+    off: "Off",
   },
   about: {
     tagline: "Plan your week, 5 minutes at a time",

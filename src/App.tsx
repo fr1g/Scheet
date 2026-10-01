@@ -1,5 +1,5 @@
 import { HashRouter, Route, Routes, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
@@ -13,6 +13,33 @@ import { GlobalConfigProvider } from "./state/GlobalConfigContext";
 import WeekGridPage from "./routes/WeekGridPage";
 import SettingsPage from "./routes/SettingsPage";
 import AlarmPopupPage from "./routes/AlarmPopupPage";
+
+/** 拖拽调整窗口大小时，右下角低可见度地显示当前窗口尺寸，停止拖拽约 1.2s 后淡出。 */
+function WindowSizeBadge() {
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const timer = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (getCurrentWindow().label !== "main") return;
+    const onResize = () => {
+      setSize({ w: window.innerWidth, h: window.innerHeight });
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setSize(null), 1200);
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.clearTimeout(timer.current);
+    };
+  }, []);
+
+  if (!size) return null;
+  return (
+    <div className="pointer-events-none fixed bottom-1.5 right-3 z-50 text-[10px] text-zinc-500/70">
+      {size.w} × {size.h}
+    </div>
+  );
+}
 
 function AppShell() {
   const { status } = useSettings();
@@ -79,6 +106,7 @@ function AppShell() {
       <main className="min-h-0 flex-1">
         <ErrorBoundary>{content}</ErrorBoundary>
       </main>
+      <WindowSizeBadge />
     </div>
   );
 }

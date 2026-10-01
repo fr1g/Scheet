@@ -26,11 +26,11 @@ pnpm tauri build   # 构建当前平台的发布产物（单文件，见下）
 
 产物位置（三端均为单文件，绿色免安装）：
 
-| 平台 | 产物 |
-| --- | --- |
-| Windows | `src-tauri/target/release/scheet.exe` |
-| macOS | `src-tauri/target/release/bundle/macos/Scheet.app` |
-| Linux | `src-tauri/target/release/bundle/appimage/scheet.AppImage` |
+| 平台    | 产物                                                       |
+| ------- | ---------------------------------------------------------- |
+| Windows | `src-tauri/target/release/scheet.exe`                      |
+| macOS   | `src-tauri/target/release/bundle/macos/Scheet.app`         |
+| Linux   | `src-tauri/target/release/bundle/appimage/scheet.AppImage` |
 
 ### 测试
 
@@ -41,7 +41,7 @@ cargo test         # Rust 单元测试（含调度器/冲突检测/铃声链等�
 
 更多的功能验收用例见 [测试用例.md](测试用例.md)，已知问题与平台注意事项见 [problems.md](problems.md)，项目规范见 [AGENTS.md](AGENTS.md)。
 
-### AI Usage
+## AI Usage
 
 - 本项目的初始框架由 AI 助手（ZCode，GLM 模型）依据人工需求生成，包括：
   - Tauri 2 工程结构与三端单文件构建配置（Windows 免打包单 exe / macOS `.app` / Linux `.AppImage`）；

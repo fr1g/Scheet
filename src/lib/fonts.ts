@@ -54,3 +54,15 @@ export function applyUiFont(fontId: string): void {
     : '"Segoe UI", "Microsoft YaHei", system-ui, sans-serif';
   document.documentElement.style.fontFamily = stack;
 }
+
+/** 界面字号档位 → 根元素 font-size（Tailwind 的 rem 尺寸随根字号整体缩放）。 */
+const UI_FONT_SIZES: Record<string, string> = {
+  sm: "13px",
+  base: "16px",
+  lg: "18px",
+};
+
+/** 把界面字号应用到整个文档（未知档位回退标准 16px）。 */
+export function applyUiFontSize(size: string): void {
+  document.documentElement.style.fontSize = UI_FONT_SIZES[size] ?? "16px";
+}

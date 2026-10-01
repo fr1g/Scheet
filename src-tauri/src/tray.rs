@@ -34,7 +34,7 @@ pub fn create(app: &tauri::App) -> tauri::Result<()> {
         .unwrap_or(crate::settings::UiLanguage::Auto);
     let (show_text, quit_text) = match language {
         crate::settings::UiLanguage::En => ("Show Main Window", "Quit Scheet"),
-        _ => ("显示主窗口", "退出 Scheet"),
+        _ => ("显示主窗口 (Show)", "退出 Scheet (Exit)"),
     };
     let show = MenuItem::with_id(app, ITEM_SHOW, show_text, true, None::<&str>)?;
     let quit = MenuItem::with_id(app, ITEM_QUIT, quit_text, true, None::<&str>)?;

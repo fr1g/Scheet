@@ -50,7 +50,7 @@ export function DialogShell({
           className="w-full max-w-md rounded-xl border border-zinc-600 bg-zinc-800 p-4"
         >
           <DialogTitle className="text-sm font-medium text-zinc-100">{title}</DialogTitle>
-          <div className="mt-3">{children}</div>
+          <div className="my-3">{children}</div>
           {footer ?? (
             <div className="mt-4 flex justify-end gap-2">
               <button

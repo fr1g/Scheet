@@ -333,33 +333,41 @@ export function resolveAlarmChain(
 
   if (kind === "start") {
     const file = typeFile ?? config.alarmAllFile ?? "builtin";
-    const fileSource = typeFile ? "类型" : config.alarmAllFile ? "全局" : "内置";
+    const fileSource = typeFile
+      ? "sourceType"
+      : config.alarmAllFile
+        ? "sourceGlobal"
+        : "sourceBuiltin";
     const mode = typeMode ?? config.alarmAllMode ?? "once";
-    const modeSource = typeMode ? "类型" : config.alarmAllMode ? "全局" : "内置";
+    const modeSource = typeMode
+      ? "sourceType"
+      : config.alarmAllMode
+        ? "sourceGlobal"
+        : "sourceBuiltin";
     return { file, fileSource, mode, modeSource };
   }
   const file =
     typeEndFile ?? typeFile ?? config.alarmAllEndFile ?? config.alarmAllFile ?? "builtin";
   const fileSource = typeEndFile
-    ? "类型(结束)"
+    ? "sourceTypeEnd"
     : typeFile
-      ? "类型"
+      ? "sourceType"
       : config.alarmAllEndFile
-        ? "全局(结束)"
+        ? "sourceGlobalEnd"
         : config.alarmAllFile
-          ? "全局"
-          : "内置";
+          ? "sourceGlobal"
+          : "sourceBuiltin";
   const mode =
     typeEndMode ?? typeMode ?? config.alarmAllEndMode ?? config.alarmAllMode ?? "once";
   const modeSource = typeEndMode
-    ? "类型(结束)"
+    ? "sourceTypeEnd"
     : typeMode
-      ? "类型"
+      ? "sourceType"
       : config.alarmAllEndMode
-        ? "全局(结束)"
+        ? "sourceGlobalEnd"
         : config.alarmAllMode
-          ? "全局"
-          : "内置";
+          ? "sourceGlobal"
+          : "sourceBuiltin";
   return { file, fileSource, mode, modeSource };
 }
 

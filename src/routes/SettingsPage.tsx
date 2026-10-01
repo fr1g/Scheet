@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeftIcon, SaveIcon } from "tdesign-icons-react";
+import { ArrowLeftIcon, FolderIcon, RefreshIcon, SaveIcon } from "tdesign-icons-react";
 import { invoke } from "@tauri-apps/api/core";
 import Toast from "../components/Toast";
 import { DialogShell, TimeField } from "../components/week/PlanSettingsDialog";
 import { listAlarmSounds } from "../lib/clipboard";
+import { getWeekPlan, listWeekPlans } from "../lib/weeks";
 import { useGlobalConfig } from "../state/GlobalConfigContext";
 import { useSettings } from "../state/SettingsContext";
 import logoUrl from "../assets/logo.png";
@@ -33,12 +34,13 @@ type ModeKey =
   | "alarmAllEndMode"
   | "alarmNormalEndMode"
   | "alarmRestEndMode";
-type TabId = "general" | "bells" | "appearance" | "about";
+type TabId = "general" | "bells" | "appearance" | "advanced" | "about";
 
 const TABS: { id: TabId; labelKey: string }[] = [
   { id: "general", labelKey: "settings.tabs.general" },
   { id: "bells", labelKey: "settings.tabs.bells" },
   { id: "appearance", labelKey: "settings.tabs.appearance" },
+  { id: "advanced", labelKey: "settings.tabs.advanced" },
   { id: "about", labelKey: "settings.tabs.about" },
 ];
 
@@ -108,6 +110,7 @@ export default function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("general");
+  const [missingAlarmFiles, setMissingAlarmFiles] = useState<string[]>([]);
   const [clearStep, setClearStep] = useState<0 | 1 | 2 | 3>(0);
   const [agreeText, setAgreeText] = useState("");
   const toastTimer = useRef<number | undefined>(undefined);
@@ -132,7 +135,51 @@ export default function SettingsPage() {
       .catch(() => setAlarmFiles([]));
   }, []);
 
-  const dirty = draft != null && JSON.stringify(draft) !== JSON.stringify(config);
+  // 已配置为铃声的源文件是否仍然存在（全局六槽 + 各周表事务级）；
+  // 丢失时在铃声 Tab 黄色提示，播放时后端自动回退内置铃声。
+  const alarmSlotSignature = draft
+    ? LEVELS.map((l) => draft[l.fileKey]).join("|")
+    : "";
+  useEffect(() => {
+    let cancelled = false;
+    const configured = new Set<string>();
+    const add = (v: string | null) => {
+      if (v && v !== "builtin" && v !== "none") configured.add(v);
+    };
+    if (draft) {
+      for (const l of LEVELS) add(draft[l.fileKey]);
+    }
+    void (async () => {
+      try {
+        const plans = await listWeekPlans();
+        for (const p of plans) {
+          const full = await getWeekPlan(p.id);
+          for (const e of full.entries) {
+            add(e.alarmFile);
+            add(e.endAlarmFile);
+          }
+        }
+      } catch {
+        // 事务级扫描失败不影响全局检查
+      }
+      const missing = [...configured]
+        .filter((f) => !alarmFiles.includes(f))
+        .sort();
+      if (!cancelled) setMissingAlarmFiles(missing);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alarmFiles, alarmSlotSignature]);
+
+  // 起止时间存放在独立的输入状态里，比较时需一并纳入，否则改时间无法激活保存按钮
+  const dirty =
+    draft != null &&
+    config != null &&
+    (JSON.stringify(draft) !== JSON.stringify(config) ||
+      timeInputToMinute(startTime) !== config.dayStartMinute ||
+      timeInputToMinute(endTime) !== config.dayEndMinute);
 
   const patchFirstDay = (value: "mon" | "sun") => {
     setDraft((prev) => (prev ? { ...prev, firstDayOfWeek: value } : prev));
@@ -181,6 +228,10 @@ export default function SettingsPage() {
     }
     if (!UI_FONT_IDS.includes(draft.uiFont)) {
       showToast(t("settings.badFont"));
+      return null;
+    }
+    if (!["sm", "base", "lg"].includes(draft.uiFontSize)) {
+      showToast(t("settings.badFontSize"));
       return null;
     }
     return { ...draft, dayStartMinute: start, dayEndMinute: end };
@@ -356,8 +407,38 @@ export default function SettingsPage() {
 
   const bellsPanel = (
     <section>
-      <h2 className={sectionTitle}>{t("settings.bells")}</h2>
+      <div className="flex items-center gap-2">
+        <h2 className={sectionTitle}>{t("settings.bells")}</h2>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={() =>
+            void invoke("open_alarms_dir").catch((e: unknown) => showToast(String(e)))
+          }
+          className="flex items-center gap-1 rounded border border-zinc-500 px-2 py-1 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+        >
+          <FolderIcon size="12px" />
+          {t("settings.bellsOpenDir")}
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            void listAlarmSounds()
+              .then(setAlarmFiles)
+              .catch(() => setAlarmFiles([]))
+          }
+          className="flex items-center gap-1 rounded border border-zinc-500 px-2 py-1 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+        >
+          <RefreshIcon size="12px" />
+          {t("settings.bellsRefresh")}
+        </button>
+      </div>
       <p className={sectionHint}>{t("settings.bellsHint")}</p>
+      {missingAlarmFiles.length > 0 && (
+        <div className="mt-2 rounded-lg border border-amber-400/40 bg-amber-400/10 p-2 text-xs text-amber-300">
+          {t("settings.bellsMissing", { names: missingAlarmFiles.join("、") })}
+        </div>
+      )}
       <div className="mt-2 space-y-3">
         {levelRow("settings.levelAll", "alarmAllFile", "alarmAllMode", "start")}
         {levelRow("settings.levelNormal", "alarmNormalFile", "alarmNormalMode", "start")}
@@ -373,13 +454,13 @@ export default function SettingsPage() {
     <>
       <section>
         <h2 className={sectionTitle}>{t("settings.uiFont")}</h2>
-        <div className="mt-2 max-w-md">
+        <div className="mt-2 flex max-w-md items-end gap-2">
           <select
             value={draft.uiFont}
             onChange={(e) =>
               setDraft((prev) => (prev ? { ...prev, uiFont: e.target.value } : prev))
             }
-            className={inputClass}
+            className={`${inputClass} mt-0 flex-1`}
           >
             <option value="system">{t("settings.fontSystem")}</option>
             {BUNDLED_FONTS.map((f) => (
@@ -389,6 +470,16 @@ export default function SettingsPage() {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={() =>
+              void invoke("open_fonts_dir").catch((e: unknown) => showToast(String(e)))
+            }
+            className="flex shrink-0 items-center gap-1 rounded border border-zinc-500 px-2 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+          >
+            <FolderIcon size="12px" />
+            {t("settings.openFontDir")}
+          </button>
         </div>
         <div
           className="mt-2 rounded-lg border border-zinc-600/60 p-3 text-sm text-zinc-100"
@@ -396,6 +487,33 @@ export default function SettingsPage() {
         >
           {t("settings.fontPreviewText")}
         </div>
+      </section>
+
+      <section>
+        <h2 className={sectionTitle}>{t("settings.fontSize")}</h2>
+        <div className="mt-2 grid w-64 grid-cols-3 gap-2">
+          {(["sm", "base", "lg"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() =>
+                setDraft((prev) => (prev ? { ...prev, uiFontSize: s } : prev))
+              }
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
+                draft.uiFontSize === s
+                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+              }`}
+            >
+              {s === "sm"
+                ? t("settings.fontSizeSm")
+                : s === "base"
+                  ? t("settings.fontSizeBase")
+                  : t("settings.fontSizeLg")}
+            </button>
+          ))}
+        </div>
+        <p className={sectionHint}>{t("settings.fontSizeHint")}</p>
       </section>
 
       <section>
@@ -419,6 +537,46 @@ export default function SettingsPage() {
         <p className={sectionHint}>{t("settings.positionHint")}</p>
       </section>
     </>
+  );
+
+  /** WebView2 开关行：点击切换草稿值，保存后重启应用生效。 */
+  const webviewToggle = (
+    labelKey: string,
+    key: "webviewHwAccel" | "webviewSmoothScrolling",
+  ) => (
+    <button
+      type="button"
+      onClick={() =>
+        setDraft((prev) => (prev ? { ...prev, [key]: !prev[key] } : prev))
+      }
+      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${
+        draft[key]
+          ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+          : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+      }`}
+    >
+      <span>{t(labelKey)}</span>
+      <span className="text-[10px] text-zinc-400">
+        {draft[key] ? t("settings.on") : t("settings.off")}
+      </span>
+    </button>
+  );
+
+  const advancedPanel = (
+    <section>
+      <h2 className={sectionTitle}>{t("settings.webview")}</h2>
+      <p className={sectionHint}>{t("settings.webviewHint")}</p>
+      <div className="mt-2 space-y-3">
+        <div>
+          {webviewToggle("settings.advHwAccel", "webviewHwAccel")}
+          <p className="mt-1 text-[10px] text-zinc-500">{t("settings.advHwAccelHint")}</p>
+        </div>
+        <div>
+          {webviewToggle("settings.advSmooth", "webviewSmoothScrolling")}
+          <p className="mt-1 text-[10px] text-zinc-500">{t("settings.advSmoothHint")}</p>
+        </div>
+      </div>
+    </section>
   );
 
   const handleOpenDataDir = async () => {
@@ -480,6 +638,7 @@ export default function SettingsPage() {
     general: generalPanel,
     bells: bellsPanel,
     appearance: appearancePanel,
+    advanced: advancedPanel,
     about: aboutPanel,
   };
 

@@ -33,6 +33,10 @@ pub(crate) fn focus_main_window(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // WebView2 开关（硬件加速/平滑滚动）须在创建任何 WebView2 环境前写入环境变量；
+    // 独立于 LazyDb 做一次轻量读取，失败按默认值跳过。
+    settings::apply_webview_flags();
+
     // 便携单文件 exe 不经过安装器，须在创建窗口前自行保证 WebView2 可用
     #[cfg(windows)]
     webview2::ensure_runtime();
@@ -97,6 +101,8 @@ pub fn run() {
             settings::get_global_config,
             settings::set_global_config,
             settings::open_app_data_dir,
+            settings::open_fonts_dir,
+            settings::open_alarms_dir,
             settings::request_clear_data,
             reminders::create_reminder,
             reminders::cancel_reminder,

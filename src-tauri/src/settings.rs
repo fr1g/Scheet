@@ -114,6 +114,46 @@ pub const UI_FONT_IDS: &[&str] = &[
     "oppo-sans",
 ];
 
+/// 允许的界面字号档位。
+pub const UI_FONT_SIZES: &[&str] = &["sm", "base", "lg"];
+
+/// 启动最早期应用 WebView2 相关开关（须在创建任何 WebView2 环境之前写入环境变量）。
+/// 独立于 LazyDb 做一次轻量读取：缺库/缺表/缺键按默认值处理，失败静默跳过。
+pub fn apply_webview_flags() {
+    let flags = (|| -> Option<(bool, bool)> {
+        let dir = crate::db::data_dir().ok()?;
+        let conn = Connection::open(dir.join("data.db")).ok()?;
+        let read = |key: &str| -> Option<bool> {
+            conn.query_row(
+                "SELECT value FROM app_settings WHERE key = ?1",
+                [key],
+                |r| r.get::<_, String>(0),
+            )
+            .ok()
+            .and_then(|s| s.parse::<bool>().ok())
+        };
+        Some((
+            read("webviewHwAccel").unwrap_or(true),
+            read("webviewSmoothScrolling").unwrap_or(false),
+        ))
+    })();
+    let Some((hw_accel, smooth_scrolling)) = flags else {
+        return;
+    };
+    let mut args = String::new();
+    if !hw_accel {
+        args.push_str("--disable-gpu ");
+    }
+    if smooth_scrolling {
+        args.push_str("--enable-features=SmoothScrolling");
+    }
+    let args = args.trim();
+    if !args.is_empty() {
+        std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args);
+        eprintln!("[startup] WebView2 附加参数: {args}");
+    }
+}
+
 /// 每周第一天。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -172,6 +212,12 @@ pub struct GlobalConfig {
     pub ui_language: UiLanguage,
     /// 界面字体：system=系统默认；其余为内置字体 id（默认 lxgw-wenkai-mono）。
     pub ui_font: String,
+    /// 界面字号：sm / base / lg（默认 base）。
+    pub ui_font_size: String,
+    /// WebView2 硬件加速（默认开；修改后重启应用生效）。
+    pub webview_hw_accel: bool,
+    /// WebView2 平滑滚动（默认关，与 WebView2 原生默认一致；修改后重启生效）。
+    pub webview_smooth_scrolling: bool,
 }
 
 impl Default for GlobalConfig {
@@ -194,6 +240,9 @@ impl Default for GlobalConfig {
             alarm_rest_end_mode: None,
             ui_language: UiLanguage::Auto,
             ui_font: "lxgw-wenkai-mono".to_string(),
+            ui_font_size: "base".to_string(),
+            webview_hw_accel: true,
+            webview_smooth_scrolling: false,
         }
     }
 }
@@ -231,6 +280,15 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         ui_font: get_setting(conn, "uiFont")?
             .filter(|s| UI_FONT_IDS.contains(&s.as_str()))
             .unwrap_or_else(|| "lxgw-wenkai-mono".to_string()),
+        ui_font_size: get_setting(conn, "uiFontSize")?
+            .filter(|s| UI_FONT_SIZES.contains(&s.as_str()))
+            .unwrap_or_else(|| "base".to_string()),
+        webview_hw_accel: get_setting(conn, "webviewHwAccel")?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(true),
+        webview_smooth_scrolling: get_setting(conn, "webviewSmoothScrolling")?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(false),
     })
 }
 
@@ -275,6 +333,13 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
     ];
     set_setting(conn, "uiLanguage", cfg.ui_language.as_db())?;
     set_setting(conn, "uiFont", &cfg.ui_font)?;
+    set_setting(conn, "uiFontSize", &cfg.ui_font_size)?;
+    set_setting(conn, "webviewHwAccel", &cfg.webview_hw_accel.to_string())?;
+    set_setting(
+        conn,
+        "webviewSmoothScrolling",
+        &cfg.webview_smooth_scrolling.to_string(),
+    )?;
     for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,
@@ -420,10 +485,8 @@ pub async fn set_window_controls_position(
     )
 }
 
-/// 用系统文件管理器打开应用数据文件夹（用户可自行复制备份）。
-#[command]
-pub fn open_app_data_dir() -> Result<(), String> {
-    let dir = crate::db::data_dir()?;
+/// 用系统文件管理器打开目录（仅接受本应用自己的固定目录，不接受任意路径）。
+fn spawn_open_dir(dir: std::path::PathBuf, label: &str) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     let spawned = std::process::Command::new("explorer").arg(&dir).spawn();
     #[cfg(target_os = "macos")]
@@ -432,7 +495,27 @@ pub fn open_app_data_dir() -> Result<(), String> {
     let spawned = std::process::Command::new("xdg-open").arg(&dir).spawn();
     spawned
         .map(|_| ())
-        .map_err(|e| format!("打开数据目录失败: {e}"))
+        .map_err(|e| format!("打开{label}失败: {e}"))
+}
+
+/// 打开应用数据文件夹（用户可自行复制备份）。
+#[command]
+pub fn open_app_data_dir() -> Result<(), String> {
+    spawn_open_dir(crate::db::data_dir()?, "数据目录")
+}
+
+/// 打开界面字体文件夹（fonts，内置字体解压位置）。
+#[command]
+pub fn open_fonts_dir() -> Result<(), String> {
+    let dir = crate::db::data_dir()?.join("fonts");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("创建字体目录失败: {e}"))?;
+    spawn_open_dir(dir, "字体目录")
+}
+
+/// 打开用户提示音文件夹（alarms）。
+#[command]
+pub fn open_alarms_dir() -> Result<(), String> {
+    spawn_open_dir(crate::db::alarms_dir()?, "铃声目录")
 }
 
 /// 删除用户数据文件：三个数据库（含 WAL/SHM）+ alarms 目录（用户提示音）。

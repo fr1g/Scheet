@@ -1,0 +1,77 @@
+<div class="grid h-screen w-full items-center justify-center">
+    <div class="scale-330 border bg-red-500 p-1 shadow">
+        <div
+            class="relative flex size-64 flex-col overflow-hidden rounded-[88px] box-content rounded-tr-2xl rounded-bl-2xl border-8 border-zinc-50 bg-zinc-900">
+            <div class="flex h-full w-full grow overflow-hidden">
+                <div class="relative grow">
+                    <div class="absolute -top-0 right-0.5 left-0.5 space-y-0.5 px-0.5">
+                        <div class="cell / h-9.5"></div>
+                        <div class="cell cell-rest / h-5"></div>
+                        <div class="cell / h-4.5"></div>
+                        <div class="cell / h-13"></div>
+                        <div class="cell cell-rest / h-3.5"></div>
+                    </div>
+                </div>
+                <!-- bg-[#615ea8e0]! #fecac0de #62748e -->
+                <div class="relative flex flex-col h-full w-50 items-center justify-center border-zinc-50">
+                    <div
+                        class="grid aspect-square rotate-35 -skew-12 grid-cols-2 gap-0.5 translate-x-[30%]  translate-y-[21%]">
+                        <div class="square bg-zinc-100!"></div>
+                        <div class="square bg-zinc-500!"></div>
+                        <div class="square bg-[#fecac0de]! "></div>
+
+                        <div class="square opacity-0"></div>
+                    </div>
+                    <div
+                        class="grid aspect-square rotate-35 -skew-12 grid-cols-2 gap-0.5 -translate-x-[30%] -translate-y-[21%]">
+                        <div class="square opacity-0"></div>
+
+                        <div class="square bg-[#615ea8e0]!"></div>
+                        <div class="square bg-zinc-600!"></div>
+                        <div class="square bg-zinc-300!"></div>
+                    </div>
+                </div>
+                <div class="relative grow">
+                    <div class="absolute right-0.5 -bottom-0 left-0.5 space-y-0.5 px-0.5">
+                        <div class="cell / h-3"></div>
+                        <div class="cell cell-rest / h-5"></div>
+                        <div class="cell / h-10"></div>
+                        <div class="cell / h-5.5"></div>
+                        <div class="cell / h-8"></div>
+                        <div class="cell cell-rest / h-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSS:
+ 
+@import "tailwindcss";
+
+@theme {
+  /* ... */
+}
+
+.square {
+  @apply size-8 rounded-lg bg-zinc-50;
+}
+
+.cell {
+  @apply rounded-md bg-zinc-100 p-1 px-2;
+}
+
+.cell.cell-unplanned {
+  @apply opacity-0;
+}
+
+.cell.cell-rest {
+  @apply bg-zinc-500;
+}
+
+.day-plan {
+  @apply space-y-0.5;
+}
+
+-->

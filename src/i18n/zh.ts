@@ -3,6 +3,11 @@
  * 这个对象是文案的"事实标准"，en.ts 按相同结构镜像。
  */
 export default {
+  common: {
+    cancel: "取消",
+    confirm: "确认",
+    stop: "停止",
+  },
   loading: { text: "正在打开…" },
   error: { title: "打开失败了", retry: "再试一次" },
   titlebar: {
@@ -189,7 +194,7 @@ export default {
   },
   settings: {
     title: "设置",
-    tabs: { general: "通用", bells: "提醒铃声", appearance: "外观", about: "关于" },
+    tabs: { general: "通用", bells: "提醒铃声", appearance: "外观", advanced: "高级", about: "关于" },
     back: "返回",
     unsaved: "有改动没保存",
     save: "保存设置",
@@ -242,6 +247,24 @@ export default {
     startAfterEnd: "开始时间要比结束时间早",
     badBellFile: "铃声文件名不对：{{name}}",
     badFont: "界面字体选择不合法",
+    badFontSize: "字号选择不合法",
+    bellsOpenDir: "打开铃声文件夹",
+    bellsRefresh: "刷新",
+    bellsMissing: "有设定为铃声的源文件丢失，文件名：{{names}}",
+    openFontDir: "打开字体文件夹",
+    fontSize: "界面字号",
+    fontSizeSm: "小",
+    fontSizeBase: "标准",
+    fontSizeLg: "大",
+    fontSizeHint: "改的是整个界面的文字大小。",
+    webview: "显示引擎（重启应用后生效）",
+    webviewHint: "下面两个开关改完记得保存，并重启应用才会生效。",
+    advHwAccel: "硬件加速",
+    advHwAccelHint: "画面更流畅省电；个别显卡出现花屏/黑块时可以关掉试试。",
+    advSmooth: "平滑滚动",
+    advSmoothHint: "开启后滚轮滚动带惯性动画（系统的 WebView2 默认不开启）。",
+    on: "开",
+    off: "关",
   },
   about: {
     tagline: "以周为单位，安排你的生活",
