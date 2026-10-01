@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
@@ -86,6 +86,8 @@ const POSITION_LABELS: Record<WindowControlsPosition, string> = {
   hidden: "settings.posHidden",
 };
 
+const UI_FONT_IDS = ["system", ...BUNDLED_FONTS.map((f) => f.id)];
+
 const sectionTitle = "text-xs font-medium text-zinc-100";
 const sectionHint = "mt-1 text-[10px] text-zinc-500";
 const inputLabel = "block text-xs text-zinc-300";
@@ -128,29 +130,6 @@ export default function SettingsPage() {
   }, []);
 
   const dirty = draft != null && JSON.stringify(draft) !== JSON.stringify(config);
-
-  if (loadError) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-100">
-        <p className="text-sm">{t("settings.loadError")}</p>
-        <p className="max-w-md text-center text-xs break-all text-zinc-300">{loadError}</p>
-        <button
-          type="button"
-          onClick={reloadConfig}
-          className="rounded px-4 py-1.5 text-sm transition-colors hover:bg-zinc-600"
-        >
-          {t("error.retry")}
-        </button>
-      </div>
-    );
-  }
-  if (!config || !draft) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-300">
-        {t("settings.loading")}
-      </div>
-    );
-  }
 
   const patchLanguage = (value: "auto" | "zh" | "en") => {
     setDraft((prev) => (prev ? { ...prev, uiLanguage: value } : prev));
@@ -224,14 +203,38 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, startTime, endTime, update, showToast, t]);
 
-  const handlePosition = async (position: WindowControlsPosition) => {
+  const handlePosition = useCallback(async (position: WindowControlsPosition) => {
     try {
       await updateWindowControlsPosition(position);
       showToast(t("toasts.positionUpdated"));
     } catch (e: unknown) {
       showToast(String(e));
     }
-  };
+  }, [update, showToast, t]);
+
+  // 渲染闸门放在所有 hook 之后（Rules of Hooks）；之后的代码可把 draft 收窄为非空
+  if (loadError) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-100">
+        <p className="text-sm">{t("settings.loadError")}</p>
+        <p className="max-w-md text-center text-xs break-all text-zinc-300">{loadError}</p>
+        <button
+          type="button"
+          onClick={reloadConfig}
+          className="rounded px-4 py-1.5 text-sm transition-colors hover:bg-zinc-600"
+        >
+          {t("error.retry")}
+        </button>
+      </div>
+    );
+  }
+  if (!config || !draft) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-zinc-300">
+        {t("settings.loading")}
+      </div>
+    );
+  }
 
   const fontPreviewFamily = (fontId: string): string => {
     const font = BUNDLED_FONTS.find((f) => f.id === fontId);
@@ -436,7 +439,7 @@ export default function SettingsPage() {
     </section>
   );
 
-  const panels: Record<TabId, React.ReactNode> = {
+  const panels: Record<TabId, ReactNode> = {
     general: generalPanel,
     bells: bellsPanel,
     appearance: appearancePanel,
@@ -508,5 +511,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-const UI_FONT_IDS = ["system", ...BUNDLED_FONTS.map((f) => f.id)];
