@@ -2,6 +2,7 @@ mod clipboard;
 mod clock;
 mod db;
 mod fonts;
+mod diagnostics;
 // 系统通知实现保留备用（当前提醒推送改用 popup.rs 的置顶弹窗方案）
 #[allow(dead_code)]
 mod notify;
@@ -115,6 +116,7 @@ pub fn run() {
             popup::dismiss_alarm_popup,
             tray::exit_application,
             fonts::get_fonts_dir,
+            diagnostics::debug_log,
         ])
         .build(tauri::generate_context!())
         .expect("Scheet 初始化失败")

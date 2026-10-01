@@ -99,6 +99,14 @@
   - 应用自身的所有文档（首屏 splash、主界面、弹窗）已在 index.html 内联脚本与应用层双重屏蔽默认右键菜单；
   - `pnpm tauri dev` 会托管 vite 进程，vite 退出时 dev 实例随之退出，不会长时间停留在错误页。
 
+### P22 WebView2 默认错误页无法拦截（仅影响开发模式）
+- **现象**：页面导航失败（如 dev 模式下 vite 意外退出后刷新）时，WebView2 会绘制原生错误页，其上的默认右键菜单同样无法屏蔽——tauri/wry 未暴露对应 API（错误页由 WebView2 原生绘制，页面 JS 已不在场）。
+- **缓解**：
+  - release 产物的前端资源内嵌于二进制，主文档加载不会失败，此场景实际只在 dev 模式出现；
+  - 应用自身的所有文档（首屏 splash、主界面、弹窗）已在 index.html 内联脚本与应用层双重屏蔽默认右键菜单；
+  - `pnpm tauri dev` 会托管 vite 进程，vite 退出时 dev 实例随之退出，不会长时间停留在错误页。
+- **补充（M4-part7 后）**：AppShell 已加渲染错误边界（ErrorBoundary）+ JS 错误转发 stderr（diagnostics::debug_log），渲染崩溃不再吞掉标题栏，会显示带"重试"的错误面板。
+
 ## 已解决（历史记录）
 
 - ~~Windows 时间拨盘黑图标/白底~~ → `:root color-scheme: dark`。

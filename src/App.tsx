@@ -2,6 +2,8 @@ import { HashRouter, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
+import ErrorBoundary from "./components/ErrorBoundary";
 import AlarmSnackbar from "./components/AlarmSnackbar";
 import ErrorScreen from "./components/ErrorScreen";
 import LoadingScreen from "./components/LoadingScreen";
@@ -23,6 +25,27 @@ function AppShell() {
     const onContextMenu = (e: MouseEvent) => e.preventDefault();
     window.addEventListener("contextmenu", onContextMenu);
     return () => window.removeEventListener("contextmenu", onContextMenu);
+  }, []);
+
+  // 前端运行时错误转发到 stderr（dev 诊断；生产无副作用）
+  useEffect(() => {
+    if (getCurrentWindow().label !== "main") return;
+    const onError = (e: ErrorEvent) => {
+      invoke("debug_log", {
+        msg: `JS 错误: ${e.message} @ ${e.filename ?? "?"}:${e.lineno}`,
+      }).catch(() => undefined);
+    };
+    const onRejection = (e: PromiseRejectionEvent) => {
+      invoke("debug_log", { msg: `未处理的 Promise 拒绝: ${e.reason}` }).catch(
+        () => undefined,
+      );
+    };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
   }, []);
 
   // 标题栏始终渲染：即使加载/出错也保留拖拽区与窗口控制按钮，避免窗口无法操作
@@ -53,7 +76,9 @@ function AppShell() {
   return (
     <div className="flex h-full flex-col">
       <TitleBar />
-      <main className="min-h-0 flex-1">{content}</main>
+      <main className="min-h-0 flex-1">
+        <ErrorBoundary>{content}</ErrorBoundary>
+      </main>
     </div>
   );
 }
