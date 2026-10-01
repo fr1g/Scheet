@@ -187,6 +187,8 @@ export default {
     conflict: "{{count}} overlapping spots — fix them before saving",
     positionUpdated: "Window buttons updated",
     settingsSaved: "Settings saved, effective immediately",
+    settingsSavedRestart:
+      "Settings saved — display engine changes apply after an app restart",
     revertedToast: "Changes discarded",
   },
   settings: {
@@ -269,6 +271,8 @@ export default {
     advSmoothHint: "Adds inertia animation to wheel scrolling (off by default in WebView2).",
     on: "On",
     off: "Off",
+    restartNow: "Restart now",
+    restartNowTitle: "Display engine settings saved; restart the app to apply",
   },
   about: {
     tagline: "Plan your week, 5 minutes at a time",

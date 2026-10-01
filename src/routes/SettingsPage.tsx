@@ -111,6 +111,10 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [missingAlarmFiles, setMissingAlarmFiles] = useState<string[]>([]);
+  // 当前进程启动时生效的 WebView2 开关（用于判断改动是否在等重启生效）
+  const [startupFlags, setStartupFlags] = useState<{ hw: boolean; smooth: boolean } | null>(
+    null,
+  );
   const [clearStep, setClearStep] = useState<0 | 1 | 2 | 3>(0);
   const [agreeText, setAgreeText] = useState("");
   const toastTimer = useRef<number | undefined>(undefined);
@@ -133,6 +137,12 @@ export default function SettingsPage() {
     listAlarmSounds()
       .then(setAlarmFiles)
       .catch(() => setAlarmFiles([]));
+  }, []);
+
+  useEffect(() => {
+    invoke<[boolean, boolean]>("get_startup_webview_flags")
+      .then(([hw, smooth]) => setStartupFlags({ hw, smooth }))
+      .catch(() => setStartupFlags(null));
   }, []);
 
   // 已配置为铃声的源文件是否仍然存在（全局六槽 + 各周表事务级）；
@@ -240,6 +250,7 @@ export default function SettingsPage() {
   const handleSave = useCallback(async () => {
     const next = validate();
     if (!next) return;
+    const prev = config;
     setSaving(true);
     try {
       await update(next);
@@ -247,14 +258,21 @@ export default function SettingsPage() {
       setDraft(next);
       setStartTime(minuteToTimeInput(next.dayStartMinute));
       setEndTime(minuteToTimeInput(next.dayEndMinute));
-      showToast(t("toasts.settingsSaved"));
+      // 显示引擎开关的改动需要重启才生效，提示文案与普通项区分
+      const needsRestart =
+        prev != null &&
+        (next.webviewHwAccel !== prev.webviewHwAccel ||
+          next.webviewSmoothScrolling !== prev.webviewSmoothScrolling);
+      showToast(
+        needsRestart ? t("toasts.settingsSavedRestart") : t("toasts.settingsSaved"),
+      );
     } catch (e: unknown) {
       showToast(String(e));
     } finally {
       setSaving(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, startTime, endTime, update, showToast, t]);
+  }, [config, draft, startTime, endTime, update, showToast, t]);
 
   const handlePosition = useCallback(async (position: WindowControlsPosition) => {
     try {
@@ -347,6 +365,21 @@ export default function SettingsPage() {
   };
 
   const position = settings?.windowControls.position ?? "right";
+
+  // 已保存的显示引擎开关与本进程启动时的不一致 → 需要重启才能生效
+  const restartPending =
+    config != null &&
+    startupFlags != null &&
+    (config.webviewHwAccel !== startupFlags.hw ||
+      config.webviewSmoothScrolling !== startupFlags.smooth);
+
+  const handleRestartNow = async () => {
+    try {
+      await invoke("restart_application");
+    } catch {
+      // 重启成功时进程被替换，promise 不会返回；失败静默（按钮仍在，可重试）
+    }
+  };
 
   const generalPanel = (
     <>
@@ -667,6 +700,16 @@ export default function SettingsPage() {
           </span>
         )}
         <div className="flex-1" />
+        {restartPending && (
+          <button
+            type="button"
+            onClick={() => void handleRestartNow()}
+            title={t("settings.restartNowTitle")}
+            className="rounded border border-amber-400/50 px-2.5 py-1 text-xs text-amber-300 transition-colors hover:bg-zinc-600"
+          >
+            {t("settings.restartNow")}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => void handleSave()}

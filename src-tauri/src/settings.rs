@@ -117,6 +117,10 @@ pub const UI_FONT_IDS: &[&str] = &[
 /// 允许的界面字号档位。
 pub const UI_FONT_SIZES: &[&str] = &["sm", "base", "lg"];
 
+/// 当前进程启动时读取到的 WebView2 开关（硬件加速, 平滑滚动）。
+/// 前端用它判断"已保存的改动是否还在等重启生效"。
+static STARTUP_WEBVIEW_FLAGS: std::sync::OnceLock<(bool, bool)> = std::sync::OnceLock::new();
+
 /// 启动最早期应用 WebView2 相关开关（须在创建任何 WebView2 环境之前写入环境变量）。
 /// 独立于 LazyDb 做一次轻量读取：缺库/缺表/缺键按默认值处理，失败静默跳过。
 pub fn apply_webview_flags() {
@@ -137,9 +141,8 @@ pub fn apply_webview_flags() {
             read("webviewSmoothScrolling").unwrap_or(false),
         ))
     })();
-    let Some((hw_accel, smooth_scrolling)) = flags else {
-        return;
-    };
+    let (hw_accel, smooth_scrolling) = flags.unwrap_or((true, false));
+    let _ = STARTUP_WEBVIEW_FLAGS.set((hw_accel, smooth_scrolling));
     let mut args = String::new();
     if !hw_accel {
         args.push_str("--disable-gpu ");
@@ -152,6 +155,19 @@ pub fn apply_webview_flags() {
         std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args);
         eprintln!("[startup] WebView2 附加参数: {args}");
     }
+}
+
+/// 当前进程启动时生效的 WebView2 开关。
+#[command]
+pub fn get_startup_webview_flags() -> (bool, bool) {
+    *STARTUP_WEBVIEW_FLAGS.get().unwrap_or(&(true, false))
+}
+
+/// 立即完整重启应用（供"重启后生效"的设置项使用）。
+#[command]
+pub fn restart_application(app: tauri::AppHandle) -> Result<(), String> {
+    eprintln!("用户请求重启应用");
+    app.restart();
 }
 
 /// 每周第一天。

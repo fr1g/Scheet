@@ -52,3 +52,4 @@
 - 本轮批次：界面字号三档(sm/base/lg)+打开字体目录；高级Tab(WebView2硬件加速/平滑滚动,重启生效,启动最早期读data.db写环境变量)；铃声Tab打开目录+刷新+丢失源文件黄色警告(扫描全局六槽+各周表事务级)；修复改整周起止时间不激活保存按钮(dirty未纳入时间字段)；i18n补common段(cancel/confirm/stop曾显示原始key)+resolveAlarmChain中文死值改key；resize右下角低可见度尺寸角标
 - 崩溃循环定案：旧数据目录 weeks.db/todo-list.db 主文件仅4KB而WAL堆百KB且停在崩溃时刻——崩溃强杀撕裂WAL，每次启动读坏WAL→再崩；改名旧目录全新重建后稳定运行。rodio设备流竞态修复保留（疑似首发损坏源）。旧目录备份为 Documents/scheet.bak-20261002（数据已全新，无损失）
 - 修复：保存后草稿未同步起止分钟导致"有改动没保存"常亮（setDraft(next)）
+- 保存提示区分重启项（settingsSavedRestart）；保存按钮旁"立即重启"按钮：后端记录启动时 WebView2 开关（OnceLock），前端比对已保存值判断 restartPending，跨导航不丢

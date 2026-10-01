@@ -190,6 +190,7 @@ export default {
     conflict: "有 {{count}} 处时间重叠，改好再保存",
     positionUpdated: "窗口按钮已更新",
     settingsSaved: "设置已保存，马上生效",
+    settingsSavedRestart: "设置已保存，显示引擎的改动要重启应用才生效",
     revertedToast: "改动已放弃",
   },
   settings: {
@@ -265,6 +266,8 @@ export default {
     advSmoothHint: "开启后滚轮滚动带惯性动画（系统的 WebView2 默认不开启）。",
     on: "开",
     off: "关",
+    restartNow: "立即重启",
+    restartNowTitle: "显示引擎设置已保存，重启应用后生效",
   },
   about: {
     tagline: "以周为单位，安排你的生活",

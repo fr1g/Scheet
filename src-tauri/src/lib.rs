@@ -103,6 +103,8 @@ pub fn run() {
             settings::open_app_data_dir,
             settings::open_fonts_dir,
             settings::open_alarms_dir,
+            settings::get_startup_webview_flags,
+            settings::restart_application,
             settings::request_clear_data,
             reminders::create_reminder,
             reminders::cancel_reminder,
