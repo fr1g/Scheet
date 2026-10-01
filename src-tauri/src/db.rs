@@ -22,6 +22,20 @@ impl LazyDb {
         }
     }
 
+    /// 关闭并丢弃当前连接（若已打开），释放数据库文件锁。
+    /// 供"清空数据"在删除目录前调用；之后 with_conn 会按需重新打开并重建。
+    pub fn close(&self) -> Result<(), String> {
+        let mut guard = self
+            .conn
+            .lock()
+            .map_err(|_| "数据库连接锁已中毒".to_string())?;
+        if let Some(conn) = guard.take() {
+            conn.close()
+                .map_err(|(_, e)| format!("关闭数据库失败: {e}"))?;
+        }
+        Ok(())
+    }
+
     /// 以串行方式执行一次数据库操作；首次调用负责打开连接并初始化 schema。
     pub fn with_conn<T>(
         &self,
@@ -85,36 +99,6 @@ pub fn data_dir() -> Result<PathBuf, String> {
     let dir = base.join("scheet");
     fs::create_dir_all(&dir).map_err(|e| format!("创建数据目录失败: {e}"))?;
     Ok(dir)
-}
-
-/// 清空数据标记文件名：上次会话写入它后重启，下次启动删除整个数据目录。
-pub const CLEAR_DATA_FLAG: &str = "CLEAR_DATA.flag";
-
-/// 启动最早期调用（先于字体解压/任何 DB 打开）：若存在清空标记则删除整个数据目录。
-/// 旧实例刚退出可能仍持有数据库文件锁（Windows），失败时短暂重试；
-/// 全部失败则保留数据继续启动（安全侧），标记仍在，下次启动会再次尝试。
-pub fn clear_data_if_requested() {
-    let Some(base) = documents_dir() else {
-        return;
-    };
-    let dir = base.join("scheet");
-    if !dir.join(CLEAR_DATA_FLAG).exists() {
-        return;
-    }
-    eprintln!("检测到清空数据标记：删除数据目录 {dir:?}");
-    for _ in 0..20 {
-        match fs::remove_dir_all(&dir) {
-            Ok(()) => {
-                eprintln!("数据目录已清空，应用将以全新状态启动");
-                return;
-            }
-            Err(e) => {
-                eprintln!("删除数据目录失败（稍后重试）: {e}");
-                std::thread::sleep(std::time::Duration::from_millis(150));
-            }
-        }
-    }
-    eprintln!("数据目录删除失败，保留原数据继续启动（标记仍在，下次启动将重试）");
 }
 
 /// 用户提示音目录：<数据目录>/alarms，与各 .db 文件同级。

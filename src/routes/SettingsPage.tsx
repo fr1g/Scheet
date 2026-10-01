@@ -432,11 +432,11 @@ export default function SettingsPage() {
     }
   };
 
-  /** 三步确认后的最终执行：写标记 → 重启；成功时应用直接重启，promise 不会返回。 */
+  /** 三步确认后的最终执行：后端关库→删数据目录→原地重建；完成后整页重载进入全新状态。 */
   const handleClearNow = async () => {
     try {
       await invoke("request_clear_data");
-      setClearStep(0);
+      window.location.reload();
     } catch (e: unknown) {
       showToast(`${t("about.clearFailed")}: ${String(e)}`);
       setClearStep(0);

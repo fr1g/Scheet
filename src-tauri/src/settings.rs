@@ -435,16 +435,49 @@ pub fn open_app_data_dir() -> Result<(), String> {
         .map_err(|e| format!("打开数据目录失败: {e}"))
 }
 
-/// 清空数据最终确认：写入清空标记后立即重启应用。
-/// 下次启动时 db::clear_data_if_requested 在任何 DB/字体解压之前删除整个数据目录。
-/// 重启成功则本命令不会返回（进程被替换）；返回即代表标记写入或重启出了问题。
+/// 清空数据最终确认：暂停调度线程 → 关闭三个数据库连接 → 删除整个数据目录 →
+/// 原地重建（数据目录 + 内置字体）。返回后前端整页 reload，即呈现全新状态。
+/// 等效于重启，但避免进程重启时新旧 WebView2/开发服务器交接导致的渲染异常
+/// （dev 下 tauri CLI 会随应用进程退出并杀掉 vite，重启出的实例将无法加载页面）。
 #[command]
-pub fn request_clear_data(app: tauri::AppHandle) -> Result<(), String> {
-    let dir = crate::db::data_dir()?;
-    std::fs::write(dir.join(crate::db::CLEAR_DATA_FLAG), b"clear")
-        .map_err(|e| format!("写入清空标记失败: {e}"))?;
-    eprintln!("用户确认清空数据：标记已写入，重启应用");
-    app.restart();
+pub async fn request_clear_data(
+    data: State<'_, Arc<crate::db::DataDb>>,
+    weeks: State<'_, Arc<crate::db::WeeksDb>>,
+    todo: State<'_, Arc<crate::db::TodoDb>>,
+) -> Result<(), String> {
+    let data = data.inner().clone();
+    let weeks = weeks.inner().clone();
+    let todo = todo.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::scheduler::set_paused(true);
+        let result = (|| -> Result<(), String> {
+            let mut last_err = String::new();
+            for _ in 0..20 {
+                data.0.close()?;
+                weeks.0.close()?;
+                todo.0.close()?;
+                let dir = crate::db::data_dir()?;
+                match std::fs::remove_dir_all(&dir) {
+                    Ok(()) => return Ok(()),
+                    Err(e) => {
+                        // 暂停标志生效前已在途的最后一次轮询可能重新打开了连接，稍后重试即可
+                        last_err = format!("删除数据目录失败: {e}");
+                        std::thread::sleep(std::time::Duration::from_millis(200));
+                    }
+                }
+            }
+            Err(last_err)
+        })();
+        crate::scheduler::set_paused(false);
+        result?;
+        // 按首启流程原地重建：数据目录（alarms 等由惰性建表补齐）+ 内置字体
+        crate::db::data_dir()?;
+        crate::fonts::ensure_bundled_fonts();
+        eprintln!("数据目录已清空并重建，前端即将整页重载");
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[cfg(test)]

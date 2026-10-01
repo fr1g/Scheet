@@ -44,3 +44,4 @@
 - ErrorBoundary 错误面板新增"重启窗口"按钮：hash 置回主视图 + 整页 reload，彻底重置前端状态
 - 设置页补入场淡入动画（0.15s，与主界面一致）；此前"退出设置有过渡"实为 WeekGridPage 入场动画，路由级 AnimatePresence 包 Routes 无 motion 组件故 exit 从未生效
 - 关于页新增"清空数据"三步确认流程：modal1(取消/打开数据文件夹/无需备份下一步) → modal2(输入 AGREE TO CLEAR 全等启用继续) → modal3(确认)；Rust 侧 CLEAR_DATA.flag 标记 + 启动最早期删除整个数据目录 + request_clear_data 重启 + open_app_data_dir
+- 清空数据改为原地清空：暂停调度线程→关三库连接→删数据目录→重建+重解压字体→前端整页 reload；修复 app.restart() 在 dev 下被 CLI 进程树连带终止（vite 死亡+WebView2 渲染进程被杀）导致的黑屏无响应

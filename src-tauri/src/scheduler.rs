@@ -25,6 +25,13 @@ use crate::weeks::{self, EntryType};
 
 const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(1000);
 
+/// 清空数据期间置真：调度线程跳过全部轮询，避免重新打开刚被关闭/删除的数据库。
+static PAUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_paused(paused: bool) {
+    PAUSED.store(paused, std::sync::atomic::Ordering::SeqCst);
+}
+
 /// 推送给前端的提醒事件载荷（snackbar 数据）。
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,6 +64,10 @@ pub fn start(app: AppHandle, data: Arc<DataDb>, weeks: Arc<WeeksDb>, todo_db: Ar
             let mut last_date: Option<NaiveDate> = None;
             loop {
                 std::thread::sleep(POLL_INTERVAL);
+
+                if PAUSED.load(std::sync::atomic::Ordering::SeqCst) {
+                    continue;
+                }
 
                 if let Err(e) = reminders::poll_due(&app, &data) {
                     eprintln!("[scheduler] 手动提醒轮询失败: {e}");
