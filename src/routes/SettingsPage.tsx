@@ -134,9 +134,6 @@ export default function SettingsPage() {
 
   const dirty = draft != null && JSON.stringify(draft) !== JSON.stringify(config);
 
-  const patchLanguage = (value: "auto" | "zh" | "en") => {
-    setDraft((prev) => (prev ? { ...prev, uiLanguage: value } : prev));
-  };
   const patchFirstDay = (value: "mon" | "sun") => {
     setDraft((prev) => (prev ? { ...prev, firstDayOfWeek: value } : prev));
   };
@@ -337,7 +334,7 @@ export default function SettingsPage() {
             <button
               key={l}
               type="button"
-              onClick={() => patchLanguage(l)}
+              onClick={() => void patchLanguage(l)}
               className={`rounded border px-2 py-1.5 text-xs transition-colors ${
                 draft.uiLanguage === l
                   ? "border-blue-400 bg-blue-400/15 text-zinc-100"
@@ -427,6 +424,17 @@ export default function SettingsPage() {
   const handleOpenDataDir = async () => {
     try {
       await invoke("open_app_data_dir");
+    } catch (e: unknown) {
+      showToast(String(e));
+    }
+  };
+
+  /** 语言立即生效并立即持久化（对齐提示文案"马上生效"）：
+   *  以已保存的配置为基准合并，不影响其他尚未保存的草稿修改。 */
+  const patchLanguage = async (value: "auto" | "zh" | "en") => {
+    setDraft((prev) => (prev ? { ...prev, uiLanguage: value } : prev));
+    try {
+      await update({ ...config, uiLanguage: value });
     } catch (e: unknown) {
       showToast(String(e));
     }
