@@ -7,6 +7,8 @@
 //! - 全局同一时刻只保留一个播放引擎：新播放会替换当前播放；
 //!   循环播放由看护线程驱动——每轮播完后静默 5 秒再续播下一轮，
 //!   直到被新播放替换、调用 `stop` 或应用退出。
+//! - 音频设备流常驻进程、永不销毁（见 DEVICE_SINK 注释）：反复开关设备流
+//!   会触发 cpal/WASAPI 析构竞态导致堆损坏崩溃。
 //!
 //! 硬性约定：播放失败（无音频设备、解码失败等）只记录日志并返回 Err，绝不 panic。
 
@@ -75,29 +77,44 @@ pub fn validate_alarm_file_name(name: &str) -> Result<(), String> {
 /// 世代号：每次 play/stop 递增，用于让旧的循环看护线程失效。
 struct SoundEngine {
     player: Player,
-    _device: MixerDeviceSink,
 }
 
 static ENGINE: Mutex<Option<(u64, SoundEngine)>> = Mutex::new(None);
 static GENERATION: AtomicU64 = AtomicU64::new(0);
 
+/// 进程级共享的音频设备流：只打开一次、永不销毁（static 不参与退出析构）。
+/// 反复创建/销毁 MixerDeviceSink 会在播放中途触发 cpal(WASAPI) 的析构竞态，
+/// 观测为进程堆损坏（0xc0000374，崩溃点可能远晚于损坏点，例如退出或窗口 resize 时）。
+/// 因此设备与混音器常驻，播放切换只更换挂在混音器上的 Player（drop 仅摘除音源，无设备拆解）。
+static DEVICE_SINK: Mutex<Option<MixerDeviceSink>> = Mutex::new(None);
+
+fn ensure_device_sink() -> Result<(), String> {
+    let mut guard = DEVICE_SINK
+        .lock()
+        .map_err(|_| "[sound] 音频设备锁已中毒".to_string())?;
+    if guard.is_none() {
+        let sink = DeviceSinkBuilder::open_default_sink()
+            .map_err(|e| format!("[sound] 打开音频设备失败(本次播放跳过): {e}"))?;
+        *guard = Some(sink);
+    }
+    Ok(())
+}
+
 /// 播放提示音（会替换当前正在播放的声音）。
 pub fn play(alarm_file: &str, mode: AlarmMode) -> Result<(), String> {
     stop();
     let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
-    let device = DeviceSinkBuilder::open_default_sink()
-        .map_err(|e| format!("[sound] 打开音频设备失败(本次播放跳过): {e}"))?;
-    let player = Player::connect_new(&device.mixer());
+    ensure_device_sink()?;
+    let player = {
+        let guard = DEVICE_SINK
+            .lock()
+            .map_err(|_| "[sound] 音频设备锁已中毒".to_string())?;
+        Player::connect_new(guard.as_ref().expect("设备流已在上方初始化").mixer())
+    };
     let source = load_source(alarm_file)?;
     player.append(source);
     let mut engine = ENGINE.lock().map_err(|_| "[sound] 音频引擎锁已中毒")?;
-    *engine = Some((
-        generation,
-        SoundEngine {
-            player,
-            _device: device,
-        },
-    ));
+    *engine = Some((generation, SoundEngine { player }));
     if mode == AlarmMode::Loop {
         spawn_loop_watcher(generation, alarm_file.trim().to_string());
     }

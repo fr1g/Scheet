@@ -97,17 +97,19 @@ pub fn show(
 }
 
 /// 主显示器可用区域（预留任务栏空间）右下角的逻辑坐标。
+/// 工作区给出的是物理像素，set_position 消费逻辑坐标——必须除以缩放因子，
+/// 否则在非 100% 缩放的屏幕上弹窗会被定位到屏幕外（曾经"永远看不到弹窗"的原因）。
 fn popup_position(app: &AppHandle) -> (f64, f64) {
     match app.primary_monitor() {
         Ok(Some(monitor)) => {
             let area = monitor.work_area();
             let scale = monitor.scale_factor();
-            let x = area.position.x as f64 + area.size.width as f64
-                - POPUP_WIDTH * scale
-                - 12.0 * scale;
-            let y = area.position.y as f64 + area.size.height as f64
-                - POPUP_HEIGHT * scale
-                - 48.0 * scale;
+            let x = (area.position.x as f64 + area.size.width as f64) / scale
+                - POPUP_WIDTH
+                - 12.0;
+            let y = (area.position.y as f64 + area.size.height as f64) / scale
+                - POPUP_HEIGHT
+                - 48.0;
             (x, y)
         }
         _ => (0.0, 0.0),
