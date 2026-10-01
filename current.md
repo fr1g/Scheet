@@ -46,3 +46,4 @@
 - 关于页新增"清空数据"三步确认流程：modal1(取消/打开数据文件夹/无需备份下一步) → modal2(输入 AGREE TO CLEAR 全等启用继续) → modal3(确认)；Rust 侧 CLEAR_DATA.flag 标记 + 启动最早期删除整个数据目录 + request_clear_data 重启 + open_app_data_dir
 - 清空数据改为原地清空：暂停调度线程→关三库连接→删数据目录→重建+重解压字体→前端整页 reload；修复 app.restart() 在 dev 下被 CLI 进程树连带终止（vite 死亡+WebView2 渲染进程被杀）导致的黑屏无响应
 - 清空数据不再删除 fonts/（内置资源非用户数据，且 WebView2 持有句柄时删除会触发堆损坏崩溃）：只删三库文件+WAL/SHM+alarms，重建骨架目录
+- 数据目录根新增双语 README.txt（纯文本排版，中文约140字）：说明三库用途/只备份 .db/fonts 无需备份/alarms 可选；启动时缺失或为空自动创建

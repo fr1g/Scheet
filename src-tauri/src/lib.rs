@@ -40,6 +40,9 @@ pub fn run() {
     // 首启解压内置字体到数据目录（同步执行，一次性开销）
     fonts::ensure_bundled_fonts();
 
+    // 数据目录根 README：不存在或为空时创建（说明备份方式，双语纯文本）
+    db::ensure_data_readme();
+
     tauri::Builder::default()
         .manage(Arc::new(db::DataDb(db::LazyDb::new(
             "data.db",

@@ -168,6 +168,61 @@ fn migrate(conn: &Connection) {
     }
 }
 
+/// 数据目录根 README（中英双语，纯文本排版）。
+/// 告知用户：三个 .db 是核心数据；fonts 无需备份、alarms 可选备份及各自用途。
+const DATA_README: &str = "\u{FEFF}Scheet 应用数据说明 / About Your Scheet Data
+==================================================
+
+本文件夹存放 Scheet 的全部数据。三个 .db 文件是核心，
+备份它们就等于备份了你的所有内容：
+
+  data.db        应用设置与手动提醒
+  weeks.db       周课表（周表、事务、当天覆盖）
+  todo-list.db   每日待办
+
+  fonts/         界面字体，随应用内置，无需备份
+  alarms/        你放入的提示音文件，可选备份
+                 （留空时应用使用内置铃声）
+
+备份方法：退出应用后，把三个 .db 文件复制到别处即可。
+恢复方法：把备份的 .db 文件放回本文件夹，再启动应用。
+
+This folder holds all of your Scheet data. The three .db
+files are the core: backing them up backs up everything.
+
+  data.db        App settings and manual reminders
+  weeks.db       Weekly plans (plans, entries, day overrides)
+  todo-list.db   Daily to-dos
+
+  fonts/         Bundled UI fonts. No backup needed.
+  alarms/        Your alarm sound files. Optional to back up
+                 (the built-in sound plays when it is empty).
+
+To back up: quit the app, then copy the three .db files
+somewhere safe. To restore: put them back into this folder
+and start the app.
+";
+
+/// 启动时确保数据目录根有 README.txt：文件不存在或内容为空时（重新）创建。
+/// 写入失败只记录日志，不影响应用运行。
+pub fn ensure_data_readme() {
+    let dir = match data_dir() {
+        Ok(dir) => dir,
+        Err(e) => {
+            eprintln!("[db] 定位数据目录失败(README 未写入): {e}");
+            return;
+        }
+    };
+    let readme = dir.join("README.txt");
+    match fs::metadata(&readme) {
+        Ok(meta) if meta.len() > 0 => return,
+        _ => {}
+    }
+    if let Err(e) = fs::write(&readme, DATA_README) {
+        eprintln!("[db] 写入数据目录 README.txt 失败: {e}");
+    }
+}
+
 /// 初始化用户提示音目录（失败不致命：用户提示音不可用时回退默认提示音）。
 fn init_alarms_dir() {
     let dir = match alarms_dir() {
