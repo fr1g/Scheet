@@ -435,8 +435,40 @@ pub fn open_app_data_dir() -> Result<(), String> {
         .map_err(|e| format!("打开数据目录失败: {e}"))
 }
 
-/// 清空数据最终确认：暂停调度线程 → 关闭三个数据库连接 → 删除整个数据目录 →
-/// 原地重建（数据目录 + 内置字体）。返回后前端整页 reload，即呈现全新状态。
+/// 删除用户数据文件：三个数据库（含 WAL/SHM）+ alarms 目录（用户提示音）。
+/// 不动 fonts/ ——字体是随应用打包的内置资源而非用户数据，且 WebView2 可能正持有
+/// 这些文件的资源句柄，在活着的 webview 脚下删除它们会引发原生层异常。
+fn clear_data_files(dir: &std::path::Path) -> Result<(), String> {
+    for name in [
+        "data.db",
+        "data.db-wal",
+        "data.db-shm",
+        "weeks.db",
+        "weeks.db-wal",
+        "weeks.db-shm",
+        "todo-list.db",
+        "todo-list.db-wal",
+        "todo-list.db-shm",
+    ] {
+        let path = dir.join(name);
+        if path.exists() {
+            std::fs::remove_file(&path).map_err(|e| format!("删除 {name} 失败: {e}"))?;
+        }
+    }
+    let alarms = dir.join("alarms");
+    if alarms.exists() {
+        std::fs::remove_dir_all(&alarms).map_err(|e| format!("删除 alarms 失败: {e}"))?;
+    }
+    // 兼容清理：旧版"标记文件"机制可能留下的残留
+    let flag = dir.join("CLEAR_DATA.flag");
+    if flag.exists() {
+        let _ = std::fs::remove_file(&flag);
+    }
+    Ok(())
+}
+
+/// 清空数据最终确认：暂停调度线程 → 关闭三个数据库连接 → 删除用户数据文件
+/// （数据库 + 用户提示音）→ 重建骨架目录。返回后前端整页 reload，即呈现全新状态。
 /// 等效于重启，但避免进程重启时新旧 WebView2/开发服务器交接导致的渲染异常
 /// （dev 下 tauri CLI 会随应用进程退出并杀掉 vite，重启出的实例将无法加载页面）。
 #[command]
@@ -457,11 +489,11 @@ pub async fn request_clear_data(
                 weeks.0.close()?;
                 todo.0.close()?;
                 let dir = crate::db::data_dir()?;
-                match std::fs::remove_dir_all(&dir) {
+                match clear_data_files(&dir) {
                     Ok(()) => return Ok(()),
                     Err(e) => {
                         // 暂停标志生效前已在途的最后一次轮询可能重新打开了连接，稍后重试即可
-                        last_err = format!("删除数据目录失败: {e}");
+                        last_err = e;
                         std::thread::sleep(std::time::Duration::from_millis(200));
                     }
                 }
@@ -470,10 +502,11 @@ pub async fn request_clear_data(
         })();
         crate::scheduler::set_paused(false);
         result?;
-        // 按首启流程原地重建：数据目录（alarms 等由惰性建表补齐）+ 内置字体
-        crate::db::data_dir()?;
-        crate::fonts::ensure_bundled_fonts();
-        eprintln!("数据目录已清空并重建，前端即将整页重载");
+        // 重建骨架目录（alarms 也会由惰性建表补齐，这里先建好以便用户立刻放入提示音）
+        let dir = crate::db::data_dir()?;
+        std::fs::create_dir_all(dir.join("alarms"))
+            .map_err(|e| format!("重建 alarms 目录失败: {e}"))?;
+        eprintln!("用户数据已清空，前端即将整页重载");
         Ok(())
     })
     .await
