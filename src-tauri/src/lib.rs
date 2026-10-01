@@ -33,6 +33,10 @@ pub(crate) fn focus_main_window(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 上次会话若请求了"清空数据"，此刻删除整个数据目录。
+    // 必须最先执行：先于字体解压（同样写入数据目录）与任何 DB 打开。
+    db::clear_data_if_requested();
+
     // 便携单文件 exe 不经过安装器，须在创建窗口前自行保证 WebView2 可用
     #[cfg(windows)]
     webview2::ensure_runtime();
@@ -93,6 +97,8 @@ pub fn run() {
             settings::set_window_controls_position,
             settings::get_global_config,
             settings::set_global_config,
+            settings::open_app_data_dir,
+            settings::request_clear_data,
             reminders::create_reminder,
             reminders::cancel_reminder,
             reminders::list_reminders,

@@ -420,6 +420,33 @@ pub async fn set_window_controls_position(
     )
 }
 
+/// 用系统文件管理器打开应用数据文件夹（用户可自行复制备份）。
+#[command]
+pub fn open_app_data_dir() -> Result<(), String> {
+    let dir = crate::db::data_dir()?;
+    #[cfg(target_os = "windows")]
+    let spawned = std::process::Command::new("explorer").arg(&dir).spawn();
+    #[cfg(target_os = "macos")]
+    let spawned = std::process::Command::new("open").arg(&dir).spawn();
+    #[cfg(target_os = "linux")]
+    let spawned = std::process::Command::new("xdg-open").arg(&dir).spawn();
+    spawned
+        .map(|_| ())
+        .map_err(|e| format!("打开数据目录失败: {e}"))
+}
+
+/// 清空数据最终确认：写入清空标记后立即重启应用。
+/// 下次启动时 db::clear_data_if_requested 在任何 DB/字体解压之前删除整个数据目录。
+/// 重启成功则本命令不会返回（进程被替换）；返回即代表标记写入或重启出了问题。
+#[command]
+pub fn request_clear_data(app: tauri::AppHandle) -> Result<(), String> {
+    let dir = crate::db::data_dir()?;
+    std::fs::write(dir.join(crate::db::CLEAR_DATA_FLAG), b"clear")
+        .map_err(|e| format!("写入清空标记失败: {e}"))?;
+    eprintln!("用户确认清空数据：标记已写入，重启应用");
+    app.restart();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

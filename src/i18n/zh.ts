@@ -248,6 +248,20 @@ export default {
     intro: "Scheet 是一款本地优先的周课表应用：以 5 分钟为粒度编排一周的普通事务与休息，到点自动弹窗响铃提醒，右侧还有每日待办清单。所有数据都保存在你自己的电脑上。",
     collaborators: "协作者",
     aiNote: "AI 协作开发",
+    clearData: "清空数据",
+    clearTitle: "清空数据",
+    clearStep1Body:
+      "您确定要清空数据吗？您可以直接将当前的应用数据文件夹复制到别的地方压缩存档，然后退出应用并删除当前的应用数据，这样既不会让数据无法找回，也能让应用重新“焕然一新”。",
+    clearOpenFolder: "打开应用数据文件夹",
+    clearNext: "无需备份，下一步",
+    clearStep2Body:
+      "清空后未备份的数据将无法找回！此后果由您自己承担！在下方输入“AGREE TO CLEAR”进行下一步",
+    clearAgreePlaceholder: "在此输入 AGREE TO CLEAR",
+    clearContinue: "继续",
+    clearStep3Body:
+      "您即将清空数据！点击【确认】后，应用将重启并清空现有的数据。",
+    clearFinal: "确认",
+    clearFailed: "清空失败",
   },
   duration: {
     hM: "{{h}} 小时 {{m}} 分钟",

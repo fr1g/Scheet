@@ -87,6 +87,36 @@ pub fn data_dir() -> Result<PathBuf, String> {
     Ok(dir)
 }
 
+/// 清空数据标记文件名：上次会话写入它后重启，下次启动删除整个数据目录。
+pub const CLEAR_DATA_FLAG: &str = "CLEAR_DATA.flag";
+
+/// 启动最早期调用（先于字体解压/任何 DB 打开）：若存在清空标记则删除整个数据目录。
+/// 旧实例刚退出可能仍持有数据库文件锁（Windows），失败时短暂重试；
+/// 全部失败则保留数据继续启动（安全侧），标记仍在，下次启动会再次尝试。
+pub fn clear_data_if_requested() {
+    let Some(base) = documents_dir() else {
+        return;
+    };
+    let dir = base.join("scheet");
+    if !dir.join(CLEAR_DATA_FLAG).exists() {
+        return;
+    }
+    eprintln!("检测到清空数据标记：删除数据目录 {dir:?}");
+    for _ in 0..20 {
+        match fs::remove_dir_all(&dir) {
+            Ok(()) => {
+                eprintln!("数据目录已清空，应用将以全新状态启动");
+                return;
+            }
+            Err(e) => {
+                eprintln!("删除数据目录失败（稍后重试）: {e}");
+                std::thread::sleep(std::time::Duration::from_millis(150));
+            }
+        }
+    }
+    eprintln!("数据目录删除失败，保留原数据继续启动（标记仍在，下次启动将重试）");
+}
+
 /// 用户提示音目录：<数据目录>/alarms，与各 .db 文件同级。
 pub fn alarms_dir() -> Result<PathBuf, String> {
     Ok(data_dir()?.join("alarms"))

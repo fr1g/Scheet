@@ -246,6 +246,20 @@ export default {
     intro: "Scheet is a local-first weekly planner: lay out tasks and breaks in 5-minute slots, get a popup and a sound when they start or end, and keep a daily to-do list on the right. All data stays on your own device.",
     collaborators: "Collaborators",
     aiNote: "AI-assisted development",
+    clearData: "Clear all data",
+    clearTitle: "Clear all data",
+    clearStep1Body:
+      "Are you sure you want to clear all data? You can copy the current app data folder somewhere else as an archive, then quit the app and delete the data folder. That way nothing is lost, and the app starts fresh.",
+    clearOpenFolder: "Open data folder",
+    clearNext: "Skip backup, next",
+    clearStep2Body:
+      "Data that is not backed up will be unrecoverable! You bear the consequences! Type “AGREE TO CLEAR” below to continue",
+    clearAgreePlaceholder: "Type AGREE TO CLEAR here",
+    clearContinue: "Continue",
+    clearStep3Body:
+      "You are about to clear all data! After you click Confirm, the app will restart and wipe existing data.",
+    clearFinal: "Confirm",
+    clearFailed: "Failed to clear",
   },
   duration: {
     hM: "{{h}} h {{m}} min",

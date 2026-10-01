@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftIcon, SaveIcon } from "tdesign-icons-react";
+import { invoke } from "@tauri-apps/api/core";
 import Toast from "../components/Toast";
-import { TimeField } from "../components/week/PlanSettingsDialog";
+import { DialogShell, TimeField } from "../components/week/PlanSettingsDialog";
 import { listAlarmSounds } from "../lib/clipboard";
 import { useGlobalConfig } from "../state/GlobalConfigContext";
 import { useSettings } from "../state/SettingsContext";
@@ -107,6 +108,8 @@ export default function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("general");
+  const [clearStep, setClearStep] = useState<0 | 1 | 2 | 3>(0);
+  const [agreeText, setAgreeText] = useState("");
   const toastTimer = useRef<number | undefined>(undefined);
 
   const showToast = useCallback((message: string) => {
@@ -421,6 +424,25 @@ export default function SettingsPage() {
     </>
   );
 
+  const handleOpenDataDir = async () => {
+    try {
+      await invoke("open_app_data_dir");
+    } catch (e: unknown) {
+      showToast(String(e));
+    }
+  };
+
+  /** 三步确认后的最终执行：写标记 → 重启；成功时应用直接重启，promise 不会返回。 */
+  const handleClearNow = async () => {
+    try {
+      await invoke("request_clear_data");
+      setClearStep(0);
+    } catch (e: unknown) {
+      showToast(`${t("about.clearFailed")}: ${String(e)}`);
+      setClearStep(0);
+    }
+  };
+
   const aboutPanel = (
     <section className="flex flex-col items-center gap-4 py-6 text-center">
       <img src={logoUrl} alt="Scheet" className="h-20 w-20 rounded-2xl" />
@@ -436,6 +458,13 @@ export default function SettingsPage() {
         <div className="mt-1 text-xs text-zinc-100">GLM-5.3-Flash</div>
         <div className="text-[10px] text-zinc-500">{t("about.aiNote")}</div>
       </div>
+      <button
+        type="button"
+        onClick={() => setClearStep(1)}
+        className="rounded border border-zinc-500 px-4 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+      >
+        {t("about.clearData")}
+      </button>
     </section>
   );
 
@@ -511,6 +540,83 @@ export default function SettingsPage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {clearStep === 1 && (
+          <DialogShell
+            key="clear-1"
+            title={t("about.clearTitle")}
+            onClose={() => setClearStep(0)}
+            onConfirm={() => setClearStep(2)}
+            footer={
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setClearStep(0)}
+                  className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleOpenDataDir()}
+                  className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+                >
+                  {t("about.clearOpenFolder")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgreeText("");
+                    setClearStep(2);
+                  }}
+                  className="rounded bg-blue-500 px-3 py-1.5 text-xs text-white transition-colors hover:bg-blue-400"
+                >
+                  {t("about.clearNext")}
+                </button>
+              </div>
+            }
+          >
+            <p className="text-xs leading-relaxed text-zinc-300">
+              {t("about.clearStep1Body")}
+            </p>
+          </DialogShell>
+        )}
+        {clearStep === 2 && (
+          <DialogShell
+            key="clear-2"
+            title={t("about.clearTitle")}
+            onClose={() => setClearStep(0)}
+            onConfirm={() => setClearStep(3)}
+            canConfirm={agreeText === "AGREE TO CLEAR"}
+            confirmText={t("about.clearContinue")}
+          >
+            <p className="text-xs leading-relaxed text-zinc-300">
+              {t("about.clearStep2Body")}
+            </p>
+            <input
+              value={agreeText}
+              onChange={(e) => setAgreeText(e.target.value)}
+              placeholder={t("about.clearAgreePlaceholder")}
+              autoFocus
+              className={inputClass}
+            />
+          </DialogShell>
+        )}
+        {clearStep === 3 && (
+          <DialogShell
+            key="clear-3"
+            title={t("about.clearTitle")}
+            onClose={() => setClearStep(0)}
+            onConfirm={() => void handleClearNow()}
+            confirmText={t("about.clearFinal")}
+          >
+            <p className="text-xs leading-relaxed text-zinc-300">
+              {t("about.clearStep3Body")}
+            </p>
+          </DialogShell>
+        )}
+      </AnimatePresence>
 
       <Toast message={toast} />
     </motion.div>
