@@ -1,6 +1,45 @@
 # Scheet
 
-（内容待补充）
+一款本地优先的桌面周课表应用：以周为单位编排事务，5 分钟粒度，到点弹窗响铃提醒。
+
+## 如何构建
+
+### 前提条件
+
+- Node.js ≥ 20 与 pnpm ≥ 9（前端构建工具链）
+- Rust stable（Windows 需 MSVC 工具链；Linux 需 `libasound2-dev`、`libwebkit2gtk-4.1-dev` 等 Tauri 依赖；macOS 需 Xcode Command Line Tools）
+- Windows 10 及以上运行需 WebView2 Runtime（系统一般自带，缺失时应用会引导安装）
+
+### 日常开发
+
+```bash
+pnpm install       # 安装前端依赖（首次）
+pnpm tauri dev     # 启动开发实例，前端改动热更新
+```
+
+### 构建发布产物
+
+```bash
+pnpm build         # 前端类型检查 + 打包
+pnpm tauri build   # 构建当前平台的发布产物（单文件，见下）
+```
+
+产物位置（三端均为单文件，绿色免安装）：
+
+| 平台 | 产物 |
+| --- | --- |
+| Windows | `src-tauri/target/release/scheet.exe` |
+| macOS | `src-tauri/target/release/bundle/macos/Scheet.app` |
+| Linux | `src-tauri/target/release/bundle/appimage/scheet.AppImage` |
+
+### 测试
+
+```bash
+cd src-tauri
+cargo test         # Rust 单元测试（含调度器/冲突检测/铃声链等）
+```
+
+更多的功能验收用例见 [测试用例.md](测试用例.md)，已知问题与平台注意事项见 [problems.md](problems.md)，项目规范见 [AGENTS.md](AGENTS.md)。
 
 ### AI Usage
 
