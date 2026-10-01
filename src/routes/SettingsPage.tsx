@@ -243,6 +243,8 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await update(next);
+      // 同步草稿与时间输入框：否则 draft 里的旧起止分钟会让脏检查一直判为未保存
+      setDraft(next);
       setStartTime(minuteToTimeInput(next.dayStartMinute));
       setEndTime(minuteToTimeInput(next.dayEndMinute));
       showToast(t("toasts.settingsSaved"));

@@ -51,3 +51,4 @@
 - 崩溃修复：音频设备流常驻进程（rodio MixerDeviceSink 反复创建/销毁触发 cpal WASAPI 析构竞态→堆损坏，崩溃点常晚于损坏点如 resize/退出时）；提醒弹窗坐标物理/逻辑像素混算修复（非100%缩放屏上弹窗定位到屏幕外=从未可见）
 - 本轮批次：界面字号三档(sm/base/lg)+打开字体目录；高级Tab(WebView2硬件加速/平滑滚动,重启生效,启动最早期读data.db写环境变量)；铃声Tab打开目录+刷新+丢失源文件黄色警告(扫描全局六槽+各周表事务级)；修复改整周起止时间不激活保存按钮(dirty未纳入时间字段)；i18n补common段(cancel/confirm/stop曾显示原始key)+resolveAlarmChain中文死值改key；resize右下角低可见度尺寸角标
 - 崩溃循环定案：旧数据目录 weeks.db/todo-list.db 主文件仅4KB而WAL堆百KB且停在崩溃时刻——崩溃强杀撕裂WAL，每次启动读坏WAL→再崩；改名旧目录全新重建后稳定运行。rodio设备流竞态修复保留（疑似首发损坏源）。旧目录备份为 Documents/scheet.bak-20261002（数据已全新，无损失）
+- 修复：保存后草稿未同步起止分钟导致"有改动没保存"常亮（setDraft(next)）
