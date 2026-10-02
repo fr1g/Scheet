@@ -169,7 +169,7 @@ fn migrate(conn: &Connection) {
 }
 
 /// 数据目录根 README（中英双语，纯文本排版）。
-/// 告知用户：三个 .db 是核心数据；fonts 无需备份、alarms 可选备份及各自用途。
+/// 告知用户：三个 .db 是核心数据；fonts 无需备份、alarms 可选备份、logs 仅诊断。
 const DATA_README: &str = "\u{FEFF}Scheet 应用数据说明 / About Your Scheet Data
 ==================================================
 
@@ -183,6 +183,7 @@ const DATA_README: &str = "\u{FEFF}Scheet 应用数据说明 / About Your Scheet
   fonts/         界面字体，随应用内置，无需备份
   alarms/        你放入的提示音文件，可选备份
                  （留空时应用使用内置铃声）
+  logs/          运行日志，按天滚动，仅用于排查问题，无需备份
 
 备份方法：退出应用后，把三个 .db 文件复制到别处即可。
 恢复方法：把备份的 .db 文件放回本文件夹，再启动应用。
@@ -197,13 +198,16 @@ files are the core: backing them up backs up everything.
   fonts/         Bundled UI fonts. No backup needed.
   alarms/        Your alarm sound files. Optional to back up
                  (the built-in sound plays when it is empty).
+  logs/          Runtime logs, rotated daily, for troubleshooting.
+                 No backup needed.
 
 To back up: quit the app, then copy the three .db files
 somewhere safe. To restore: put them back into this folder
 and start the app.
 ";
 
-/// 启动时确保数据目录根有 README.txt：文件不存在或内容为空时（重新）创建。
+/// 启动时确保数据目录根的 README.txt 与内置模板一致：
+/// 缺失、为空或内容过时都会重写（本文件由应用管理，用户无需改动它）。
 /// 写入失败只记录日志，不影响应用运行。
 pub fn ensure_data_readme() {
     let dir = match data_dir() {
@@ -214,9 +218,12 @@ pub fn ensure_data_readme() {
         }
     };
     let readme = dir.join("README.txt");
-    match fs::metadata(&readme) {
-        Ok(meta) if meta.len() > 0 => return,
-        _ => {}
+    let needs_write = match fs::read_to_string(&readme) {
+        Ok(content) => content != DATA_README,
+        Err(_) => true,
+    };
+    if !needs_write {
+        return;
     }
     if let Err(e) = fs::write(&readme, DATA_README) {
         crate::logging::error(&format!("[db] Failed to write data dir README.txt: {e}"));

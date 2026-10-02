@@ -543,7 +543,7 @@ pub fn open_alarms_dir() -> Result<(), String> {
     spawn_open_dir(crate::db::alarms_dir()?, "铃声目录")
 }
 
-/// 删除用户数据文件：三个数据库（含 WAL/SHM）+ alarms 目录（用户提示音）。
+/// 删除用户数据文件：三个数据库（含 WAL/SHM）+ alarms 目录（用户提示音）+ logs 目录（运行日志）。
 /// 不动 fonts/ ——字体是随应用打包的内置资源而非用户数据，且 WebView2 可能正持有
 /// 这些文件的资源句柄，在活着的 webview 脚下删除它们会引发原生层异常。
 fn clear_data_files(dir: &std::path::Path) -> Result<(), String> {
@@ -563,9 +563,12 @@ fn clear_data_files(dir: &std::path::Path) -> Result<(), String> {
             std::fs::remove_file(&path).map_err(|e| format!("删除 {name} 失败: {e}"))?;
         }
     }
-    let alarms = dir.join("alarms");
-    if alarms.exists() {
-        std::fs::remove_dir_all(&alarms).map_err(|e| format!("删除 alarms 失败: {e}"))?;
+    for dir_name in ["alarms", "logs"] {
+        let sub = dir.join(dir_name);
+        if sub.exists() {
+            std::fs::remove_dir_all(&sub)
+                .map_err(|e| format!("删除 {dir_name} 失败: {e}"))?;
+        }
     }
     // 兼容清理：旧版"标记文件"机制可能留下的残留
     let flag = dir.join("CLEAR_DATA.flag");

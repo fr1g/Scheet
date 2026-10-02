@@ -55,3 +55,4 @@
 - 保存提示区分重启项（settingsSavedRestart）；保存按钮旁"立即重启"按钮：后端记录启动时 WebView2 开关（OnceLock），前端比对已保存值判断 restartPending，跨导航不丢
 - 日志系统：logging.rs（等级阈值 none~fatal 默认 error、logs/daily--yyyy-MM-dd.scheet.log 按天滚动、[R]/[WV]/[RS]/[T] 四源、全英文）；39 处 eprintln 全量迁移并英化；[T] 桥接 tauri/log；[R] 走 write_log 命令+前端阈值预过滤；logLevel 进 GlobalConfig，保存立即生效，高级 Tab 可选
 - 崩溃真凶定案：WebView2 运行时 9/30 深夜自动升级 154.0.4258.48 存在宿主堆损坏缺陷（每次启动后数秒~2分钟崩）；旧运行时 .37 下 6 分钟稳定。回退手段：用户级 env WEBVIEW2_BROWSER_EXECUTABLE_FOLDER 钉在 .37，待微软发新版后删除该变量
+- README 补 logs/ 条目并改为内容过时自动重写；清空数据范围加入 logs/ 目录
