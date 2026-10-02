@@ -11,6 +11,7 @@ import { getWeekPlan, listWeekPlans } from "../lib/weeks";
 import { useGlobalConfig } from "../state/GlobalConfigContext";
 import { useSettings } from "../state/SettingsContext";
 import logoUrl from "../assets/logo.png";
+import pkg from "../../package.json";
 import { BUNDLED_FONTS } from "../lib/fonts";
 import {
   minuteToTimeInput,
@@ -679,7 +680,10 @@ export default function SettingsPage() {
     <section className="flex flex-col items-center gap-4 py-6 text-center">
       <img src={logoUrl} alt="Scheet" className="h-20 w-20 rounded-2xl" />
       <div>
-        <div className="text-sm font-medium text-zinc-100">Scheet</div>
+        <div className="text-sm font-medium text-zinc-100">
+          Scheet
+          <span className="ml-2 text-xs text-zinc-400">v{pkg.version}</span>
+        </div>
         <div className="mt-1 text-xs text-zinc-400">{t("about.tagline")}</div>
       </div>
       <p className="max-w-md text-xs leading-relaxed text-zinc-400">

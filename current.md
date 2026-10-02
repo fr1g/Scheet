@@ -57,3 +57,4 @@
 - 崩溃真凶定案：WebView2 运行时 9/30 深夜自动升级 154.0.4258.48 存在宿主堆损坏缺陷（每次启动后数秒~2分钟崩）；旧运行时 .37 下 6 分钟稳定。回退手段：用户级 env WEBVIEW2_BROWSER_EXECUTABLE_FOLDER 钉在 .37，待微软发新版后删除该变量
 - README 补 logs/ 条目并改为内容过时自动重写；清空数据范围加入 logs/ 目录
 - 清空产物后全量 release 构建；verbose 日志去掉 debug_assertions 门控（等级过滤兜底）
+- 关于页显示版本号（构建期从 package.json 内联，单一版本事实源）
