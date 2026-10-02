@@ -1,0 +1,5 @@
+# 本项目构建约束：限制编译并行度为 4 个逻辑核心，
+# 避免全量构建时占满 CPU 影响机器上的其他工作。
+# cargo 会从 src-tauri 向上找到本配置；tauri dev/build 内部调用的 cargo 同样生效。
+[build]
+jobs = 4

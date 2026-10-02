@@ -58,3 +58,4 @@
 - README 补 logs/ 条目并改为内容过时自动重写；清空数据范围加入 logs/ 目录
 - 清空产物后全量 release 构建；verbose 日志去掉 debug_assertions 门控（等级过滤兜底）
 - 关于页显示版本号（构建期从 package.json 内联，单一版本事实源）
+- 构建并行度限为 4 核（.cargo/config.toml [build] jobs=4），避免占满机器
