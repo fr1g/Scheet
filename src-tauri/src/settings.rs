@@ -486,8 +486,7 @@ pub async fn get_app_settings(db: State<'_, Arc<DataDb>>) -> Result<AppSettings,
         tauri::async_runtime::spawn_blocking(move || db.with_conn(|conn| load(conn)))
             .await
             .map_err(|e| e.to_string())??;
-    // 前端能否离开错误屏的判据（debug 构建输出，供冒烟验证）
-    #[cfg(debug_assertions)]
+    // 前端能否离开错误屏的判据（verbose 级别，默认 error 阈值下不会落盘）
     crate::logging::verbose("[web] App settings loaded");
     Ok(settings)
 }
