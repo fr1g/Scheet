@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { appLog } from "../lib/logger";
 
 interface Props {
   children: ReactNode;
@@ -18,16 +18,17 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("渲染错误", error, info.componentStack);
-    // 转发到 stderr，dev 模式可在控制台看到（生产无副作用）
-    invoke("debug_log", {
-      msg: `渲染错误: ${error.message}\n${info.componentStack ?? ""}`,
-    }).catch(() => undefined);
+    console.error("render error", error, info.componentStack);
+    // Forward to stderr / log file (harmless in production)
+    appLog(
+      "error",
+      `React render error: ${error.message}\n${info.componentStack ?? ""}`,
+    );
   }
 
   /** 整页重载并强制回到主视图：清空路由 hash 后 reload，彻底重置前端状态。 */
   handleRestart = (): void => {
-    void invoke("debug_log", { msg: "渲染错误: 用户点击重启窗口" }).catch(() => undefined);
+    appLog("info", "User clicked restart from render error panel");
     window.location.hash = "/";
     window.location.reload();
   };

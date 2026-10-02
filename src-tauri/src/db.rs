@@ -162,7 +162,7 @@ fn migrate(conn: &Connection) {
     ] {
         if let Err(e) = conn.execute(sql, []) {
             if !e.to_string().contains("duplicate column") {
-                eprintln!("[db] 迁移 {label} 失败(已忽略): {e}");
+                crate::logging::warn(&format!("[db] Migration {label} failed (ignored): {e}"));
             }
         }
     }
@@ -209,7 +209,7 @@ pub fn ensure_data_readme() {
     let dir = match data_dir() {
         Ok(dir) => dir,
         Err(e) => {
-            eprintln!("[db] 定位数据目录失败(README 未写入): {e}");
+            crate::logging::warn(&format!("[db] Failed to locate data dir (README not written): {e}"));
             return;
         }
     };
@@ -219,7 +219,7 @@ pub fn ensure_data_readme() {
         _ => {}
     }
     if let Err(e) = fs::write(&readme, DATA_README) {
-        eprintln!("[db] 写入数据目录 README.txt 失败: {e}");
+        crate::logging::error(&format!("[db] Failed to write data dir README.txt: {e}"));
     }
 }
 
@@ -228,18 +228,22 @@ fn init_alarms_dir() {
     let dir = match alarms_dir() {
         Ok(dir) => dir,
         Err(e) => {
-            eprintln!("[db] 定位 alarms 目录失败(用户提示音不可用): {e}");
+            crate::logging::warn(&format!(
+                "[db] Failed to locate alarms dir (user ringtones unavailable): {e}"
+            ));
             return;
         }
     };
     if let Err(e) = fs::create_dir_all(&dir) {
-        eprintln!("[db] 创建 alarms 目录失败(用户提示音不可用): {e}");
+        crate::logging::warn(&format!(
+            "[db] Failed to create alarms dir (user ringtones unavailable): {e}"
+        ));
         return;
     }
     let readme = dir.join("README.txt");
     if !readme.exists() {
         if let Err(e) = fs::write(&readme, ALARMS_README) {
-            eprintln!("[db] 写入 alarms/README.txt 失败: {e}");
+            crate::logging::warn(&format!("[db] Failed to write alarms/README.txt: {e}"));
         }
     }
 }

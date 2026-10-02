@@ -91,6 +91,8 @@ const POSITION_LABELS: Record<WindowControlsPosition, string> = {
 
 const UI_FONT_IDS = ["system", ...BUNDLED_FONTS.map((f) => f.id)];
 
+const LOG_LEVELS = ["none", "verbose", "info", "warn", "error", "fatal"];
+
 const sectionTitle = "text-xs font-medium text-zinc-100";
 const sectionHint = "mt-1 text-[10px] text-zinc-500";
 const inputLabel = "block text-xs text-zinc-300";
@@ -242,6 +244,10 @@ export default function SettingsPage() {
     }
     if (!["sm", "base", "lg"].includes(draft.uiFontSize)) {
       showToast(t("settings.badFontSize"));
+      return null;
+    }
+    if (!LOG_LEVELS.includes(draft.logLevel)) {
+      showToast(t("settings.badLogLevel"));
       return null;
     }
     return { ...draft, dayStartMinute: start, dayEndMinute: end };
@@ -598,20 +604,45 @@ export default function SettingsPage() {
   );
 
   const advancedPanel = (
-    <section>
-      <h2 className={sectionTitle}>{t("settings.webview")}</h2>
-      <p className={sectionHint}>{t("settings.webviewHint")}</p>
-      <div className="mt-2 space-y-3">
-        <div>
-          {webviewToggle("settings.advHwAccel", "webviewHwAccel")}
-          <p className="mt-1 text-[10px] text-zinc-500">{t("settings.advHwAccelHint")}</p>
+    <>
+      <section>
+        <h2 className={sectionTitle}>{t("settings.webview")}</h2>
+        <p className={sectionHint}>{t("settings.webviewHint")}</p>
+        <div className="mt-2 space-y-3">
+          <div>
+            {webviewToggle("settings.advHwAccel", "webviewHwAccel")}
+            <p className="mt-1 text-[10px] text-zinc-500">{t("settings.advHwAccelHint")}</p>
+          </div>
+          <div>
+            {webviewToggle("settings.advSmooth", "webviewSmoothScrolling")}
+            <p className="mt-1 text-[10px] text-zinc-500">{t("settings.advSmoothHint")}</p>
+          </div>
         </div>
-        <div>
-          {webviewToggle("settings.advSmooth", "webviewSmoothScrolling")}
-          <p className="mt-1 text-[10px] text-zinc-500">{t("settings.advSmoothHint")}</p>
+      </section>
+
+      <section>
+        <h2 className={sectionTitle}>{t("settings.logLevel")}</h2>
+        <div className="mt-2 grid w-full max-w-md grid-cols-3 gap-2">
+          {(["none", "verbose", "info", "warn", "error", "fatal"] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() =>
+                setDraft((prev) => (prev ? { ...prev, logLevel: l } : prev))
+              }
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
+                draft.logLevel === l
+                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+              }`}
+            >
+              {l}
+            </button>
+          ))}
         </div>
-      </div>
-    </section>
+        <p className={sectionHint}>{t("settings.logLevelHint")}</p>
+      </section>
+    </>
   );
 
   const handleOpenDataDir = async () => {

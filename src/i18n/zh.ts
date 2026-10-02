@@ -249,6 +249,7 @@ export default {
     badBellFile: "铃声文件名不对：{{name}}",
     badFont: "界面字体选择不合法",
     badFontSize: "字号选择不合法",
+    badLogLevel: "日志等级选择不合法",
     bellsOpenDir: "打开铃声文件夹",
     bellsRefresh: "刷新",
     bellsMissing: "有设定为铃声的源文件丢失，文件名：{{names}}",
@@ -268,6 +269,9 @@ export default {
     off: "关",
     restartNow: "立即重启",
     restartNowTitle: "显示引擎设置已保存，重启应用后生效",
+    logLevel: "日志等级",
+    logLevelHint:
+      "日志按天写入应用数据目录的 logs 文件夹（daily--日期.scheet.log），全部为英文。none 不输出也不保存；verbose 最详细；默认 error。保存后马上生效，不用重启。",
   },
   about: {
     tagline: "以周为单位，安排你的生活",

@@ -236,19 +236,22 @@ pub(crate) fn poll_due(app: &tauri::AppHandle, db: &DataDb) -> Result<(), String
             None,
             mode_text,
         ) {
-            eprintln!("[reminders] 提醒弹窗失败(已忽略, id={}): {e}", reminder.id);
+            crate::logging::warn(&format!(
+            "[reminders] Reminder popup failed (ignored, id={}): {e}",
+            reminder.id
+        ));
         }
         if let Err(e) = crate::sound::play(&reminder.alarm_file, reminder.alarm_mode) {
-            eprintln!(
-                "[reminders] 提示音播放失败(已忽略, id={}): {e}",
+            crate::logging::warn(&format!(
+                "[reminders] Alarm sound failed (ignored, id={}): {e}",
                 reminder.id
-            );
+            ));
         }
         if let Err(e) = db.with_conn(|conn| mark_fired(conn, reminder.id)) {
-            eprintln!(
-                "[reminders] 更新提醒状态失败(已忽略, id={}): {e}",
+            crate::logging::warn(&format!(
+                "[reminders] Failed to mark reminder fired (ignored, id={}): {e}",
                 reminder.id
-            );
+            ));
         }
     }
     Ok(())

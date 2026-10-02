@@ -130,7 +130,7 @@ pub fn stop() {
                 GENERATION.fetch_add(1, Ordering::SeqCst);
             }
         }
-        Err(_) => eprintln!("[sound] 音频引擎锁已中毒，无法停止播放"),
+        Err(_) => crate::logging::error("[sound] Audio engine lock poisoned, cannot stop playback"),
     }
 }
 
@@ -147,22 +147,31 @@ fn load_source(alarm_file: &str) -> Result<Box<dyn Source + Send>, String> {
         match resolve_alarm_path(alarm_file) {
             Ok(path) => {
                 if !path.is_file() {
-                    eprintln!("[sound] 音频文件不存在({}), 回退默认提示音", path.display());
+                    crate::logging::warn(&format!(
+                        "[sound] Alarm file not found ({}), falling back to built-in sound",
+                        path.display()
+                    ));
                 } else {
                     match File::open(&path) {
                         Ok(file) => match Decoder::new(BufReader::new(file)) {
                             Ok(decoder) => return Ok(Box::new(decoder)),
                             Err(e) => {
-                                eprintln!("[sound] 解码失败({e}), 回退默认提示音");
+                                crate::logging::warn(&format!(
+                                "[sound] Decode failed ({e}), falling back to built-in sound"
+                            ));
                             }
                         },
                         Err(e) => {
-                            eprintln!("[sound] 打开音频文件失败({e}), 回退默认提示音");
+                            crate::logging::warn(&format!(
+                            "[sound] Failed to open alarm file ({e}), falling back to built-in sound"
+                        ));
                         }
                     }
                 }
             }
-            Err(e) => eprintln!("[sound] {e}, 回退默认提示音"),
+            Err(e) => crate::logging::warn(&format!(
+                "[sound] {e}, falling back to built-in sound"
+            )),
         }
     }
     let decoder = Decoder::new(Cursor::new(DEFAULT_ALARM_WAV))
@@ -199,7 +208,7 @@ fn spawn_loop_watcher(generation: u64, alarm_file: String) {
             Some((g, engine)) if *g == generation => match load_source(&alarm_file) {
                 Ok(source) => engine.player.append(source),
                 Err(e) => {
-                    eprintln!("[sound] 循环续播失败(已停止): {e}");
+                    crate::logging::error(&format!("[sound] Loop replay failed (stopped): {e}"));
                     return;
                 }
             },
@@ -207,7 +216,9 @@ fn spawn_loop_watcher(generation: u64, alarm_file: String) {
         }
     });
     if let Err(e) = spawned {
-        eprintln!("[sound] 循环看护线程启动失败(将只播放一轮): {e}");
+        crate::logging::warn(&format!(
+            "[sound] Loop watcher thread failed to spawn (playing once only): {e}"
+        ));
     }
 }
 

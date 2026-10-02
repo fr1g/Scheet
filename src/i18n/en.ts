@@ -254,6 +254,7 @@ export default {
     badBellFile: "That sound file name doesn't work: {{name}}",
     badFont: "Invalid interface font selection",
     badFontSize: "Invalid font size choice",
+    badLogLevel: "Invalid log level choice",
     bellsOpenDir: "Open alarms folder",
     bellsRefresh: "Refresh",
     bellsMissing: "Some configured alarm source files are missing: {{names}}",
@@ -273,6 +274,9 @@ export default {
     off: "Off",
     restartNow: "Restart now",
     restartNowTitle: "Display engine settings saved; restart the app to apply",
+    logLevel: "Log level",
+    logLevelHint:
+      "Logs are written daily to the logs folder inside the app data dir (daily--date.scheet.log), in English only. none logs nothing and creates no file; verbose is the most detailed; default is error. Applies immediately after saving, no restart needed.",
   },
   about: {
     tagline: "Plan your week, 5 minutes at a time",

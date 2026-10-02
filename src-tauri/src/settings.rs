@@ -153,7 +153,7 @@ pub fn apply_webview_flags() {
     let args = args.trim();
     if !args.is_empty() {
         std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args);
-        eprintln!("[startup] WebView2 附加参数: {args}");
+        crate::logging::info(&format!("[startup] WebView2 extra args: {args}"));
     }
 }
 
@@ -166,7 +166,7 @@ pub fn get_startup_webview_flags() -> (bool, bool) {
 /// 立即完整重启应用（供"重启后生效"的设置项使用）。
 #[command]
 pub fn restart_application(app: tauri::AppHandle) -> Result<(), String> {
-    eprintln!("用户请求重启应用");
+    crate::logging::info("User requested app restart");
     app.restart();
 }
 
@@ -234,6 +234,8 @@ pub struct GlobalConfig {
     pub webview_hw_accel: bool,
     /// WebView2 平滑滚动（默认关，与 WebView2 原生默认一致；修改后重启生效）。
     pub webview_smooth_scrolling: bool,
+    /// 日志等级：none/verbose/info/warn/error/fatal（默认 error；保存后立即生效）。
+    pub log_level: String,
 }
 
 impl Default for GlobalConfig {
@@ -259,6 +261,7 @@ impl Default for GlobalConfig {
             ui_font_size: "base".to_string(),
             webview_hw_accel: true,
             webview_smooth_scrolling: false,
+            log_level: "error".to_string(),
         }
     }
 }
@@ -305,6 +308,9 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         webview_smooth_scrolling: get_setting(conn, "webviewSmoothScrolling")?
             .and_then(|s| s.parse().ok())
             .unwrap_or(false),
+        log_level: get_setting(conn, "logLevel")?
+            .filter(|s| crate::logging::LOG_LEVELS.contains(&s.as_str()))
+            .unwrap_or_else(|| "error".to_string()),
     })
 }
 
@@ -356,6 +362,7 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
         "webviewSmoothScrolling",
         &cfg.webview_smooth_scrolling.to_string(),
     )?;
+    set_setting(conn, "logLevel", &cfg.log_level)?;
     for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,
@@ -403,6 +410,8 @@ pub async fn set_global_config(
     Ok(
         tauri::async_runtime::spawn_blocking(move || {
             db.with_conn(|conn| persist_global_config(conn, &config_clone))?;
+            // 日志等级保存后立即生效（运行时更新阈值，无需重启）
+            crate::logging::set_level_u8(crate::logging::level_to_u8(&config.log_level));
             db.with_conn(load_global_config)
         })
         .await
@@ -479,7 +488,7 @@ pub async fn get_app_settings(db: State<'_, Arc<DataDb>>) -> Result<AppSettings,
             .map_err(|e| e.to_string())??;
     // 前端能否离开错误屏的判据（debug 构建输出，供冒烟验证）
     #[cfg(debug_assertions)]
-    eprintln!("[web] 设置加载成功");
+    crate::logging::verbose("[web] App settings loaded");
     Ok(settings)
 }
 
@@ -605,7 +614,7 @@ pub async fn request_clear_data(
         let dir = crate::db::data_dir()?;
         std::fs::create_dir_all(dir.join("alarms"))
             .map_err(|e| format!("重建 alarms 目录失败: {e}"))?;
-        eprintln!("用户数据已清空，前端即将整页重载");
+        crate::logging::info("User data cleared, frontend will reload");
         Ok(())
     })
     .await

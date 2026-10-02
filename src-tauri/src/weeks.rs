@@ -180,17 +180,21 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
     // 轻量迁移：旧库补列（已存在则忽略）
     if let Err(e) = conn.execute("ALTER TABLE week_entries ADD COLUMN color TEXT", []) {
         if !e.to_string().contains("duplicate column") {
-            eprintln!("[db] 迁移 week_entries.color 失败(已忽略): {e}");
+            crate::logging::warn(&format!("[db] Migration week_entries.color failed (ignored): {e}"));
         }
     }
     if let Err(e) = conn.execute("ALTER TABLE week_entries ADD COLUMN end_alarm_file TEXT", []) {
         if !e.to_string().contains("duplicate column") {
-            eprintln!("[db] 迁移 week_entries.end_alarm_file 失败(已忽略): {e}");
+            crate::logging::warn(&format!(
+                "[db] Migration week_entries.end_alarm_file failed (ignored): {e}"
+            ));
         }
     }
     if let Err(e) = conn.execute("ALTER TABLE week_entries ADD COLUMN end_alarm_mode TEXT", []) {
         if !e.to_string().contains("duplicate column") {
-            eprintln!("[db] 迁移 week_entries.end_alarm_mode 失败(已忽略): {e}");
+            crate::logging::warn(&format!(
+                "[db] Migration week_entries.end_alarm_mode failed (ignored): {e}"
+            ));
         }
     }
     // 迁移：默认周表的标记名统一为键 weeks.w1..w6（i18n 层负责友好显示；
@@ -207,7 +211,9 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
                 "UPDATE week_plans SET name = ?1 WHERE slot = ?2 AND name = ?3",
                 rusqlite::params![format!("weeks.w{slot}"), slot, old_name],
             ) {
-                eprintln!("[db] 迁移周表命名失败(已忽略, slot {slot}): {e}");
+                crate::logging::warn(&format!(
+                "[db] Plan naming migration failed (ignored, slot {slot}): {e}"
+            ));
             }
         }
     }

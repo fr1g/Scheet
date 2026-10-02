@@ -38,5 +38,7 @@ export interface GlobalConfig {
   webviewHwAccel: boolean;
   /** WebView2 平滑滚动（默认关；修改后重启应用生效）。 */
   webviewSmoothScrolling: boolean;
+  /** 日志等级：none=不输出不保存；保存后立即生效。 */
+  logLevel: "none" | "verbose" | "info" | "warn" | "error" | "fatal";
 }
 

@@ -2,7 +2,7 @@ mod clipboard;
 mod clock;
 mod db;
 mod fonts;
-mod diagnostics;
+mod logging;
 // 系统通知实现保留备用（当前提醒推送改用 popup.rs 的置顶弹窗方案）
 #[allow(dead_code)]
 mod notify;
@@ -33,6 +33,10 @@ pub(crate) fn focus_main_window(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 日志等级须最先初始化（之后的日志才受阈值过滤）；[T] 桥接 tauri/log 框架日志
+    logging::init_from_db();
+    logging::attach_tauri_logger();
+
     // WebView2 开关（硬件加速/平滑滚动）须在创建任何 WebView2 环境前写入环境变量；
     // 独立于 LazyDb 做一次轻量读取，失败按默认值跳过。
     settings::apply_webview_flags();
@@ -129,7 +133,7 @@ pub fn run() {
             popup::dismiss_alarm_popup,
             tray::exit_application,
             fonts::get_fonts_dir,
-            diagnostics::debug_log,
+            logging::write_log,
         ])
         .build(tauri::generate_context!())
         .expect("Scheet 初始化失败")

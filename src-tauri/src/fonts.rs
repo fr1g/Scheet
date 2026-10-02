@@ -65,10 +65,12 @@ pub fn extract_bundled_fonts() -> Result<usize, String> {
 pub fn ensure_bundled_fonts() {
     match extract_bundled_fonts() {
         Ok(count) if count > 0 => {
-            eprintln!("[fonts] 已解压 {count} 个内置字体");
+            crate::logging::info(&format!("[fonts] Extracted {count} bundled fonts"));
         }
         Ok(_) => {}
-        Err(e) => eprintln!("[fonts] 字体解压失败(将回退系统字体): {e}"),
+        Err(e) => crate::logging::error(&format!(
+            "[fonts] Font extraction failed (falling back to system fonts): {e}"
+        )),
     }
 }
 

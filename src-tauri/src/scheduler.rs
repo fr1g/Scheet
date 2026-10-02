@@ -70,7 +70,7 @@ pub fn start(app: AppHandle, data: Arc<DataDb>, weeks: Arc<WeeksDb>, todo_db: Ar
                 }
 
                 if let Err(e) = reminders::poll_due(&app, &data) {
-                    eprintln!("[scheduler] 手动提醒轮询失败: {e}");
+                    crate::logging::error(&format!("[scheduler] Manual reminder poll failed: {e}"));
                 }
 
                 let today = Local::now().date_naive();
@@ -83,10 +83,10 @@ pub fn start(app: AppHandle, data: Arc<DataDb>, weeks: Arc<WeeksDb>, todo_db: Ar
                         weekday: today.weekday().num_days_from_monday() as u32 + 1,
                     };
                     if let Err(e) = app.emit("scheet://date-changed", payload) {
-                        eprintln!("[scheduler] 日期切换事件推送失败: {e}");
+                        crate::logging::error(&format!("[scheduler] Date-change event emit failed: {e}"));
                     }
                     if let Err(e) = todo_db.with_conn(|conn| todo::ensure_rollover(conn)) {
-                        eprintln!("[scheduler] todo 日切滚动失败: {e}");
+                        crate::logging::error(&format!("[scheduler] Todo day rollover failed: {e}"));
                     }
                     last_date = Some(today);
                 }
@@ -98,12 +98,14 @@ pub fn start(app: AppHandle, data: Arc<DataDb>, weeks: Arc<WeeksDb>, todo_db: Ar
                     &mut last_poll_minute,
                     today,
                 ) {
-                    eprintln!("[scheduler] 周课表事件轮询失败: {e}");
+                    crate::logging::error(&format!("[scheduler] Timetable event poll failed: {e}"));
                 }
             }
         });
     if let Err(e) = spawned {
-        eprintln!("[scheduler] 调度线程启动失败(提醒功能不可用): {e}");
+        crate::logging::error(&format!(
+                "[scheduler] Scheduler thread failed to spawn (reminders unavailable): {e}"
+            ));
     }
 }
 
@@ -173,14 +175,14 @@ fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent) {
                 AlarmMode::Loop => "loop",
             },
         ) {
-            eprintln!("[scheduler] 提醒弹窗失败(已忽略): {e}");
+            crate::logging::warn(&format!("[scheduler] Reminder popup failed (ignored): {e}"));
         }
         let sound_file = match &event.ringtone {
             Ringtone::File(name) => name.as_str(),
             _ => "",
         };
         if let Err(e) = crate::sound::play(sound_file, event.mode) {
-            eprintln!("[scheduler] 提示音播放失败(已忽略): {e}");
+            crate::logging::warn(&format!("[scheduler] Alarm sound failed (ignored): {e}"));
         }
     }
 
@@ -194,7 +196,7 @@ fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent) {
         mode: event.mode,
     };
     if let Err(e) = app.emit("scheet://alarm", payload) {
-        eprintln!("[scheduler] 提醒事件推送失败: {e}");
+        crate::logging::error(&format!("[scheduler] Alarm event emit failed: {e}"));
     }
 }
 

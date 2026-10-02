@@ -2,7 +2,7 @@ import { HashRouter, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { invoke } from "@tauri-apps/api/core";
+import { appLog } from "./lib/logger";
 import ErrorBoundary from "./components/ErrorBoundary";
 import AlarmSnackbar from "./components/AlarmSnackbar";
 import ErrorScreen from "./components/ErrorScreen";
@@ -54,18 +54,14 @@ function AppShell() {
     return () => window.removeEventListener("contextmenu", onContextMenu);
   }, []);
 
-  // 前端运行时错误转发到 stderr（dev 诊断；生产无副作用）
+  // 前端运行时错误转发到日志（[R] 源；写入文件并镜像 stderr）
   useEffect(() => {
     if (getCurrentWindow().label !== "main") return;
     const onError = (e: ErrorEvent) => {
-      invoke("debug_log", {
-        msg: `JS 错误: ${e.message} @ ${e.filename ?? "?"}:${e.lineno}`,
-      }).catch(() => undefined);
+      appLog("error", `JS error: ${e.message} @ ${e.filename ?? "?"}:${e.lineno}`);
     };
     const onRejection = (e: PromiseRejectionEvent) => {
-      invoke("debug_log", { msg: `未处理的 Promise 拒绝: ${e.reason}` }).catch(
-        () => undefined,
-      );
+      appLog("error", `Unhandled promise rejection: ${e.reason}`);
     };
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);

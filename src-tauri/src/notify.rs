@@ -50,7 +50,7 @@ mod windows {
                 })
                 .show();
             if let Err(e) = result {
-                eprintln!("[notify] Windows 通知显示失败: {e}");
+                crate::logging::error(&format!("[notify] Windows toast show failed: {e}"));
             }
         });
         Ok(())
@@ -77,7 +77,7 @@ mod macos {
     pub fn set_application_identifier(dev: bool, identifier: &str) {
         let target = if dev { "com.apple.Terminal" } else { identifier };
         if let Err(e) = notify_rust::set_application(target) {
-            eprintln!("[notify] set_application 失败: {e}");
+            crate::logging::warn(&format!("[notify] set_application failed: {e}"));
         }
     }
 }
@@ -131,11 +131,13 @@ pub fn macos_bootstrap(
             if let Err(e) =
                 db.with_conn(|conn| crate::settings::set_flag(conn, "macNotificationsProbed"))
             {
-                eprintln!("[notify] 记录权限探测结果失败: {e}");
+                crate::logging::warn(&format!(
+                "[notify] Failed to persist notification permission probe flag: {e}"
+            ));
             }
         }
-        Err(e) => eprintln!(
-            "[notify] macOS 通知权限探测未成功（下次启动会重试，应用不受影响）: {e}"
-        ),
+        Err(e) => crate::logging::warn(&format!(
+            "[notify] macOS notification permission probe failed (will retry next launch, app unaffected): {e}"
+        )),
     }
 }

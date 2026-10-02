@@ -10,6 +10,7 @@ import {
 import { applyLanguage } from "../i18n";
 import { getGlobalConfig, setGlobalConfig } from "../lib/global-config";
 import { applyUiFont, applyUiFontSize, registerBundledFontFaces } from "../lib/fonts";
+import { setFrontendLogLevel } from "../lib/logger";
 import type { GlobalConfig } from "../types/global-config";
 
 interface GlobalConfigContextValue {
@@ -56,6 +57,11 @@ export function GlobalConfigProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (config) applyUiFontSize(config.uiFontSize);
   }, [config?.uiFontSize]);
+
+  // 同步前端日志阈值（后端运行时阈值由 set_global_config 更新）
+  useEffect(() => {
+    if (config) setFrontendLogLevel(config.logLevel);
+  }, [config?.logLevel]);
 
   // 注册内置字体的 @font-face（两个窗口都需要）
   useEffect(() => {

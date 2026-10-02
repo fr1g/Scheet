@@ -53,3 +53,4 @@
 - 崩溃循环定案：旧数据目录 weeks.db/todo-list.db 主文件仅4KB而WAL堆百KB且停在崩溃时刻——崩溃强杀撕裂WAL，每次启动读坏WAL→再崩；改名旧目录全新重建后稳定运行。rodio设备流竞态修复保留（疑似首发损坏源）。旧目录备份为 Documents/scheet.bak-20261002（数据已全新，无损失）
 - 修复：保存后草稿未同步起止分钟导致"有改动没保存"常亮（setDraft(next)）
 - 保存提示区分重启项（settingsSavedRestart）；保存按钮旁"立即重启"按钮：后端记录启动时 WebView2 开关（OnceLock），前端比对已保存值判断 restartPending，跨导航不丢
+- 日志系统：logging.rs（等级阈值 none~fatal 默认 error、logs/daily--yyyy-MM-dd.scheet.log 按天滚动、[R]/[WV]/[RS]/[T] 四源、全英文）；39 处 eprintln 全量迁移并英化；[T] 桥接 tauri/log；[R] 走 write_log 命令+前端阈值预过滤；logLevel 进 GlobalConfig，保存立即生效，高级 Tab 可选

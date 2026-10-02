@@ -111,8 +111,10 @@ fn open_download_page() {
 /// 在应用启动前确保 WebView2 可用；缺失时下载/引导安装，最终失败则退出进程。
 pub fn ensure_runtime() {
     if runtime_installed() {
+        crate::logging::info("[wv] WebView2 runtime present");
         return;
     }
+    crate::logging::warn("[wv] WebView2 runtime missing, prompting for installation");
 
     let agreed = prompt(
         "未检测到 Microsoft WebView2 运行时，Scheet 需要它才能显示界面。\n\n\
