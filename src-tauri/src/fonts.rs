@@ -18,16 +18,8 @@ const EMBEDDED_FONTS: &[(&str, &[u8])] = &[
         include_bytes!("../assets/fonts/lxgw-wenkai-mono.ttf.gz"),
     ),
     (
-        "lxgw-wenkai.ttf",
-        include_bytes!("../assets/fonts/lxgw-wenkai.ttf.gz"),
-    ),
-    (
         "harmonyos-sans-sc.ttf",
         include_bytes!("../assets/fonts/harmonyos-sans-sc.ttf.gz"),
-    ),
-    (
-        "oppo-sans.ttf",
-        include_bytes!("../assets/fonts/oppo-sans.ttf.gz"),
     ),
     (
         "maple-mono-nf-cn.ttf",
@@ -41,6 +33,7 @@ pub fn fonts_dir() -> Result<PathBuf, String> {
 }
 
 /// 解压所有内置字体；已存在的文件跳过（幂等）。
+/// 随后清理 fonts 目录中已不再打包的历史字体文件（如移除的字体遗留）。
 pub fn extract_bundled_fonts() -> Result<usize, String> {
     let dir = fonts_dir()?;
     fs::create_dir_all(&dir).map_err(|e| format!("创建字体目录失败: {e}"))?;
@@ -57,6 +50,21 @@ pub fn extract_bundled_fonts() -> Result<usize, String> {
             .map_err(|e| format!("解压字体失败({out_name}): {e}"))?;
         fs::write(&out_path, &buf).map_err(|e| format!("写入字体失败({out_name}): {e}"))?;
         extracted += 1;
+    }
+    // 清理不再打包的遗留字体（fonts 目录完全由应用管理）
+    let bundled: Vec<&str> = EMBEDDED_FONTS.iter().map(|(name, _)| *name).collect();
+    for entry in fs::read_dir(&dir) {
+        for path in entry {
+            let path = path.map_err(|e| format!("读取字体目录失败: {e}"))?.path();
+            if path.extension().is_some_and(|ext| ext == "ttf")
+                && path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| !bundled.contains(&n))
+            {
+                let _ = fs::remove_file(&path);
+            }
+        }
     }
     Ok(extracted)
 }

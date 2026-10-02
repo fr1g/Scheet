@@ -108,10 +108,8 @@ impl UiLanguage {
 pub const UI_FONT_IDS: &[&str] = &[
     "system",
     "lxgw-wenkai-mono",
-    "lxgw-wenkai",
     "maple-mono-nf-cn",
     "harmonyos-sans-sc",
-    "oppo-sans",
 ];
 
 /// 允许的界面字号档位。

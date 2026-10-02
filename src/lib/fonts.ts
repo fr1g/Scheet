@@ -13,11 +13,8 @@ export interface BundledFont {
 
 export const BUNDLED_FONTS: BundledFont[] = [
   { id: "lxgw-wenkai-mono", family: "LXGW WenKai Mono", file: "lxgw-wenkai-mono.ttf" },
-  { id: "lxgw-wenkai", family: "LXGW WenKai", file: "lxgw-wenkai.ttf" },
-  // Maple Mono NF CN：等网络恢复后补入 EMBEDDED_FONTS，届时此条自动生效
   { id: "maple-mono-nf-cn", family: "Maple Mono NF CN", file: "maple-mono-nf-cn.ttf" },
   { id: "harmonyos-sans-sc", family: "HarmonyOS Sans SC", file: "harmonyos-sans-sc.ttf" },
-  { id: "oppo-sans", family: "OPPO Sans", file: "oppo-sans.ttf" },
 ];
 
 export const DEFAULT_UI_FONT = "lxgw-wenkai-mono";

@@ -59,3 +59,4 @@
 - 清空产物后全量 release 构建；verbose 日志去掉 debug_assertions 门控（等级过滤兜底）
 - 关于页显示版本号（构建期从 package.json 内联，单一版本事实源）
 - 构建并行度限为 4 核（.cargo/config.toml [build] jobs=4），避免占满机器
+- 精简内置字体：移除 lxgw-wenkai 与 oppo-sans（保留 lxgw-mono 默认/maple/harmonyos 三款），启动时自动清理 fonts 目录遗留；发布版 62MB → 40.6MB
