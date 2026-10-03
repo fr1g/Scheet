@@ -16,6 +16,9 @@ function AppTitle() {
 
   const weekLabel = (slot: number | null): string => {
     if (slot == null) return "";
+    if (planCount === 1) {
+      return t("tabs.thisWeek");
+    }
     if (planCount === 2) {
       return slot === 1 ? t("titlebar.single") : t("titlebar.double");
     }
