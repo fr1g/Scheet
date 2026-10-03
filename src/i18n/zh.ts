@@ -301,6 +301,7 @@ export default {
       "您即将清空数据！点击【确认】后，应用将重启并清空现有的数据。",
     clearFinal: "确认",
     clearFailed: "清空失败",
+    info: ``
   },
   duration: {
     hM: "{{h}} 时 {{m}} 分",

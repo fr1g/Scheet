@@ -13,6 +13,7 @@ import { useSettings } from "../state/SettingsContext";
 import logoUrl from "../assets/appicon.png";
 import pkg from "../../package.json";
 import zaiLogoUrl from "../assets/zai-logo.webp";
+import fr1gAvatarUrl from "../assets/fr1g-avatar.webp";
 import { BUNDLED_FONTS } from "../lib/fonts";
 import {
   minuteToTimeInput,
@@ -711,21 +712,30 @@ export default function SettingsPage() {
       <p className="max-w-md text-xs leading-relaxed text-zinc-400 text-justify indent-6">
         {t("about.intro")}
       </p>
-      <div className="w-full max-w-sm rounded-lg border border-zinc-600/60 p-3 text-left">
-        <div className="text-xs text-zinc-300">{t("about.mgr")}</div>
-        <div className="mt-1 text-xs text-zinc-100">@fr1g</div>
-        <div className="text-[10px] text-zinc-500">{t("about.mgrNote")}</div>
+      <div className="w-full max-w-sm rounded-lg border border-zinc-600/60 p-3 pt-2.5 text-left">
+        <div className="text-sm font-thin text-zinc-200">{t("about.mgr")}</div>
+        <div className="mt-2 flex items-center gap-3">
+          <img
+            src={fr1gAvatarUrl}
+            alt="@fr1g"
+            className="size-10 shrink-0 rounded-lg object-cover"
+          />
+          <div>
+            <div className="text-sm font-mono font-semibold text-zinc-100">@fr1g</div>
+            <div className="text-[10px] text-zinc-500">{t("about.mgrNote")}</div>
+          </div>
+        </div>
       </div>
-      <div className="w-full max-w-sm rounded-lg border border-zinc-600/60 p-3 text-left">
-        <div className="text-xs text-zinc-300">{t("about.collaborators")}</div>
+      <div className="w-full max-w-sm rounded-lg border border-zinc-600/60 p-3 pt-2.5 text-left">
+        <div className="text-sm font-thin text-zinc-200">{t("about.collaborators")}</div>
         <div className="mt-2 flex items-center gap-3">
           <img
             src={zaiLogoUrl}
             alt="Z.ai"
-            className="h-10 w-10 shrink-0 rounded-lg"
+            className="size-10 shrink-0 rounded-lg"
           />
           <div>
-            <div className="text-xs text-zinc-100">GLM-5.3-Flash</div>
+            <div className="text-sm font-mono font-semibold text-zinc-100">GLM-5.3-Flash</div>
             <div className="text-[10px] text-zinc-500">{t("about.aiNote")}</div>
           </div>
         </div>
@@ -737,6 +747,9 @@ export default function SettingsPage() {
       >
         {t("about.clearData")}
       </button>
+      <div>
+        <h5></h5>
+      </div>
     </section>
   );
 

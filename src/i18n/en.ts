@@ -306,6 +306,8 @@ export default {
       "You are about to clear all data! After you click Confirm, the app will restart and wipe existing data.",
     clearFinal: "Confirm",
     clearFailed: "Failed to clear",
+    info: ``
+
   },
   duration: {
     hM: "{{h}} h {{m}} min",
