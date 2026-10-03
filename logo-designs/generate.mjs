@@ -145,49 +145,91 @@ function render(name, svgText, size) {
 
 mkdirSync(OUT, { recursive: true });
 
-const TRAY_W = 512 * 0.74;
+// ---- 托盘 32px 原生几何（32 单位坐标系直接栅格化，不经缩小） ----
+const N = { SIDE: 7, GAP: 1, RADIUS: 1.9, DX: 4.5, DY: 3.2 };
+const NRAD = (35 * Math.PI) / 180;
+const NSK = Math.tan((-12 * Math.PI) / 180);
 
-// 1) 主推：zinc50 填充 + zinc950 外描边（描边垫底 paint-order:stroke）
-render(
-  "tray-32-bordered.png",
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
-    <g stroke="${C.zinc950}" stroke-width="30" stroke-linejoin="round" fill="${C.zinc950}" paint-order="stroke">
-      ${fitted(PALETTE_ZINC50, 512, TRAY_W)}
-    </g>
-  </svg>`,
-  32
-);
+function nXform(cx, cy, [x, y]) {
+  const dx = x - cx, dy = y - cy;
+  const sx = dx + NSK * dy;
+  return [sx * Math.cos(NRAD) - dy * Math.sin(NRAD) + cx,
+          sx * Math.sin(NRAD) + dy * Math.cos(NRAD) + cy];
+}
+
+function nCluster(cx, cy, cellDefs) {
+  const x0 = cx - N.SIDE - N.GAP / 2;
+  const y0 = cy - N.SIDE - N.GAP / 2;
+  const rects = cellDefs
+    .map(({ px, py, fill }) =>
+      `<rect x="${x0 + px}" y="${y0 + py}" width="${N.SIDE}" height="${N.SIDE}" rx="${N.RADIUS}" fill="${fill}"/>`)
+    .join("");
+  return `<g transform="translate(${cx} ${cy}) rotate(35) skewX(-12)"><g transform="translate(${-cx} ${-cy})">${rects}</g></g>`;
+}
+
+function nBBox(p) {
+  const step = N.SIDE + N.GAP;
+  const half = N.SIDE + N.GAP / 2;
+  const defs = [
+    [[16 + N.DX, 16 - N.DY], [[0, 0], [step, 0], [0, step]]],
+    [[16 - N.DX, 16 + N.DY], [[step, 0], [0, step], [step, step]]],
+  ];
+  let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+  for (const [c, cells] of defs) {
+    for (const [px, py] of cells) {
+      const x0 = c[0] - half + px, y0 = c[1] - half + py;
+      for (const [ox, oy] of [[0, 0], [N.SIDE, 0], [0, N.SIDE], [N.SIDE, N.SIDE]]) {
+        const [tx, ty] = nXform(c[0], c[1], [x0 + ox, y0 + oy]);
+        minX = Math.min(minX, tx); minY = Math.min(minY, ty);
+        maxX = Math.max(maxX, tx); maxY = Math.max(maxY, ty);
+      }
+    }
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+/** 32 原生花押：居中 + 整体平移取 0.25 像素步进，保证像素对齐。 */
+function nFitted(p, extra = "") {
+  const b = nBBox(p);
+  const tx = Math.round((16 - (b.minX + b.maxX) / 2) * 4) / 4;
+  const ty = Math.round((16 - (b.minY + b.maxY) / 2) * 4) / 4;
+  return `<g transform="translate(${tx} ${ty})">${extra}${monogram32(p)}</g>`;
+}
+
+function monogram32(p) {
+  const step = N.SIDE + N.GAP;
+  return (
+    nCluster(16 + N.DX, 16 - N.DY, [
+      { px: 0, py: 0, fill: p.a1 },
+      { px: step, py: 0, fill: p.a2 },
+      { px: 0, py: step, fill: p.a3 },
+    ]) +
+    nCluster(16 - N.DX, 16 + N.DY, [
+      { px: step, py: 0, fill: p.b1 },
+      { px: 0, py: step, fill: p.b2 },
+      { px: step, py: step, fill: p.b3 },
+    ])
+  );
+}
+
+function renderNative(name, body) {
+  render(name, `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">${body}</svg>`, 32);
+}
+
+// 1) 主推：zinc50 填充 + zinc950 外描边（描边宽 1.5，垫底）
+renderNative("tray-32-bordered.png",
+  `<g stroke="${C.zinc950}" stroke-width="1.8" stroke-linejoin="round" fill="${C.zinc950}" paint-order="stroke">${nFitted(PALETTE_ZINC50)}</g>`);
 // 2) macOS template：纯黑无框
-render(
-  "tray-32-template-black.png",
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">${fitted(PALETTE_BLACK, 512, TRAY_W)}</svg>`,
-  32
-);
-// 3) 纯 zinc50 无框（深色任务栏）
-render(
-  "tray-32-zinc50.png",
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">${fitted(PALETTE_ZINC50, 512, TRAY_W)}</svg>`,
-  32
-);
-// 4) 纯 zinc950 无框（浅色任务栏）
-render(
-  "tray-32-zinc950.png",
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">${fitted(PALETTE_ZINC950, 512, TRAY_W)}</svg>`,
-  32
-);
+renderNative("tray-32-template-black.png", nFitted(PALETTE_BLACK));
+// 3) 纯 zinc50 无框
+renderNative("tray-32-zinc50.png", nFitted(PALETTE_ZINC50));
+// 4) 纯 zinc950 无框
+renderNative("tray-32-zinc950.png", nFitted(PALETTE_ZINC950));
 // 5) zinc50 + 投影
-render(
-  "tray-32-zinc50-shadow.png",
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
-    <defs>
-      <filter id="s" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.6"/>
-      </filter>
-    </defs>
-    <g filter="url(#s)">${fitted(PALETTE_ZINC50, 512, TRAY_W)}</g>
-  </svg>`,
-  32
-);
+renderNative("tray-32-zinc50-shadow.png",
+  `<defs><filter id="s" x="-40%" y="-40%" width="180%" height="180%">
+    <feDropShadow dx="0" dy="0.8" stdDeviation="0.7" flood-color="#000000" flood-opacity="0.6"/>
+  </filter></defs><g filter="url(#s)">${nFitted(PALETTE_ZINC50)}</g>`);
 
 // ---- 应用图标 1024（Apple 网格：1024 画布 / 824 主体 / 185 圆角，背景 zinc900） ----
 function appIcon(name, palette) {

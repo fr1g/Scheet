@@ -61,3 +61,4 @@
 - 构建并行度限为 4 核（.cargo/config.toml [build] jobs=4），避免占满机器
 - 精简内置字体：移除 lxgw-wenkai 与 oppo-sans（保留 lxgw-mono 默认/maple/harmonyos 三款），启动时自动清理 fonts 目录遗留；发布版 62MB → 40.6MB
 - 图标生成管线：logo-designs/generate.mjs（resvg SVG→PNG）从 v5 花押产出托盘 32px 五变体 + 应用图标 1024 三变体（Apple 网格 185 圆角/zinc900 底），generated/ + preview.html 审阅页；暂不接入应用
+- 托盘图标改为 32px 原生几何（不再从 512 缩小）：块体/间隙按像素重排，描边 1.8px，附 8 倍最近邻检查图 _x8
