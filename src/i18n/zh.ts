@@ -208,6 +208,8 @@ export default {
     unsetEndFile: "不设置（开始铃声）",
     unsetStartMode: "不设置（响一次）",
     unsetEndMode: "不设置（开始铃声）",
+    once: "响一次",
+    builtin: "内置铃声",
     loop: "循环",
     none: "静音",
     levelAllEnd: "所有事务（结束铃）",
