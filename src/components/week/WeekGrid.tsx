@@ -603,7 +603,11 @@ function EntryCell({
           {minuteToHHMM(entry.startMinute)}
         </span>
       )}
-      <span className="grid grow place-items-center text-center leading-tight">
+      <span
+        className={`grid grow place-items-center text-center leading-tight ${
+          entry.entryType === "normal" ? "font-semibold" : ""
+        }`}
+      >
         {entry.title || typeLabel}
       </span>
       {showTimes && (

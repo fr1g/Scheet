@@ -424,8 +424,8 @@ export default function EntryEditDialog({
                   background:
                     color === ""
                       ? entryType === "normal"
-                        ? "rgba(96, 165, 250, 0.35)"
-                        : "rgba(251, 191, 36, 0.35)"
+                        ? "rgba(97, 94, 168, 0.88)"
+                        : "rgba(254, 202, 192, 0.87)"
                       : (hexWithAlpha(color, 0.35) ?? "transparent"),
                 }}
               />

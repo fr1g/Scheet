@@ -258,8 +258,8 @@ export function entryBackground(entryType: EntryType, color: string | null): str
   const custom = color ? hexWithAlpha(color, CELL_COLOR_ALPHA) : null;
   if (custom) return custom;
   return entryType === "normal"
-    ? "rgba(96, 165, 250, 0.15)" // blue-400
-    : "rgba(251, 191, 36, 0.15)"; // amber-400
+    ? "rgba(97, 94, 168, 0.88)" // #615ea8e0（图标 indigo）
+    : "rgba(254, 202, 192, 0.87)"; // #fecac0de（图标 salmon）
 }
 
 /** 本地今天对应的 ISO 周几（1=周一..7=周日）。 */
