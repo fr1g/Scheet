@@ -1,6 +1,11 @@
 # Scheet
 
-一款本地优先的桌面周课表应用：以周为单位编排事务，5 分钟粒度，到点弹窗响铃提醒。
+<div align="center">
+  <img src="logo-designs/concept-logo-v5.png" alt="Scheet" width="160">
+  <p><strong>以周为单位，安排你的生活</strong></p>
+</div>
+
+Scheet 是一款本地优先的周课表应用：以 5 分钟为粒度编排一周的普通事务与休息，到点自动弹窗响铃提醒，右侧还有每日待办清单。所有数据都保存在你自己的电脑上。
 
 ## 如何构建
 
