@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type { GlobalConfig } from "../../types/global-config";
 import type { FullPlan, WeekEntry } from "../../types/weeks";
 import {
-  entryBackground,
+  resolveEntryColors,
+  type EntryColorScheme,
   findConflicts,
   layoutDayEntries,
   minuteToHHMM,
@@ -22,6 +23,8 @@ import { useToday } from "../../state/dateState";
 interface WeekGridProps {
   plan: FullPlan;
   config: GlobalConfig;
+  /** 解析好的事务默认色方案（周表覆盖 → 全局）。 */
+  colorScheme: EntryColorScheme;
   /** 选中周表的展示名（双表时为 单周/双周，键名已解析）。 */
   displayName: string;
   dirty: boolean;
@@ -108,6 +111,7 @@ function snap5(deltaPx: number, pxPerMinute: number): number {
 export default function WeekGrid({
   plan,
   config,
+  colorScheme,
   displayName,
   dirty,
   saving,
@@ -504,6 +508,7 @@ export default function WeekGrid({
                             conflicted={conflictIds.has(p.entry.id)}
                             selected={selectedEntryId === p.entry.id}
                             dragging={drag?.entryId === p.entry.id}
+                            colorScheme={colorScheme}
                             onBodyPointerDown={(e) => startMoveDrag(e, p.entry)}
                             onCopyPointerDown={(e) => startCopyDrag(e, p.entry)}
                             onResizeStartDown={(e) =>
@@ -533,6 +538,7 @@ function EntryCell({
   conflicted,
   selected,
   dragging,
+  colorScheme,
   onBodyPointerDown,
   onCopyPointerDown,
   onResizeStartDown,
@@ -542,6 +548,7 @@ function EntryCell({
   conflicted: boolean;
   selected: boolean;
   dragging: boolean;
+  colorScheme: EntryColorScheme;
   onBodyPointerDown: (e: React.PointerEvent) => void;
   onCopyPointerDown: (e: React.PointerEvent) => void;
   onResizeStartDown: (e: React.PointerEvent) => void;
@@ -572,7 +579,10 @@ function EntryCell({
   return (
     <div
       title={tooltip}
-      style={{ background: entryBackground(entry.entryType, entry.color) }}
+      style={{
+        background: resolveEntryColors(entry.entryType, entry.color, colorScheme)
+          .background,
+      }}
       onPointerDown={onBodyPointerDown}
       className={`group relative h-full w-full flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline} ${selectionRing} ${
         dragging ? "cursor-grabbing" : "cursor-move"
@@ -606,6 +616,10 @@ function EntryCell({
       <span
         className={`grid grow place-items-center text-center leading-tight ${
           entry.entryType === "normal" ? "font-semibold" : ""
+        } ${
+          resolveEntryColors(entry.entryType, entry.color, colorScheme).textDark
+            ? "text-zinc-900"
+            : "text-zinc-100"
         }`}
       >
         {entry.title || typeLabel}

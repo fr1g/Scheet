@@ -239,7 +239,8 @@ export function orderedWeekdays(firstDayOfWeek: "mon" | "sun"): number[] {
 }
 
 /** 事务 cell 背景的默认透明度（用户自定义 hex 色也按此叠加）。 */
-export const CELL_COLOR_ALPHA = 0.15;
+export const NORMAL_BG_ALPHA = 0.88; // 有色版图标的 indigo alpha
+export const REST_BG_ALPHA = 0.87; // 有色版图标的 salmon alpha
 
 /** #RRGGBB -> rgba(r, g, b, alpha)；非法输入返回 null。 */
 export function hexWithAlpha(hex: string, alpha: number): string | null {
@@ -254,12 +255,60 @@ export function hexWithAlpha(hex: string, alpha: number): string | null {
  * 事务 cell 的背景色：自定义颜色叠加透明度；
  * 未自定义时按类型取默认色（普通=蓝、休息=琥珀，与原型同色相的深色变体）。
  */
-export function entryBackground(entryType: EntryType, color: string | null): string {
-  const custom = color ? hexWithAlpha(color, CELL_COLOR_ALPHA) : null;
-  if (custom) return custom;
-  return entryType === "normal"
-    ? "rgba(97, 94, 168, 0.88)" // #615ea8e0（图标 indigo）
-    : "rgba(254, 202, 192, 0.87)"; // #fecac0de（图标 salmon）
+/** 事务默认色解析链的汇总视图（周表覆盖 → 全局默认）。 */
+export interface EntryColorScheme {
+  normalColor: string;
+  restColor: string;
+  normalTextDark: boolean;
+  restTextDark: boolean;
+}
+
+type SchemePlanMeta = {
+  normalColor: string | null;
+  restColor: string | null;
+  normalTextDark: boolean | null;
+  restTextDark: boolean | null;
+};
+
+/** 周表覆盖 → 全局默认（plan 传 null 时仅全局）。 */
+export function entryColorScheme(
+  plan: SchemePlanMeta | null | undefined,
+  config:
+    | {
+        entryNormalColor: string;
+        entryRestColor: string;
+        entryNormalTextDark: boolean;
+        entryRestTextDark: boolean;
+      }
+    | null
+    | undefined,
+): EntryColorScheme {
+  return {
+    normalColor: plan?.normalColor ?? config?.entryNormalColor ?? "#615ea8",
+    restColor: plan?.restColor ?? config?.entryRestColor ?? "#fecac0",
+    normalTextDark: plan?.normalTextDark ?? config?.entryNormalTextDark ?? false,
+    restTextDark: plan?.restTextDark ?? config?.entryRestTextDark ?? true,
+  };
+}
+
+/** 事务背景与标题文字深浅：单条 color 最优先，其次 scheme 默认。 */
+export function resolveEntryColors(
+  entryType: EntryType,
+  color: string | null,
+  scheme: EntryColorScheme,
+): { background: string; textDark: boolean } {
+  const [alpha, textDark] =
+    entryType === "normal"
+      ? [NORMAL_BG_ALPHA, scheme.normalTextDark]
+      : [REST_BG_ALPHA, scheme.restTextDark];
+  return {
+    background:
+      hexWithAlpha(
+        color ?? (entryType === "normal" ? scheme.normalColor : scheme.restColor),
+        alpha,
+      ) ?? "transparent",
+    textDark,
+  };
 }
 
 /** 本地今天对应的 ISO 周几（1=周一..7=周日）。 */

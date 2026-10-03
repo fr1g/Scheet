@@ -42,5 +42,13 @@ export interface GlobalConfig {
   logLevel: "none" | "verbose" | "info" | "warn" | "error" | "fatal";
   /** 应用图标变体（Windows/Linux 运行时生效；macOS 图标需在 Finder 手动替换）。 */
   iconVariant: "color" | "grayscale" | "zinc50";
+  /** 普通事务默认背景色（#RRGGBB）。 */
+  entryNormalColor: string;
+  /** 休息事务默认背景色（#RRGGBB）。 */
+  entryRestColor: string;
+  /** 普通事务标题文字用深色。 */
+  entryNormalTextDark: boolean;
+  /** 休息事务标题文字用深色。 */
+  entryRestTextDark: boolean;
 }
 

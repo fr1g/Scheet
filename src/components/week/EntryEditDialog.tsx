@@ -4,6 +4,11 @@ import { playAlarmSound, stopAlarmSound } from "../../lib/alarm-sound";
 import { listAlarmSounds } from "../../lib/clipboard";
 import CollapseBar from "../CollapseBar";
 import {
+  NORMAL_BG_ALPHA,
+  REST_BG_ALPHA,
+  type EntryColorScheme,
+} from "../../lib/weekgrid";
+import {
   hexWithAlpha,
   minuteToHHMM,
   minuteToTimeInput,
@@ -39,6 +44,8 @@ export function parseDurationInput(raw: string): number | null {
 interface EntryEditDialogProps {
   entry: WeekEntry;
   config: GlobalConfig;
+  /** 解析好的事务默认色方案（周表覆盖 → 全局）。 */
+  scheme: EntryColorScheme;
   /** true = 双击无安排区域刚创建的临时事务：取消时一并撤销。 */
   createdNow: boolean;
   onClose: () => void;
@@ -50,6 +57,7 @@ interface EntryEditDialogProps {
 export default function EntryEditDialog({
   entry,
   config,
+  scheme,
   createdNow,
   onClose,
   onConfirm,
@@ -423,10 +431,20 @@ export default function EntryEditDialog({
                 style={{
                   background:
                     color === ""
-                      ? entryType === "normal"
-                        ? "rgba(97, 94, 168, 0.88)"
-                        : "rgba(254, 202, 192, 0.87)"
-                      : (hexWithAlpha(color, 0.35) ?? "transparent"),
+                      ? hexWithAlpha(
+                          entryType === "normal"
+                            ? scheme.normalColor
+                            : scheme.restColor,
+                          entryType === "normal"
+                            ? NORMAL_BG_ALPHA
+                            : REST_BG_ALPHA,
+                        ) ?? "transparent"
+                      : (hexWithAlpha(
+                          color,
+                          entryType === "normal"
+                            ? NORMAL_BG_ALPHA
+                            : REST_BG_ALPHA,
+                        ) ?? "transparent"),
                 }}
               />
             </div>

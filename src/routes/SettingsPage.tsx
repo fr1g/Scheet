@@ -119,6 +119,11 @@ const POSITION_LABELS: Record<WindowControlsPosition, string> = {
 
 const UI_FONT_IDS = ["system", ...BUNDLED_FONTS.map((f) => f.id)];
 
+/** 预览 swatch 底色：合法 #RRGGBB → 半透明呈现；非法 → 中性灰。 */
+function hexPreview(hex: string): string {
+  return /^#[0-9a-fA-F]{6}$/.test(hex) ? `${hex}88` : "#52525b";
+}
+
 const LOG_LEVELS = ["none", "verbose", "info", "warn", "error", "fatal"];
 const ICON_VARIANTS = ["color", "grayscale", "zinc50"];
 
@@ -282,6 +287,12 @@ export default function SettingsPage() {
     if (!ICON_VARIANTS.includes(draft.iconVariant)) {
       showToast(t("settings.badIconVariant"));
       return null;
+    }
+    for (const v of [draft.entryNormalColor, draft.entryRestColor]) {
+      if (!/^#[0-9a-fA-F]{6}$/.test(v)) {
+        showToast(t("settings.badEntryColor"));
+        return null;
+      }
     }
     return { ...draft, dayStartMinute: start, dayEndMinute: end };
   };
@@ -610,6 +621,95 @@ export default function SettingsPage() {
       </section>
 
       <section>
+        <h2 className={sectionTitle}>{t("settings.entryColors")}</h2>
+        <p className={sectionHint}>{t("settings.entryColorsHint")}</p>
+        <div className="mt-2 grid w-full max-w-md grid-cols-2 gap-3">
+          <label className="block text-xs text-zinc-300">
+            {t("settings.entryNormalColor")}
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={draft.entryNormalColor}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, entryNormalColor: e.target.value } : prev
+                  )
+                }
+                className={`w-full rounded border bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400 ${
+                  /^#[0-9a-fA-F]{6}$/.test(draft.entryNormalColor)
+                    ? "border-zinc-600"
+                    : "border-red-500"
+                }`}
+              />
+              <span
+                className="size-7 shrink-0 rounded border border-zinc-600"
+                style={{ background: hexPreview(draft.entryNormalColor) }}
+              />
+            </div>
+          </label>
+          <label className="block text-xs text-zinc-300">
+            {t("settings.entryRestColor")}
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={draft.entryRestColor}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, entryRestColor: e.target.value } : prev
+                  )
+                }
+                className={`w-full rounded border bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400 ${
+                  /^#[0-9a-fA-F]{6}$/.test(draft.entryRestColor)
+                    ? "border-zinc-600"
+                    : "border-red-500"
+                }`}
+              />
+              <span
+                className="size-7 shrink-0 rounded border border-zinc-600"
+                style={{ background: hexPreview(draft.entryRestColor) }}
+              />
+            </div>
+          </label>
+        </div>
+        <div className="mt-3 grid w-full max-w-md grid-cols-2 gap-3">
+          <label className="block text-xs text-zinc-300">
+            {t("settings.entryNormalTextDark")}
+            <select
+              value={String(draft.entryNormalTextDark)}
+              onChange={(e) =>
+                setDraft((prev) =>
+                  prev
+                    ? { ...prev, entryNormalTextDark: e.target.value === "true" }
+                    : prev
+                )
+              }
+              className="mt-1 w-full rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
+            >
+              <option value="false">{t("settings.textLight")}</option>
+              <option value="true">{t("settings.textDark")}</option>
+            </select>
+          </label>
+          <label className="block text-xs text-zinc-300">
+            {t("settings.entryRestTextDark")}
+            <select
+              value={String(draft.entryRestTextDark)}
+              onChange={(e) =>
+                setDraft((prev) =>
+                  prev
+                    ? { ...prev, entryRestTextDark: e.target.value === "true" }
+                    : prev
+                )
+              }
+              className="mt-1 w-full rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
+            >
+              <option value="false">{t("settings.textLight")}</option>
+              <option value="true">{t("settings.textDark")}</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section>
         <h2 className={sectionTitle}>{t("settings.windowButtons")}</h2>
         <div className="mt-2 grid w-full max-w-md grid-cols-3 gap-2">
           {(["left", "right", "hidden"] as WindowControlsPosition[]).map((p) => (
@@ -803,6 +903,36 @@ export default function SettingsPage() {
     advanced: advancedPanel,
     about: aboutPanel,
   };
+
+  // 快捷键：Ctrl+S 保存；Ctrl+Z 丢弃草稿（文本输入框内不拦截，保留原生撤销）
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === "s" && dirty) {
+        e.preventDefault();
+        void handleSave();
+      } else if (key === "z" && dirty) {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        if (config) {
+          e.preventDefault();
+          setDraft(config);
+          setStartTime(minuteToTimeInput(config.dayStartMinute));
+          setEndTime(minuteToTimeInput(config.dayEndMinute));
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [dirty, config, handleSave]);
 
   return (
     <motion.div

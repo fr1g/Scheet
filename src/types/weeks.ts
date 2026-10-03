@@ -12,6 +12,12 @@ export interface WeekPlan {
   name: string;
   dayStartMinute: number | null;
   dayEndMinute: number | null;
+  /** 事务默认色覆盖（#RRGGBB）；null = 继承全局。 */
+  normalColor: string | null;
+  restColor: string | null;
+  /** 标题文字用深色；null = 继承全局。 */
+  normalTextDark: boolean | null;
+  restTextDark: boolean | null;
 }
 
 /** 周表内的一条事务；新条目用负数临时 id（仅用于冲突配对回显）。 */
@@ -66,6 +72,10 @@ export interface SavePlanPayload {
   name: string;
   dayStartMinute: number | null;
   dayEndMinute: number | null;
+  normalColor: string | null;
+  restColor: string | null;
+  normalTextDark: boolean | null;
+  restTextDark: boolean | null;
   entries: WeekEntry[];
   overrides: DayOverride[];
 }

@@ -12,7 +12,9 @@ import WeekPlanTabs from "../components/week/WeekPlanTabs";
 import WeekGrid from "../components/week/WeekGrid";
 import { readClipboardText, writeClipboardText } from "../lib/clipboard";
 import {
-  entryBackground,
+  entryColorScheme,
+  resolveEntryColors,
+  type EntryColorScheme,
   isPlanNameKey,
   minuteToHHMM,
   parseEntryPlan,
@@ -115,6 +117,7 @@ export default function WeekGridPage() {
 
   const dirty = plan != null && JSON.stringify(plan) !== savedSnapshot;
 
+
   // 选中周表展示名走统一规则（本周/单周/双周/自定义名）
   const selectedPlanDisplayName = (() => {
     const index = plans.findIndex((p) => p.id === selectedId);
@@ -163,6 +166,10 @@ export default function WeekGridPage() {
         name: plan.plan.name,
         dayStartMinute: plan.plan.dayStartMinute,
         dayEndMinute: plan.plan.dayEndMinute,
+        normalColor: plan.plan.normalColor,
+        restColor: plan.plan.restColor,
+        normalTextDark: plan.plan.normalTextDark,
+        restTextDark: plan.plan.restTextDark,
         entries: plan.entries,
         overrides: plan.overrides,
       });
@@ -275,6 +282,9 @@ export default function WeekGridPage() {
       } else if (key === "s" && dirty) {
         e.preventDefault();
         void handleSave();
+      } else if (key === "z" && dirty) {
+        e.preventDefault();
+        handleRevert();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -283,6 +293,7 @@ export default function WeekGridPage() {
     handleCopy,
     handlePaste,
     handleSave,
+    handleRevert,
     selectedEntryId,
     pasteTargetWeekday,
     clipboardHasPlan,
@@ -425,6 +436,12 @@ export default function WeekGridPage() {
     name: string,
     dayStart: number | null,
     dayEnd: number | null,
+    colors: {
+      normalColor: string | null;
+      restColor: string | null;
+      normalTextDark: boolean | null;
+      restTextDark: boolean | null;
+    },
   ) => {
     const raw = planSettings?.name;
     setPlanSettings(null);
@@ -435,7 +452,13 @@ export default function WeekGridPage() {
       prev
         ? {
             ...prev,
-            plan: { ...prev.plan, name: finalName, dayStartMinute: dayStart, dayEndMinute: dayEnd },
+            plan: {
+              ...prev.plan,
+              name: finalName,
+              dayStartMinute: dayStart,
+              dayEndMinute: dayEnd,
+              ...colors,
+            },
           }
         : prev,
     );
@@ -481,6 +504,9 @@ export default function WeekGridPage() {
     );
   }
 
+  // 事务默认色方案：周表覆盖 → 全局默认（guard 之后 config/plan 均非空）
+  const colorScheme: EntryColorScheme = entryColorScheme(plan.plan, config);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -499,6 +525,7 @@ export default function WeekGridPage() {
       <WeekGrid
         plan={plan}
         config={config}
+        colorScheme={colorScheme}
         displayName={selectedPlanDisplayName}
         dirty={dirty}
         saving={saving}
@@ -523,7 +550,11 @@ export default function WeekGridPage() {
             <div
               className="mt-1 flex flex-col rounded-xl px-2 py-1 text-xs text-zinc-100 shadow-lg"
               style={{
-                background: entryBackground(clipboardPlan.entryType, clipboardPlan.color),
+                background: resolveEntryColors(
+                  clipboardPlan.entryType,
+                  clipboardPlan.color,
+                  colorScheme,
+                ).background,
               }}
             >
               <span className="text-[10px] leading-3 text-zinc-300">
@@ -585,6 +616,7 @@ export default function WeekGridPage() {
             key={`edit-${editEntry.entry.id}`}
             entry={editEntry.entry}
             config={config}
+            scheme={colorScheme}
             createdNow={editEntry.createdNow}
             onClose={handleEditCancel}
             onConfirm={handleEditConfirm}

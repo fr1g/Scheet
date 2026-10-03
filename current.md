@@ -76,3 +76,4 @@
 - 清空数据按钮从关于页移至 设置-高级 tab 尾部（三步确认模态为页面级，随按钮所在 tab 触发）；信息折叠栏保留在关于页
 - 崩溃诊断增强：启动日志记录实际 WebView2 运行时版本 + 图标变体（下次崩溃可判定崩在哪个运行时的实例上）
 - 默认事务色改为图标配色：普通=indigo #615ea8e0、休息=salmon #fecac0de（网格与编辑弹窗预览同步）；普通事务 cell 标题 font-semibold；主题色保持蓝色（与 indigo 同族协调）
+- 事务颜色继承链：全局（外观 tab 背景色×2+标题文字深浅×2）→ 周表覆盖（PlanSettingsDialog 可空输入）→ 单条 color 覆盖；渲染走 resolveEntryColors（alpha 随类型 0.88/0.87）；快捷键：周表视图 Ctrl+Z 直接 discard、设置页 Ctrl+S 保存 / Ctrl+Z 丢弃草稿（文本输入框内不拦截）

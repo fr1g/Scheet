@@ -236,6 +236,14 @@ pub struct GlobalConfig {
     pub log_level: String,
     /// 应用图标变体：color/grayscale/zinc50（默认 color；Windows/Linux 运行时生效，macOS 忽略）。
     pub icon_variant: String,
+    /// 普通事务默认背景色（#RRGGBB，渲染时按类型叠加 alpha）；周表/单条事务可覆盖。
+    pub entry_normal_color: String,
+    /// 休息事务默认背景色（#RRGGBB）。
+    pub entry_rest_color: String,
+    /// 普通事务标题文字用深色（默认 false = 白字）。
+    pub entry_normal_text_dark: bool,
+    /// 休息事务标题文字用深色（默认 true = 黑字，浅粉底上更可读）。
+    pub entry_rest_text_dark: bool,
 }
 
 /// 运行时图标变体资产（256px，源图为 generated/appicon-256-*.png）。
@@ -292,6 +300,10 @@ impl Default for GlobalConfig {
             webview_smooth_scrolling: false,
             log_level: "error".to_string(),
             icon_variant: "color".to_string(),
+            entry_normal_color: "#615ea8".to_string(),
+            entry_rest_color: "#fecac0".to_string(),
+            entry_normal_text_dark: false,
+            entry_rest_text_dark: true,
         }
     }
 }
@@ -344,7 +356,26 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         icon_variant: get_setting(conn, "iconVariant")?
             .filter(|s| ICON_VARIANTS.contains(&s.as_str()))
             .unwrap_or_else(|| "color".to_string()),
+        entry_normal_color: get_setting(conn, "entryNormalColor")?
+            .filter(|s| is_hex_color(s))
+            .unwrap_or_else(|| "#615ea8".to_string()),
+        entry_rest_color: get_setting(conn, "entryRestColor")?
+            .filter(|s| is_hex_color(s))
+            .unwrap_or_else(|| "#fecac0".to_string()),
+        entry_normal_text_dark: get_setting(conn, "entryNormalTextDark")?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(false),
+        entry_rest_text_dark: get_setting(conn, "entryRestTextDark")?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(true),
     })
+}
+
+/// #RRGGBB 格式校验。
+fn is_hex_color(s: &str) -> bool {
+    s.len() == 7
+        && s.starts_with('#')
+        && s[1..].chars().all(|c| c.is_ascii_hexdigit())
 }
 
 /// 校验铃声取值：None / builtin / none / 合法文件名。
@@ -397,6 +428,18 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
     )?;
     set_setting(conn, "logLevel", &cfg.log_level)?;
     set_setting(conn, "iconVariant", &cfg.icon_variant)?;
+    set_setting(conn, "entryNormalColor", &cfg.entry_normal_color)?;
+    set_setting(conn, "entryRestColor", &cfg.entry_rest_color)?;
+    set_setting(
+        conn,
+        "entryNormalTextDark",
+        &cfg.entry_normal_text_dark.to_string(),
+    )?;
+    set_setting(
+        conn,
+        "entryRestTextDark",
+        &cfg.entry_rest_text_dark.to_string(),
+    )?;
     for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,

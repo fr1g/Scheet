@@ -60,6 +60,12 @@ pub struct WeekPlan {
     pub name: String,
     pub day_start_minute: Option<i64>,
     pub day_end_minute: Option<i64>,
+    /// 事务默认色覆盖（#RRGGBB）；None = 继承全局。
+    pub normal_color: Option<String>,
+    pub rest_color: Option<String>,
+    /// 事务标题文字用深色；None = 继承全局。
+    pub normal_text_dark: Option<bool>,
+    pub rest_text_dark: Option<bool>,
 }
 
 /// 周表内的一条事务。
@@ -131,6 +137,10 @@ pub struct SavePlanPayload {
     pub name: String,
     pub day_start_minute: Option<i64>,
     pub day_end_minute: Option<i64>,
+    pub normal_color: Option<String>,
+    pub rest_color: Option<String>,
+    pub normal_text_dark: Option<bool>,
+    pub rest_text_dark: Option<bool>,
     pub entries: Vec<WeekEntry>,
     pub overrides: Vec<DayOverride>,
 }
@@ -146,6 +156,10 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
             name TEXT NOT NULL,
             day_start_minute INTEGER,
             day_end_minute INTEGER,
+            normal_color TEXT,
+            rest_color TEXT,
+            normal_text_dark INTEGER,
+            rest_text_dark INTEGER,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -197,6 +211,21 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
             ));
         }
     }
+    for column in [
+        "normal_color TEXT",
+        "rest_color TEXT",
+        "normal_text_dark INTEGER",
+        "rest_text_dark INTEGER",
+    ] {
+        let label = column.split(' ').next().unwrap_or(column);
+        if let Err(e) = conn.execute(&format!("ALTER TABLE week_plans ADD COLUMN {column}"), []) {
+            if !e.to_string().contains("duplicate column") {
+                crate::logging::warn(&format!(
+                    "[db] Migration week_plans.{label} failed (ignored): {e}"
+                ));
+            }
+        }
+    }
     // 迁移：默认周表的标记名统一为键 weeks.w1..w6（i18n 层负责友好显示；
     // 只触碰系统生成的默认名，用户自己改过名的不会被触碰）
     for slot in 1..=6 {
@@ -244,12 +273,18 @@ fn row_to_plan(row: &rusqlite::Row<'_>) -> rusqlite::Result<WeekPlan> {
         name: row.get("name")?,
         day_start_minute: row.get("day_start_minute")?,
         day_end_minute: row.get("day_end_minute")?,
+        normal_color: row.get("normal_color")?,
+        rest_color: row.get("rest_color")?,
+        normal_text_dark: row.get("normal_text_dark")?,
+        rest_text_dark: row.get("rest_text_dark")?,
     })
 }
 
 pub fn list_plans(conn: &Connection) -> Result<Vec<WeekPlan>, String> {
     let mut stmt = conn
-        .prepare("SELECT id, slot, name, day_start_minute, day_end_minute FROM week_plans ORDER BY slot")
+        .prepare("SELECT id, slot, name, day_start_minute, day_end_minute,
+                    normal_color, rest_color, normal_text_dark, rest_text_dark
+             FROM week_plans ORDER BY slot")
         .map_err(|e| format!("读取周表失败: {e}"))?;
     let rows = stmt
         .query_map([], row_to_plan)
@@ -286,6 +321,10 @@ pub fn create_plan(conn: &Connection, name: Option<&str>) -> Result<WeekPlan, St
         name,
         day_start_minute: None,
         day_end_minute: None,
+        normal_color: None,
+        rest_color: None,
+        normal_text_dark: None,
+        rest_text_dark: None,
     })
 }
 
@@ -321,7 +360,9 @@ pub fn delete_plan(conn: &Connection, plan_id: i64) -> Result<(), String> {
 pub fn get_full_plan(conn: &Connection, plan_id: i64) -> Result<FullPlan, String> {
     let plan = conn
         .query_row(
-            "SELECT id, slot, name, day_start_minute, day_end_minute FROM week_plans WHERE id = ?1",
+            "SELECT id, slot, name, day_start_minute, day_end_minute,
+                    normal_color, rest_color, normal_text_dark, rest_text_dark
+             FROM week_plans WHERE id = ?1",
             [plan_id],
             row_to_plan,
         )
@@ -510,12 +551,18 @@ pub fn save_plan(conn: &Connection, payload: &SavePlanPayload) -> Result<SaveOut
         .unchecked_transaction()
         .map_err(|e| format!("开启事务失败: {e}"))?;
     tx.execute(
-        "UPDATE week_plans SET name = ?1, day_start_minute = ?2, day_end_minute = ?3, updated_at = ?4
-         WHERE id = ?5",
+        "UPDATE week_plans SET name = ?1, day_start_minute = ?2, day_end_minute = ?3,
+                normal_color = ?4, rest_color = ?5, normal_text_dark = ?6, rest_text_dark = ?7,
+                updated_at = ?8
+         WHERE id = ?9",
         params![
             name,
             payload.day_start_minute,
             payload.day_end_minute,
+            payload.normal_color,
+            payload.rest_color,
+            payload.normal_text_dark,
+            payload.rest_text_dark,
             now_str(),
             payload.id
         ],
@@ -901,6 +948,10 @@ mod tests {
             name: "测试".into(),
             day_start_minute: None,
             day_end_minute: None,
+            normal_color: None,
+            rest_color: None,
+            normal_text_dark: None,
+            rest_text_dark: None,
             entries: vec![entry(-1, 1, 360, 60), entry(-2, 1, 390, 30)],
             overrides: vec![],
         };
@@ -930,6 +981,10 @@ mod tests {
             name: "x".into(),
             day_start_minute: None,
             day_end_minute: None,
+            normal_color: None,
+            rest_color: None,
+            normal_text_dark: None,
+            rest_text_dark: None,
             entries: vec![entry(-1, 1, 360, 33)], // 非 5 的倍数
             overrides: vec![],
         };
@@ -947,6 +1002,10 @@ mod tests {
             name: "x".into(),
             day_start_minute: None,
             day_end_minute: None,
+            normal_color: None,
+            rest_color: None,
+            normal_text_dark: None,
+            rest_text_dark: None,
             entries: vec![bad],
             overrides: vec![],
         };
@@ -976,6 +1035,10 @@ mod tests {
                 name: "p".into(),
                 day_start_minute: Some(480), // 周表级 8:00
                 day_end_minute: None,
+                normal_color: None,
+                rest_color: None,
+                normal_text_dark: None,
+                rest_text_dark: None,
             },
             entries: vec![],
             overrides: vec![DayOverride {

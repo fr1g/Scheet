@@ -76,14 +76,26 @@ export function DialogShell({
   );
 }
 
+interface PlanColorOverrides {
+  normalColor: string | null;
+  restColor: string | null;
+  normalTextDark: boolean | null;
+  restTextDark: boolean | null;
+}
+
 interface PlanSettingsDialogProps {
   plan: WeekPlan;
   onClose: () => void;
   /** 确认后只修改工作副本，随主保存按钮统一入库。 */
-  onConfirm: (name: string, dayStart: number | null, dayEnd: number | null) => void;
+  onConfirm: (
+    name: string,
+    dayStart: number | null,
+    dayEnd: number | null,
+    colors: PlanColorOverrides,
+  ) => void;
 }
 
-/** 周表设置：名称 + 周表级一天起止时间（留空继承全局）。 */
+/** 周表设置：名称 + 周表级一天起止时间（留空继承全局）+ 事务默认色覆盖。 */
 export default function PlanSettingsDialog({
   plan,
   onClose,
@@ -94,6 +106,17 @@ export default function PlanSettingsDialog({
   const [name, setName] = useState(planName(plan.name));
   const [start, setStart] = useState(minuteToTimeInput(plan.dayStartMinute));
   const [end, setEnd] = useState(minuteToTimeInput(plan.dayEndMinute));
+  const [normalColor, setNormalColor] = useState(plan.normalColor ?? "");
+  const [restColor, setRestColor] = useState(plan.restColor ?? "");
+  const [normalText, setNormalText] = useState(
+    plan.normalTextDark == null ? "inherit" : plan.normalTextDark ? "dark" : "light",
+  );
+  const [restText, setRestText] = useState(
+    plan.restTextDark == null ? "inherit" : plan.restTextDark ? "dark" : "light",
+  );
+
+  const hexOk = (v: string) => v === "" || /^#[0-9a-fA-F]{6}$/.test(v);
+  const colorsOk = hexOk(normalColor) && hexOk(restColor);
 
   const startMinute = timeInputToMinute(start);
   const endMinute = timeInputToMinute(end);
@@ -104,11 +127,16 @@ export default function PlanSettingsDialog({
     (startMinute == null || startMinute % 5 === 0) &&
     (endMinute == null || endMinute % 5 === 0) &&
     (startMinute == null || endMinute == null || startMinute < endMinute);
-  const canConfirm = nameOk && timesOk;
+  const canConfirm = nameOk && timesOk && colorsOk;
 
   const confirm = () => {
     if (!canConfirm) return;
-    onConfirm(name.trim(), startMinute, endMinute);
+    onConfirm(name.trim(), startMinute, endMinute, {
+      normalColor: normalColor.trim() || null,
+      restColor: restColor.trim() || null,
+      normalTextDark: normalText === "inherit" ? null : normalText === "dark",
+      restTextDark: restText === "inherit" ? null : restText === "dark",
+    });
   };
 
   return (
@@ -144,6 +172,59 @@ export default function PlanSettingsDialog({
           clearTitle={t("planSettings.clearTitle")}
           onClear={() => setEnd("")}
         />
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <label className="block text-xs text-zinc-300">
+          {t("planSettings.entryNormalColor")}
+          <input
+            type="text"
+            value={normalColor}
+            onChange={(e) => setNormalColor(e.target.value)}
+            placeholder={t("planSettings.colorInherit")}
+            className={`mt-1 w-full rounded border bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400 ${
+              hexOk(normalColor) ? "border-zinc-600" : "border-red-500"
+            }`}
+          />
+        </label>
+        <label className="block text-xs text-zinc-300">
+          {t("planSettings.entryRestColor")}
+          <input
+            type="text"
+            value={restColor}
+            onChange={(e) => setRestColor(e.target.value)}
+            placeholder={t("planSettings.colorInherit")}
+            className={`mt-1 w-full rounded border bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400 ${
+              hexOk(restColor) ? "border-zinc-600" : "border-red-500"
+            }`}
+          />
+        </label>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <label className="block text-xs text-zinc-300">
+          {t("planSettings.entryNormalTextDark")}
+          <select
+            value={normalText}
+            onChange={(e) => setNormalText(e.target.value)}
+            className="mt-1 w-full rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
+          >
+            <option value="inherit">{t("planSettings.textInherit")}</option>
+            <option value="light">{t("planSettings.textLight")}</option>
+            <option value="dark">{t("planSettings.textDark")}</option>
+          </select>
+        </label>
+        <label className="block text-xs text-zinc-300">
+          {t("planSettings.entryRestTextDark")}
+          <select
+            value={restText}
+            onChange={(e) => setRestText(e.target.value)}
+            className="mt-1 w-full rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
+          >
+            <option value="inherit">{t("planSettings.textInherit")}</option>
+            <option value="light">{t("planSettings.textLight")}</option>
+            <option value="dark">{t("planSettings.textDark")}</option>
+          </select>
+        </label>
       </div>
     </DialogShell>
   );
