@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftIcon, FolderIcon, RefreshIcon, SaveIcon } from "tdesign-icons-react";
 import { invoke } from "@tauri-apps/api/core";
 import Toast from "../components/Toast";
+import CollapseBar from "../components/CollapseBar";
 import { DialogShell, TimeField } from "../components/week/PlanSettingsDialog";
 import { listAlarmSounds } from "../lib/clipboard";
 import { getWeekPlan, listWeekPlans } from "../lib/weeks";
@@ -85,6 +86,30 @@ const LEVELS: {
       kind: "end",
     },
   ];
+
+// 应用直接使用的开源项目（前端 npm + Rust cargo 直接依赖）
+const OPENSOURCE: [string, string][] = [
+  ["Tauri", "https://github.com/tauri-apps/tauri"],
+  ["React", "https://github.com/facebook/react"],
+  ["React Router", "https://github.com/remix-run/react-router"],
+  ["Tailwind CSS", "https://github.com/tailwindlabs/tailwindcss"],
+  ["Headless UI", "https://github.com/tailwindlabs/headlessui"],
+  ["TDesign Icons", "https://github.com/Tencent/tdesign"],
+  ["Framer Motion", "https://github.com/motiondivision/motion"],
+  ["i18next", "https://github.com/i18next/i18next"],
+  ["react-i18next", "https://github.com/i18next/react-i18next"],
+  ["resvg-js", "https://github.com/thx/resvg-js"],
+  ["rusqlite", "https://github.com/rusqlite/rusqlite"],
+  ["chrono", "https://github.com/chronotope/chrono"],
+  ["rodio", "https://github.com/RustAudio/rodio"],
+  ["arboard", "https://github.com/1Password/arboard"],
+  ["flate2", "https://github.com/rust-lang/flate2-rs"],
+  ["log", "https://github.com/rust-lang/log"],
+  ["dirs", "https://github.com/dirs-dev/dirs-rs"],
+  ["serde", "https://github.com/serde-rs/serde"],
+  ["windows-sys", "https://github.com/microsoft/windows-rs"],
+  ["tauri-winrt-notification", "https://github.com/tauri-apps/tauri-winrt-notification"],
+];
 
 const POSITION_LABELS: Record<WindowControlsPosition, string> = {
   left: "settings.posLeft",
@@ -747,9 +772,24 @@ export default function SettingsPage() {
       >
         {t("about.clearData")}
       </button>
-      <div>
-        <h5></h5>
-      </div>
+      <CollapseBar title={t("about.infoTitle")}>
+        <pre className="typo indent-6">{t("about.info")}</pre>
+        <ul className="mt-3 space-y-1 text-xs text-zinc-400">
+          {OPENSOURCE.map(([name, url]) => (
+            <li key={url}>
+              {name} ::{" "}
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-zinc-500 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-300"
+              >
+                {url}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </CollapseBar>
     </section>
   );
 
