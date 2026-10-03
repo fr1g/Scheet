@@ -114,8 +114,11 @@ export default function WeekGridPage() {
 
   const dirty = plan != null && JSON.stringify(plan) !== savedSnapshot;
 
-  // 仅两个周表时，选中周表的展示名用 单周/双周
+  // 单周表显示 本周；仅两个周表时，选中周表的展示名用 单周/双周
   const selectedPlanDisplayName = (() => {
+    if (plans.length === 1) {
+      return t("tabs.thisWeek");
+    }
     const index = plans.findIndex((p) => p.id === selectedId);
     if (plans.length === 2 && index >= 0) {
       return t(index === 0 ? "titlebar.single" : "titlebar.double");

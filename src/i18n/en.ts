@@ -25,7 +25,7 @@ export default {
       "You won't get any reminders (including a ringing alarm) until you open the app again. Quit?",
     confirm: "Quit",
   },
-  tabs: { add: "New plan", current: "Current week" },
+  tabs: { add: "New plan", current: "Current week", thisWeek: "This week" },
   weeks: {
     w1: "Plan 1",
     w2: "Plan 2",

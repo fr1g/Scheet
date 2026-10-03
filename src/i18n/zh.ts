@@ -28,7 +28,7 @@ export default {
       "退出后就提醒不了你了（包括正在响的铃），重新打开才会继续。确定退出？",
     confirm: "退出",
   },
-  tabs: { add: "新建周表", current: "当周" },
+  tabs: { add: "新建周表", current: "当周", thisWeek: "本周" },
   timeField: { clear: "清除（恢复继承）" },
   weeks: {
     w1: "周表 1",

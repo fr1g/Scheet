@@ -31,6 +31,9 @@ export default function WeekPlanTabs({
   const planName = usePlanName();
 
   const displayName = (index: number, plan: WeekPlan): string => {
+    if (plans.length === 1) {
+      return t("tabs.thisWeek");
+    }
     if (plans.length === 2) {
       return index === 0 ? t("titlebar.single") : t("titlebar.double");
     }
