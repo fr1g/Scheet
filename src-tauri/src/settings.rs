@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::Datelike;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use tauri::{command, State};
+use tauri::{command, Manager, State};
 
 use crate::db::DataDb;
 use crate::sound::AlarmMode;
@@ -234,6 +234,36 @@ pub struct GlobalConfig {
     pub webview_smooth_scrolling: bool,
     /// 日志等级：none/verbose/info/warn/error/fatal（默认 error；保存后立即生效）。
     pub log_level: String,
+    /// 应用图标变体：color/grayscale/zinc50（默认 color；Windows/Linux 运行时生效，macOS 忽略）。
+    pub icon_variant: String,
+}
+
+/// 运行时图标变体资产（256px，源图为 generated/appicon-256-*.png）。
+const ICON_VARIANT_ASSETS: &[(&str, &[u8])] = &[
+    ("color", include_bytes!("../assets/icons/icon-color.png")),
+    ("grayscale", include_bytes!("../assets/icons/icon-grayscale.png")),
+    ("zinc50", include_bytes!("../assets/icons/icon-zinc50.png")),
+];
+
+/// 允许的图标变体取值。
+pub const ICON_VARIANTS: &[&str] = &["color", "grayscale", "zinc50"];
+
+/// 应用图标变体：设置主窗口图标（Windows 任务栏/标题栏、Linux 窗口）。
+/// macOS 的 Dock/访达图标来自 .app bundle，运行时不可换（用户经 Finder 手动替换）。
+/// 托盘图标使用独立的可见性专用设计，不随变体切换。
+pub fn apply_icon_variant(app: &tauri::AppHandle, variant: &str) {
+    let Some((_, bytes)) = ICON_VARIANT_ASSETS.iter().find(|(n, _)| *n == variant) else {
+        return;
+    };
+    let Ok(image) = tauri::image::Image::from_bytes(bytes) else {
+        crate::logging::warn("[icons] Failed to decode icon variant asset");
+        return;
+    };
+    if let Some(win) = app.get_webview_window("main") {
+        if let Err(e) = win.set_icon(image.clone()) {
+            crate::logging::warn(&format!("[icons] Failed to set window icon: {e}"));
+        }
+    }
 }
 
 impl Default for GlobalConfig {
@@ -260,6 +290,7 @@ impl Default for GlobalConfig {
             webview_hw_accel: true,
             webview_smooth_scrolling: false,
             log_level: "error".to_string(),
+            icon_variant: "color".to_string(),
         }
     }
 }
@@ -309,6 +340,9 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         log_level: get_setting(conn, "logLevel")?
             .filter(|s| crate::logging::LOG_LEVELS.contains(&s.as_str()))
             .unwrap_or_else(|| "error".to_string()),
+        icon_variant: get_setting(conn, "iconVariant")?
+            .filter(|s| ICON_VARIANTS.contains(&s.as_str()))
+            .unwrap_or_else(|| "color".to_string()),
     })
 }
 
@@ -361,6 +395,7 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
         &cfg.webview_smooth_scrolling.to_string(),
     )?;
     set_setting(conn, "logLevel", &cfg.log_level)?;
+    set_setting(conn, "iconVariant", &cfg.icon_variant)?;
     for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,
@@ -387,6 +422,7 @@ pub async fn get_global_config(db: State<'_, Arc<DataDb>>) -> Result<GlobalConfi
 pub async fn set_global_config(
     config: GlobalConfig,
     db: State<'_, Arc<DataDb>>,
+    app: tauri::AppHandle,
 ) -> Result<GlobalConfig, String> {
     if !(0..=1439).contains(&config.day_start_minute)
         || !(0..=1439).contains(&config.day_end_minute)
@@ -410,6 +446,8 @@ pub async fn set_global_config(
             db.with_conn(|conn| persist_global_config(conn, &config_clone))?;
             // 日志等级保存后立即生效（运行时更新阈值，无需重启）
             crate::logging::set_level_u8(crate::logging::level_to_u8(&config.log_level));
+            // 图标变体立即应用到主窗口（macOS 忽略）
+            apply_icon_variant(&app, &config.icon_variant);
             db.with_conn(load_global_config)
         })
         .await

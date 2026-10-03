@@ -270,6 +270,13 @@ export default {
     restartNow: "立即重启",
     restartNowTitle: "显示引擎设置已保存，重启应用后生效",
     logLevel: "日志等级",
+    iconVariant: "应用图标",
+    iconVariant_color: "彩色",
+    iconVariant_grayscale: "灰度",
+    iconVariant_zinc50: "浅灰",
+    iconVariantHint:
+      "切换任务栏/标题栏图标，保存后马上生效。macOS 的 Dock 图标由系统管理，需在访达中右键“显示简介”把图标拖到应用上手动替换。",
+    badIconVariant: "图标变体选择不合法",
     logLevelHint:
       "日志按天写入应用数据目录的 logs 文件夹（daily--日期.scheet.log），全部为英文。none 不输出也不保存；verbose 最详细；默认 error。保存后马上生效，不用重启。",
   },

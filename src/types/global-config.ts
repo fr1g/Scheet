@@ -40,5 +40,7 @@ export interface GlobalConfig {
   webviewSmoothScrolling: boolean;
   /** 日志等级：none=不输出不保存；保存后立即生效。 */
   logLevel: "none" | "verbose" | "info" | "warn" | "error" | "fatal";
+  /** 应用图标变体（Windows/Linux 运行时生效；macOS 图标需在 Finder 手动替换）。 */
+  iconVariant: "color" | "grayscale" | "zinc50";
 }
 

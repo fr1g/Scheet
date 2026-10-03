@@ -10,7 +10,7 @@ import { listAlarmSounds } from "../lib/clipboard";
 import { getWeekPlan, listWeekPlans } from "../lib/weeks";
 import { useGlobalConfig } from "../state/GlobalConfigContext";
 import { useSettings } from "../state/SettingsContext";
-import logoUrl from "../assets/logo.png";
+import logoUrl from "../assets/appicon.png";
 import pkg from "../../package.json";
 import { BUNDLED_FONTS } from "../lib/fonts";
 import {
@@ -93,6 +93,7 @@ const POSITION_LABELS: Record<WindowControlsPosition, string> = {
 const UI_FONT_IDS = ["system", ...BUNDLED_FONTS.map((f) => f.id)];
 
 const LOG_LEVELS = ["none", "verbose", "info", "warn", "error", "fatal"];
+const ICON_VARIANTS = ["color", "grayscale", "zinc50"];
 
 const sectionTitle = "text-xs font-medium text-zinc-100";
 const sectionHint = "mt-1 text-[10px] text-zinc-500";
@@ -249,6 +250,10 @@ export default function SettingsPage() {
     }
     if (!LOG_LEVELS.includes(draft.logLevel)) {
       showToast(t("settings.badLogLevel"));
+      return null;
+    }
+    if (!ICON_VARIANTS.includes(draft.iconVariant)) {
+      showToast(t("settings.badIconVariant"));
       return null;
     }
     return { ...draft, dayStartMinute: start, dayEndMinute: end };
@@ -556,6 +561,29 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className={sectionHint}>{t("settings.fontSizeHint")}</p>
+      </section>
+
+      <section>
+        <h2 className={sectionTitle}>{t("settings.iconVariant")}</h2>
+        <div className="mt-2 grid w-full max-w-md grid-cols-3 gap-2">
+          {(["color", "grayscale", "zinc50"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() =>
+                setDraft((prev) => (prev ? { ...prev, iconVariant: v } : prev))
+              }
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
+                draft.iconVariant === v
+                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+              }`}
+            >
+              {t(`settings.iconVariant_${v}`)}
+            </button>
+          ))}
+        </div>
+        <p className={sectionHint}>{t("settings.iconVariantHint")}</p>
       </section>
 
       <section>

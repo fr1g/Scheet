@@ -275,6 +275,13 @@ export default {
     restartNow: "Restart now",
     restartNowTitle: "Display engine settings saved; restart the app to apply",
     logLevel: "Log level",
+    iconVariant: "App icon",
+    iconVariant_color: "Color",
+    iconVariant_grayscale: "Grayscale",
+    iconVariant_zinc50: "Light",
+    iconVariantHint:
+      "Switches the taskbar/titlebar icon, applied immediately after saving. On macOS the Dock icon is managed by the system — replace it manually via Get Info in Finder.",
+    badIconVariant: "Invalid icon variant choice",
     logLevelHint:
       "Logs are written daily to the logs folder inside the app data dir (daily--date.scheet.log), in English only. none logs nothing and creates no file; verbose is the most detailed; default is error. Applies immediately after saving, no restart needed.",
   },

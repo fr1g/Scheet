@@ -78,6 +78,16 @@ pub fn run() {
 
             tray::create(app)?;
 
+            // 启动时应用已保存的图标变体（默认 color 与 exe 内嵌图标一致，重复应用无害）
+            {
+                let data = app.state::<Arc<db::DataDb>>().inner().clone();
+                let icon_variant = data
+                    .with_conn(settings::load_global_config)
+                    .map(|c| c.icon_variant)
+                    .unwrap_or_else(|_| "color".to_string());
+                settings::apply_icon_variant(app.handle(), &icon_variant);
+            }
+
             let handle = app.handle().clone();
             let data = app.state::<Arc<db::DataDb>>().inner().clone();
             let weeks = app.state::<Arc<db::WeeksDb>>().inner().clone();

@@ -111,8 +111,9 @@ function bbox(p) {
 // S 笔画方向（起笔右上 → 收笔左下）：
 //   a2(右上灰) → a1(顶部白) → a3(左侧鲑鱼) → b1(中心靛蓝) → b3(底部) → b2(左下)
 // 有色版：四块沿笔画依次 zinc400/300/200/100，salmon 与 indigo 不动。
+// （上簇 grid 顺序 1/2 位互换：a1=400、a2=300。）
 const PALETTE_COLOR = {
-  a1: C.zinc300, a2: C.zinc400, a3: C.salmon,
+  a1: C.zinc400, a2: C.zinc300, a3: C.salmon,
   b1: C.indigo, b2: C.zinc100, b3: C.zinc200,
 };
 // 纯灰度版（按用户指令重排）：
@@ -229,8 +230,7 @@ function renderNative(name, body) {
 }
 
 // 1) 主推：zinc50 填充 + zinc950 外描边（描边 3.6，垫底；fit=27 给描边留出裁切空间）
-renderNative("tray-32-bordered.png",
-  `<g stroke="${C.zinc950}" stroke-width="3.6" stroke-linejoin="round" fill="${C.zinc950}" paint-order="stroke">${nFitted(PALETTE_ZINC50, "", 27)}</g>`);
+//    —— 用户已手工处理毛躁，此文件不再自动生成（防覆盖）。
 // 2) macOS template：纯黑无框 —— 用户已手工处理毛躁，此文件不再自动生成（防覆盖）。
 // 3) 纯 zinc50 无框
 renderNative("tray-32-zinc50.png", nFitted(PALETTE_ZINC50));
@@ -259,5 +259,19 @@ function appIcon(name, palette) {
 appIcon("appicon-1024-color.png", PALETTE_COLOR);
 appIcon("appicon-1024-grayscale.png", PALETTE_GRAY);
 appIcon("appicon-1024-zinc50.png", PALETTE_ZINC50);
+
+// 256px 运行时资产（应用内 set_icon 用，构建时拷入 src-tauri/assets/icons/）
+for (const [name, pal] of [["color", PALETTE_COLOR], ["grayscale", PALETTE_GRAY], ["zinc50", PALETTE_ZINC50]]) {
+  const tile = 824, off = (1024 - tile) / 2;
+  const glyph = fitted(pal, 1024, 560);
+  render(
+    `appicon-256-${name}.png`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+      <rect x="${off}" y="${off}" width="${tile}" height="${tile}" rx="185" fill="${C.zinc900}"/>
+      ${glyph}
+    </svg>`,
+    256
+  );
+}
 
 console.log("done");
