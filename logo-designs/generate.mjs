@@ -14,7 +14,9 @@ const OUT = join(dirname(fileURLToPath(import.meta.url)), "generated");
 const C = {
   zinc50: "#fafafa",
   zinc100: "#f4f4f5",
+  zinc200: "#e4e4e7",
   zinc300: "#d4d4d8",
+  zinc400: "#a1a1aa",
   zinc500: "#71717a",
   zinc600: "#52525b",
   zinc900: "#18181b",
@@ -106,13 +108,18 @@ function bbox(p) {
   return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY };
 }
 
+// S 笔画方向（起笔右上 → 收笔左下）：
+//   a2(右上灰) → a1(顶部白) → a3(左侧鲑鱼) → b1(中心靛蓝) → b3(底部) → b2(左下)
+// 有色版：四块沿笔画依次 zinc400/300/200/100，salmon 与 indigo 不动。
 const PALETTE_COLOR = {
-  a1: C.zinc100, a2: C.zinc500, a3: C.salmon,
-  b1: C.indigo, b2: C.zinc600, b3: C.zinc300,
+  a1: C.zinc300, a2: C.zinc400, a3: C.salmon,
+  b1: C.indigo, b2: C.zinc100, b3: C.zinc200,
 };
+// 纯灰度版：六块沿笔画 400 → 400/70 → 300 → 300/60 → 200/90 → 100
+// （中间两站带 alpha，对应有色版中 salmon/indigo 的特殊站位）。
 const PALETTE_GRAY = {
-  a1: C.zinc100, a2: C.zinc500, a3: C.zinc300,
-  b1: C.zinc500, b2: C.zinc600, b3: C.zinc300,
+  a1: "rgba(161,161,170,0.7)", a2: C.zinc400, a3: C.zinc300,
+  b1: "rgba(212,212,216,0.6)", b2: C.zinc100, b3: "rgba(228,228,231,0.9)",
 };
 const PALETTE_ZINC50 = {
   a1: C.zinc50, a2: C.zinc50, a3: C.zinc50,
@@ -218,7 +225,7 @@ function renderNative(name, body) {
 
 // 1) 主推：zinc50 填充 + zinc950 外描边（描边宽 1.5，垫底）
 renderNative("tray-32-bordered.png",
-  `<g stroke="${C.zinc950}" stroke-width="1.8" stroke-linejoin="round" fill="${C.zinc950}" paint-order="stroke">${nFitted(PALETTE_ZINC50)}</g>`);
+  `<g stroke="${C.zinc950}" stroke-width="3.6" stroke-linejoin="round" fill="${C.zinc950}" paint-order="stroke">${nFitted(PALETTE_ZINC50)}</g>`);
 // 2) macOS template：纯黑无框
 renderNative("tray-32-template-black.png", nFitted(PALETTE_BLACK));
 // 3) 纯 zinc50 无框
