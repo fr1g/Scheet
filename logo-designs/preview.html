@@ -1,0 +1,61 @@
+<!-- 图标变体审阅页：直接用浏览器打开本文件查看。 -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Scheet 图标变体预览</title>
+<style>
+  body { margin: 24px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #f4f4f5; color: #18181b; }
+  h1 { font-size: 16px; } h2 { font-size: 13px; margin: 8px 0 4px; }
+  .row { display: flex; gap: 16px; align-items: flex-end; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+  .dark { background: #18181b; color: #fafafa; }
+  .light { background: #e4e4e7; }
+  .taskbar-dark { background: #09090b; } .taskbar-light { background: #fafafa; }
+  .cell { text-align: center; }
+  .cell img { display: block; image-rendering: auto; }
+  .cell span { font-size: 10px; opacity: 0.7; }
+  .tray img { image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<h1>托盘 32px（任务栏模拟）</h1>
+<h2>深色任务栏</h2>
+<div class="row taskbar-dark tray">
+  <div class="cell"><img src="generated/tray-32-bordered.png" width="32"><span>bordered</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc50.png" width="32"><span>zinc50</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc950.png" width="32"><span>zinc950</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc50-shadow.png" width="32"><span>zinc50+shadow</span></div>
+  <div class="cell"><img src="generated/tray-32-template-black.png" width="32"><span>template-black</span></div>
+</div>
+<h2>浅色任务栏</h2>
+<div class="row taskbar-light tray">
+  <div class="cell"><img src="generated/tray-32-bordered.png" width="32"><span>bordered</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc50.png" width="32"><span>zinc50</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc950.png" width="32"><span>zinc950</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc50-shadow.png" width="32"><span>zinc50+shadow</span></div>
+  <div class="cell"><img src="generated/tray-32-template-black.png" width="32"><span>template-black</span></div>
+</div>
+<h2>托盘 16px（标题栏尺寸模拟）</h2>
+<div class="row taskbar-dark tray">
+  <div class="cell"><img src="generated/tray-32-bordered.png" width="16"><span>bordered</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc50.png" width="16"><span>zinc50</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc950.png" width="16"><span>zinc950</span></div>
+  <div class="cell"><img src="generated/tray-32-zinc50-shadow.png" width="16"><span>zinc50+shadow</span></div>
+  <div class="cell"><img src="generated/tray-32-template-black.png" width="16"><span>template-black</span></div>
+</div>
+
+<h1>应用图标 1024（Apple 网格 185px 圆角）</h1>
+<div class="row dark">
+  <div class="cell"><img src="generated/appicon-1024-color.png" width="128"><span>color</span></div>
+  <div class="cell"><img src="generated/appicon-1024-grayscale.png" width="128"><span>grayscale</span></div>
+  <div class="cell"><img src="generated/appicon-1024-zinc50.png" width="128"><span>zinc50</span></div>
+  <div class="cell"><img src="generated/appicon-1024-color.png" width="64"><span>color@64</span></div>
+  <div class="cell"><img src="generated/appicon-1024-color.png" width="32"><span>color@32</span></div>
+</div>
+<div class="row light">
+  <div class="cell"><img src="generated/appicon-1024-color.png" width="128"><span>color</span></div>
+  <div class="cell"><img src="generated/appicon-1024-grayscale.png" width="128"><span>grayscale</span></div>
+  <div class="cell"><img src="generated/appicon-1024-zinc50.png" width="128"><span>zinc50</span></div>
+</div>
+</body>
+</html>
