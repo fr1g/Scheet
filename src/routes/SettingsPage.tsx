@@ -691,6 +691,16 @@ export default function SettingsPage() {
         </div>
         <p className={sectionHint}>{t("settings.logLevelHint")}</p>
       </section>
+
+      <section>
+        <button
+          type="button"
+          onClick={() => setClearStep(1)}
+          className="rounded border border-zinc-500 px-4 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+        >
+          {t("about.clearData")}
+        </button>
+      </section>
     </>
   );
 
@@ -765,13 +775,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => setClearStep(1)}
-        className="rounded border border-zinc-500 px-4 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
-      >
-        {t("about.clearData")}
-      </button>
       <CollapseBar title={t("about.infoTitle")}>
         <pre className="typo indent-6">{t("about.info")}</pre>
         <ul className="mt-3 space-y-1 text-xs text-zinc-400">
