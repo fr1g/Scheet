@@ -12,6 +12,7 @@ import { useGlobalConfig } from "../state/GlobalConfigContext";
 import { useSettings } from "../state/SettingsContext";
 import logoUrl from "../assets/appicon.png";
 import pkg from "../../package.json";
+import zaiLogoUrl from "../assets/zai-logo.webp";
 import { BUNDLED_FONTS } from "../lib/fonts";
 import {
   minuteToTimeInput,
@@ -51,38 +52,38 @@ const LEVELS: {
   modeKey: ModeKey;
   kind: "start" | "end";
 }[] = [
-  { labelKey: "settings.levelAll", fileKey: "alarmAllFile", modeKey: "alarmAllMode", kind: "start" },
-  {
-    labelKey: "settings.levelNormal",
-    fileKey: "alarmNormalFile",
-    modeKey: "alarmNormalMode",
-    kind: "start",
-  },
-  {
-    labelKey: "settings.levelRest",
-    fileKey: "alarmRestFile",
-    modeKey: "alarmRestMode",
-    kind: "start",
-  },
-  {
-    labelKey: "settings.levelAll",
-    fileKey: "alarmAllEndFile",
-    modeKey: "alarmAllEndMode",
-    kind: "end",
-  },
-  {
-    labelKey: "settings.levelNormal",
-    fileKey: "alarmNormalEndFile",
-    modeKey: "alarmNormalEndMode",
-    kind: "end",
-  },
-  {
-    labelKey: "settings.levelRest",
-    fileKey: "alarmRestEndFile",
-    modeKey: "alarmRestEndMode",
-    kind: "end",
-  },
-];
+    { labelKey: "settings.levelAll", fileKey: "alarmAllFile", modeKey: "alarmAllMode", kind: "start" },
+    {
+      labelKey: "settings.levelNormal",
+      fileKey: "alarmNormalFile",
+      modeKey: "alarmNormalMode",
+      kind: "start",
+    },
+    {
+      labelKey: "settings.levelRest",
+      fileKey: "alarmRestFile",
+      modeKey: "alarmRestMode",
+      kind: "start",
+    },
+    {
+      labelKey: "settings.levelAll",
+      fileKey: "alarmAllEndFile",
+      modeKey: "alarmAllEndMode",
+      kind: "end",
+    },
+    {
+      labelKey: "settings.levelNormal",
+      fileKey: "alarmNormalEndFile",
+      modeKey: "alarmNormalEndMode",
+      kind: "end",
+    },
+    {
+      labelKey: "settings.levelRest",
+      fileKey: "alarmRestEndFile",
+      modeKey: "alarmRestEndMode",
+      kind: "end",
+    },
+  ];
 
 const POSITION_LABELS: Record<WindowControlsPosition, string> = {
   left: "settings.posLeft",
@@ -413,11 +414,10 @@ export default function SettingsPage() {
               key={d}
               type="button"
               onClick={() => patchFirstDay(d)}
-              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
-                draft.firstDayOfWeek === d
-                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-              }`}
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${draft.firstDayOfWeek === d
+                ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+                }`}
             >
               {d === "mon" ? t("settings.monday") : t("settings.sunday")}
             </button>
@@ -433,11 +433,10 @@ export default function SettingsPage() {
               key={l}
               type="button"
               onClick={() => void patchLanguage(l)}
-              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
-                draft.uiLanguage === l
-                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-              }`}
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${draft.uiLanguage === l
+                ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+                }`}
             >
               {l === "auto"
                 ? t("settings.langAuto")
@@ -546,11 +545,10 @@ export default function SettingsPage() {
               onClick={() =>
                 setDraft((prev) => (prev ? { ...prev, uiFontSize: s } : prev))
               }
-              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
-                draft.uiFontSize === s
-                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-              }`}
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${draft.uiFontSize === s
+                ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+                }`}
             >
               {s === "sm"
                 ? t("settings.fontSizeSm")
@@ -573,11 +571,10 @@ export default function SettingsPage() {
               onClick={() =>
                 setDraft((prev) => (prev ? { ...prev, iconVariant: v } : prev))
               }
-              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
-                draft.iconVariant === v
-                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-              }`}
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${draft.iconVariant === v
+                ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+                }`}
             >
               {t(`settings.iconVariant_${v}`)}
             </button>
@@ -594,11 +591,10 @@ export default function SettingsPage() {
               key={p}
               type="button"
               onClick={() => void handlePosition(p)}
-              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
-                position === p
-                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-              }`}
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${position === p
+                ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+                }`}
             >
               {t(POSITION_LABELS[p])}
             </button>
@@ -619,11 +615,10 @@ export default function SettingsPage() {
       onClick={() =>
         setDraft((prev) => (prev ? { ...prev, [key]: !prev[key] } : prev))
       }
-      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${
-        draft[key]
-          ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-          : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-      }`}
+      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${draft[key]
+        ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+        : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+        }`}
     >
       <span>{t(labelKey)}</span>
       <span className="text-[10px] text-zinc-400">
@@ -659,11 +654,10 @@ export default function SettingsPage() {
               onClick={() =>
                 setDraft((prev) => (prev ? { ...prev, logLevel: l } : prev))
               }
-              className={`rounded border px-2 py-1.5 text-xs transition-colors ${
-                draft.logLevel === l
-                  ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-                  : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-              }`}
+              className={`rounded border px-2 py-1.5 text-xs transition-colors ${draft.logLevel === l
+                ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+                : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+                }`}
             >
               {l}
             </button>
@@ -714,13 +708,27 @@ export default function SettingsPage() {
         </div>
         <div className="mt-1 text-xs text-zinc-400">{t("about.tagline")}</div>
       </div>
-      <p className="max-w-md text-xs leading-relaxed text-zinc-400">
+      <p className="max-w-md text-xs leading-relaxed text-zinc-400 text-justify indent-6">
         {t("about.intro")}
       </p>
       <div className="w-full max-w-sm rounded-lg border border-zinc-600/60 p-3 text-left">
+        <div className="text-xs text-zinc-300">{t("about.mgr")}</div>
+        <div className="mt-1 text-xs text-zinc-100">@fr1g</div>
+        <div className="text-[10px] text-zinc-500">{t("about.mgrNote")}</div>
+      </div>
+      <div className="w-full max-w-sm rounded-lg border border-zinc-600/60 p-3 text-left">
         <div className="text-xs text-zinc-300">{t("about.collaborators")}</div>
-        <div className="mt-1 text-xs text-zinc-100">GLM-5.3-Flash</div>
-        <div className="text-[10px] text-zinc-500">{t("about.aiNote")}</div>
+        <div className="mt-2 flex items-center gap-3">
+          <img
+            src={zaiLogoUrl}
+            alt="Z.ai"
+            className="h-10 w-10 shrink-0 rounded-lg"
+          />
+          <div>
+            <div className="text-xs text-zinc-100">GLM-5.3-Flash</div>
+            <div className="text-[10px] text-zinc-500">{t("about.aiNote")}</div>
+          </div>
+        </div>
       </div>
       <button
         type="button"
@@ -790,11 +798,10 @@ export default function SettingsPage() {
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`-mb-px border-b-2 px-3 py-2 text-xs transition-colors ${
-              activeTab === tab.id
-                ? "border-blue-400 text-zinc-100"
-                : "border-transparent text-zinc-400 hover:text-zinc-200"
-            }`}
+            className={`-mb-px border-b-2 px-3 py-2 text-xs transition-colors ${activeTab === tab.id
+              ? "border-blue-400 text-zinc-100"
+              : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
           >
             {t(tab.labelKey)}
           </button>

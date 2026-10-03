@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CloseIcon, MinusIcon } from "tdesign-icons-react";
 import type { WindowControlsPosition } from "../types/settings";
@@ -40,11 +41,12 @@ export default function WindowControls({
   onExitRequest?: () => void;
 }) {
   const shiftHeld = useShiftHeld();
+  const { t } = useTranslation();
 
   const minimizeButton = (
     <button
       type="button"
-      aria-label="最小化"
+      aria-label={t("titlebar.minimize")}
       className={`${buttonBase} w-11 hover:bg-zinc-600`}
       onClick={() => void getCurrentWindow().minimize()}
     >
@@ -55,8 +57,10 @@ export default function WindowControls({
   const closeButton = (
     <button
       type="button"
-      aria-label={shiftHeld ? "退出 Scheet" : "关闭"}
-      title={shiftHeld ? "退出 Scheet（将停止提醒）" : "关闭（隐藏到托盘）"}
+      aria-label={shiftHeld ? t("titlebar.exitButton") : t("titlebar.closeButton")}
+      title={
+        shiftHeld ? t("titlebar.exitButtonTitle") : t("titlebar.closeButtonTitle")
+      }
       onClick={(e) => {
         if (e.shiftKey) {
           onExitRequest?.();
@@ -70,7 +74,7 @@ export default function WindowControls({
           : `${buttonBase} w-11 hover:bg-red-500`
       }
     >
-      {shiftHeld ? "退出" : <CloseIcon size="16px" />}
+      {shiftHeld ? t("titlebar.exitButton") : <CloseIcon size="16px" />}
     </button>
   );
 
