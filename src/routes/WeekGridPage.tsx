@@ -18,6 +18,7 @@ import {
   parseEntryPlan,
   serializeEntryPlan,
   usePlanName,
+  planDisplayName,
 } from "../lib/weekgrid";
 import {
   createWeekPlan,
@@ -114,15 +115,10 @@ export default function WeekGridPage() {
 
   const dirty = plan != null && JSON.stringify(plan) !== savedSnapshot;
 
-  // 单周表显示 本周；仅两个周表时，选中周表的展示名用 单周/双周
+  // 选中周表展示名走统一规则（本周/单周/双周/自定义名）
   const selectedPlanDisplayName = (() => {
-    if (plans.length === 1) {
-      return t("tabs.thisWeek");
-    }
     const index = plans.findIndex((p) => p.id === selectedId);
-    if (plans.length === 2 && index >= 0) {
-      return t(index === 0 ? "titlebar.single" : "titlebar.double");
-    }
+    if (index >= 0) return planDisplayName(plans, index, planName, t);
     return planName(plan?.plan.name ?? "");
   })();
 
@@ -148,7 +144,11 @@ export default function WeekGridPage() {
     try {
       const created = await createWeekPlan();
       await loadPlans(created.id);
-      showToast(t("toasts.planCreated", { name: planName(created.name) }));
+      showToast(
+        t("toasts.planCreated", {
+          name: planDisplayName([...plans, created], plans.length, planName, t),
+        }),
+      );
     } catch (e: unknown) {
       showToast(String(e));
     }
@@ -355,17 +355,29 @@ export default function WeekGridPage() {
     try {
       await setActiveWeekPlan(target.id);
       await loadPlans(selectedId);
-      showToast(t("toasts.setAsCurrent", { name: planName(target.name) }));
+      const idx = plans.findIndex((p) => p.id === target.id);
+      showToast(
+        t("toasts.setAsCurrent", {
+          name:
+            idx >= 0 ? planDisplayName(plans, idx, planName, t) : planName(target.name),
+        }),
+      );
     } catch (e: unknown) {
       showToast(String(e));
     }
   };
 
   const handleDelete = async (target: WeekPlan) => {
+    const idx = plans.findIndex((p) => p.id === target.id);
     try {
       await deleteWeekPlan(target.id);
       await loadPlans(selectedId === target.id ? null : selectedId);
-      showToast(t("toasts.planDeleted", { name: planName(target.name) }));
+      showToast(
+        t("toasts.planDeleted", {
+          name:
+            idx >= 0 ? planDisplayName(plans, idx, planName, t) : planName(target.name),
+        }),
+      );
     } catch (e: unknown) {
       showToast(String(e));
     }
@@ -585,7 +597,12 @@ export default function WeekGridPage() {
             open
             title={t("confirms.deletePlanTitle")}
             message={t("confirms.deletePlanMessage", {
-              name: planName(confirmDelete.name),
+              name: (() => {
+                const idx = plans.findIndex((p) => p.id === confirmDelete.id);
+                return idx >= 0
+                  ? planDisplayName(plans, idx, planName, t)
+                  : planName(confirmDelete.name);
+              })(),
             })}
             confirmText={t("confirms.deleteConfirm")}
             danger

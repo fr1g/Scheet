@@ -185,6 +185,27 @@ export function usePlanName(): (raw: string) => string {
   return (raw: string) => (PLAN_NAME_KEY_RE.test(raw) ? t(raw) : raw);
 }
 
+/**
+ * 周表显示名的统一规则（所有用户可见处共用）：
+ * - 自定义名（非 weeks.wN 键）永远原样优先；
+ * - 默认键名按周表数量标记：1 个 → 本周；2 个 → 单周/双周（按列表位次）；更多 → 解析键名。
+ * plans 为当前周表列表，index 为目标周表在列表中的位次（展示态以调用时的列表为准）。
+ */
+export function planDisplayName(
+  plans: { name: string }[],
+  index: number,
+  resolveName: (raw: string) => string,
+  t: (key: string) => string,
+): string {
+  const raw = plans[index]?.name ?? "";
+  if (!isPlanNameKey(raw)) return resolveName(raw);
+  if (plans.length === 1) return t("tabs.thisWeek");
+  if (plans.length === 2) {
+    return t(index === 0 ? "titlebar.single" : "titlebar.double");
+  }
+  return resolveName(raw);
+}
+
 /** 同一天内互相重叠的提醒事务（与 Rust find_conflicts 一致）。 */
 export function findConflicts(entries: WeekEntry[]): Conflict[] {
   const conflicts: Conflict[] = [];
