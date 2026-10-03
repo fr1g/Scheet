@@ -71,3 +71,4 @@
 - 关于页协作者卡片加 Z.ai 官方 logo 头像（z.ai CDN SVG→resvg 256px→webp 2.7KB）；WindowControls 退出/关闭/最小化标签全部接入 i18n（titlebar 现有键）
 - 关于页管理员卡片头像：GitHub @fr1g 头像（256px→webp 15KB）；z.ai logo 保留在 GLM 卡片
 - 关于页信息块转为 CollapseBar（新建组件，高度过渡+箭头旋转），内嵌开源项目清单（20 项直接依赖，英文名 :: 仓库链接可点击）；infoTitle/info 引用修正为 about.* 前缀（原 t("infoTitle") 会渲染裸键）；en 补 infoTitle 译文
+- i18n 去重：13 个冗余键清除（entry.cancel/stop/builtin/once、about.clearFinal/clearTitle、settings.unsaved、confirms.revertTitle/revertConfirm/switchTitle/exitTitle/exitMessage/exitConfirm），调用点统一指向 common/topbar/settings 的正主键；EntryEditDialog 折叠节改用 CollapseBar（组件泛化 className/contentClassName），原生 details 退役

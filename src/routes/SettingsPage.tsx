@@ -820,7 +820,7 @@ export default function SettingsPage() {
         <h1 className="text-sm text-zinc-100">{t("settings.title")}</h1>
         {dirty && (
           <span className="animate-pulse rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-300">
-            {t("settings.unsaved")}
+            {t("topbar.unsaved")}
           </span>
         )}
         <div className="flex-1" />
@@ -880,7 +880,7 @@ export default function SettingsPage() {
         {clearStep === 1 && (
           <DialogShell
             key="clear-1"
-            title={t("about.clearTitle")}
+            title={t("about.clearData")}
             onClose={() => setClearStep(0)}
             onConfirm={() => setClearStep(2)}
             footer={
@@ -920,7 +920,7 @@ export default function SettingsPage() {
         {clearStep === 2 && (
           <DialogShell
             key="clear-2"
-            title={t("about.clearTitle")}
+            title={t("about.clearData")}
             onClose={() => setClearStep(0)}
             onConfirm={() => setClearStep(3)}
             canConfirm={agreeText === "AGREE TO CLEAR"}
@@ -941,10 +941,10 @@ export default function SettingsPage() {
         {clearStep === 3 && (
           <DialogShell
             key="clear-3"
-            title={t("about.clearTitle")}
+            title={t("about.clearData")}
             onClose={() => setClearStep(0)}
             onConfirm={() => void handleClearNow()}
-            confirmText={t("about.clearFinal")}
+            confirmText={t("common.confirm")}
           >
             <p className="text-xs leading-relaxed text-zinc-300">
               {t("about.clearStep3Body")}

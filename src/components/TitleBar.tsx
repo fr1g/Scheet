@@ -74,7 +74,7 @@ export default function TitleBar() {
         open={confirmExit}
         title={t("exitConfirm.title")}
         message={t("exitConfirm.message")}
-        confirmText={t("exitConfirm.confirm")}
+        confirmText={t("titlebar.exitButton")}
         danger
         onConfirm={() => {
           setConfirmExit(false);

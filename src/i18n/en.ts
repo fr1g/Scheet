@@ -1,9 +1,9 @@
 /** English resources. Mirrors the structure of zh.ts (the source of truth). */
 export default {
   common: {
+    stop: "Stop",
     cancel: "Cancel",
     confirm: "Confirm",
-    stop: "Stop",
   },
   loading: { text: "Opening…" },
   error: { title: "Something went wrong", retry: "Try again" },
@@ -23,7 +23,6 @@ export default {
     title: "Quit Scheet",
     message:
       "You won't get any reminders (including a ringing alarm) until you open the app again. You sure?",
-    confirm: "Quit",
   },
   tabs: { add: "New plan", current: "Current week", thisWeek: "This week" },
   weeks: {
@@ -82,16 +81,9 @@ export default {
     deletePlanMessage:
       "「{{name}}」 and all of its entries will be gone for good. Delete?",
     deleteConfirm: "Delete",
-    switchTitle: "Unsaved changes",
     switchMessage: "Switching plans discards unsaved changes. Continue?",
     switchConfirm: "Discard & switch",
-    revertTitle: "Discard changes",
     revertMessage: "Changes go back to the last saved state. Discard?",
-    revertConfirm: "Discard",
-    exitTitle: "Quit Scheet",
-    exitMessage:
-      "You won't get any reminders (including a ringing alarm) until you open the app again. You sure?",
-    exitConfirm: "Quit",
   },
   planSettings: {
     title: "Plan settings",
@@ -128,31 +120,25 @@ export default {
     willBe: "Will be {{duration}}",
     inputWas: " (you typed {{duration}})",
     collapse: "Sounds & color",
-    startBell: "Start sound",
-    endBell: "End sound",
     startMode: "How it rings at start",
     endMode: "How it rings at end",
     inheritFile: "{{file}} ({{source}})",
     inheritMode: "{{mode}} ({{source}})",
-    builtin: "Built-in sound",
     none: "Silent",
     sourceType: "type default",
     sourceTypeEnd: "type default (end)",
     sourceGlobal: "global default",
     sourceGlobalEnd: "global default (end)",
     sourceBuiltin: "built-in",
-    once: "Rings once",
     loop: "Rings in a loop",
     previewStart: "Play start sound",
     previewEnd: "Play end sound",
-    stop: "Stop",
     noSound: "No sound for this option",
     noneHint: "No ringing, no notification — only the in-app snackbar",
     color: "Color (hex, empty = default by type)",
     colorError: "Color must look like #RRGGBB",
     delete: "Discard",
     cancelNew: "Cancel (don't create)",
-    cancel: "Cancel",
     apply: "Apply",
   },
   todo: {
@@ -201,7 +187,6 @@ export default {
       about: "About",
     },
     back: "Back",
-    unsaved: "Unsaved changes",
     save: "Save settings",
     loading: "Opening settings…",
     loadError: "Failed to open settings",
@@ -293,7 +278,6 @@ export default {
     mgrNote: "Comrades, engineering ideas with agent working do works!",
     aiNote: "AI-assisted development",
     clearData: "Clear all data",
-    clearTitle: "Clear all data",
     clearStep1Body:
       "Are you sure you want to clear all data? You can copy the current app data folder somewhere else as an archive, then quit the app and delete the data folder. That way nothing is lost, and the app starts fresh.",
     clearOpenFolder: "Open data folder",
@@ -304,7 +288,6 @@ export default {
     clearContinue: "Continue",
     clearStep3Body:
       "You are about to clear all data! After you click Confirm, the app will restart and wipe existing data.",
-    clearFinal: "Confirm",
     clearFailed: "Failed to clear",
     infoTitle: `Acknowledgements, declaration, open-source licenses and other info`,
     info: ``

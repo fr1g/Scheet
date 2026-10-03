@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { playAlarmSound, stopAlarmSound } from "../../lib/alarm-sound";
 import { listAlarmSounds } from "../../lib/clipboard";
+import CollapseBar from "../CollapseBar";
 import {
   hexWithAlpha,
   minuteToHHMM,
@@ -192,7 +193,7 @@ export default function EntryEditDialog({
               onClick={onClose}
               className="rounded px-3 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
             >
-              {createdNow ? t("entry.cancelNew") : t("entry.cancel")}
+              {createdNow ? t("entry.cancelNew") : t("common.cancel")}
             </button>
             <button
               type="button"
@@ -291,10 +292,11 @@ export default function EntryEditDialog({
         )}
       </p>
 
-      <details className="mt-3 rounded-lg border border-zinc-600/60">
-        <summary className="cursor-pointer px-2 py-1.5 text-xs text-zinc-300 select-none">
-          {t("entry.collapse")}
-        </summary>
+      <CollapseBar
+        title={t("entry.collapse")}
+        className="mt-3"
+        contentClassName=""
+      >
         <div className="px-2 pb-2 pt-1">
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs text-zinc-300">
@@ -310,7 +312,7 @@ export default function EntryEditDialog({
                     source: t(`entry.${startChain.fileSource}`),
                   })}
                 </option>
-                <option value="builtin">{t("entry.builtin")}</option>
+                <option value="builtin">{t("settings.builtin")}</option>
                 <option value="none">{t("entry.none")}</option>
                 {alarmFiles.map((f) => (
                   <option key={f} value={f}>
@@ -332,7 +334,7 @@ export default function EntryEditDialog({
                     source: t(`entry.${endChain.fileSource}`),
                   })}
                 </option>
-                <option value="builtin">{t("entry.builtin")}</option>
+                <option value="builtin">{t("settings.builtin")}</option>
                 <option value="none">{t("entry.none")}</option>
                 {alarmFiles.map((f) => (
                   <option key={f} value={f}>
@@ -356,7 +358,7 @@ export default function EntryEditDialog({
                     source: t(`entry.${startChain.modeSource}`),
                   })}
                 </option>
-                <option value="once">{t("entry.once")}</option>
+                <option value="once">{t("settings.once")}</option>
                 <option value="loop">{t("entry.loop")}</option>
               </select>
             </label>
@@ -373,7 +375,7 @@ export default function EntryEditDialog({
                     source: t(`entry.${endChain.modeSource}`),
                   })}
                 </option>
-                <option value="once">{t("entry.once")}</option>
+                <option value="once">{t("settings.once")}</option>
                 <option value="loop">{t("entry.loop")}</option>
               </select>
             </label>
@@ -433,7 +435,7 @@ export default function EntryEditDialog({
             <p className="mt-2 text-[10px] text-red-400">{t("entry.colorError")}</p>
           )}
         </div>
-      </details>
+      </CollapseBar>
 
       {!titleOk && (
         <p className="mt-2 text-[10px] text-red-400">{t("entry.titleError")}</p>
@@ -453,10 +455,10 @@ function humanizeMinutes(minutes: number): string {
 
 function alarmFileLabel(value: "builtin" | "none" | string): string {
   const { t } = useTranslation();
-  return value === "builtin" ? t("entry.builtin") : value === "none" ? t("entry.none") : value;
+  return value === "builtin" ? t("settings.builtin") : value === "none" ? t("entry.none") : value;
 }
 
 function alarmModeLabel(mode: AlarmMode): string {
   const { t } = useTranslation();
-  return mode === "loop" ? t("entry.loop") : t("entry.once");
+  return mode === "loop" ? t("settings.loop") : t("settings.once");
 }

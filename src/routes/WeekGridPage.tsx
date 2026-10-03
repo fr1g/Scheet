@@ -618,7 +618,7 @@ export default function WeekGridPage() {
           <ConfirmDialog
             key="confirm-switch"
             open
-            title={t("confirms.switchTitle")}
+            title={t("topbar.unsaved")}
             message={t("confirms.switchMessage")}
             confirmText={t("confirms.switchConfirm")}
             danger
@@ -634,9 +634,9 @@ export default function WeekGridPage() {
           <ConfirmDialog
             key="confirm-revert"
             open
-            title={t("confirms.revertTitle")}
+            title={t("topbar.revert")}
             message={t("confirms.revertMessage")}
-            confirmText={t("confirms.revertConfirm")}
+            confirmText={t("topbar.revert")}
             danger
             onConfirm={handleRevert}
             onCancel={() => setConfirmRevert(false)}

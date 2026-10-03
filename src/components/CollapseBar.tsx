@@ -6,13 +6,21 @@ import { ChevronRightIcon } from "tdesign-icons-react";
 export default function CollapseBar({
   title,
   children,
+  className = "",
+  contentClassName = "",
 }: {
   title: string;
   children: ReactNode;
+  /** 追加到外壳（宽度/边距等布局用）。 */
+  className?: string;
+  /** 覆写内容区内边距（默认 px-3 pb-3）。 */
+  contentClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="w-full max-w-sm overflow-hidden rounded-lg border border-zinc-600/60 text-left">
+    <div
+      className={`overflow-hidden rounded-lg border border-zinc-600/60 text-left ${className}`}
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -36,7 +44,7 @@ export default function CollapseBar({
             transition={{ duration: 0.18, ease: "easeOut" }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-3">{children}</div>
+            <div className={contentClassName || "px-3 pb-3"}>{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
