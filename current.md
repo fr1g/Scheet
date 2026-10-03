@@ -74,3 +74,4 @@
 - i18n 去重：13 个冗余键清除（entry.cancel/stop/builtin/once、about.clearFinal/clearTitle、settings.unsaved、confirms.revertTitle/revertConfirm/switchTitle/exitTitle/exitMessage/exitConfirm），调用点统一指向 common/topbar/settings 的正主键；EntryEditDialog 折叠节改用 CollapseBar（组件泛化 className/contentClassName），原生 details 退役
 - i18n 键树全量对齐检查（zh/en 结构化 diff）：en 无缺失；发现并修复上轮去重误删的 zh settings.once/builtin（调用点指向它们，曾致中文界面裸键）
 - 清空数据按钮从关于页移至 设置-高级 tab 尾部（三步确认模态为页面级，随按钮所在 tab 触发）；信息折叠栏保留在关于页
+- 崩溃诊断增强：启动日志记录实际 WebView2 运行时版本 + 图标变体（下次崩溃可判定崩在哪个运行时的实例上）

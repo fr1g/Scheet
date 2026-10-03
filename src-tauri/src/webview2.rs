@@ -111,12 +111,17 @@ fn open_download_page() {
 /// 在应用启动前确保 WebView2 可用；缺失时下载/引导安装，最终失败则退出进程。
 pub fn ensure_runtime() {
     if runtime_installed() {
-        crate::logging::log(
-            crate::logging::LEVEL_INFO,
-            "INFO",
-            "[WV]",
-            "WebView2 runtime present",
-        );
+        match tauri::webview_version() {
+            Ok(v) => crate::logging::log(
+                crate::logging::LEVEL_INFO,
+                "INFO",
+                "[WV]",
+                &format!("WebView2 runtime present, version {v}"),
+            ),
+            Err(e) => crate::logging::warn(&format!(
+                "[wv] WebView2 runtime present, version query failed: {e}"
+            )),
+        }
         return;
     }
     crate::logging::log(

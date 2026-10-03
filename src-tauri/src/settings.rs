@@ -255,6 +255,7 @@ pub fn apply_icon_variant(app: &tauri::AppHandle, variant: &str) {
     let Some((_, bytes)) = ICON_VARIANT_ASSETS.iter().find(|(n, _)| *n == variant) else {
         return;
     };
+    crate::logging::info(&format!("[icons] Applied icon variant: {variant}"));
     let Ok(image) = tauri::image::Image::from_bytes(bytes) else {
         crate::logging::warn("[icons] Failed to decode icon variant asset");
         return;
