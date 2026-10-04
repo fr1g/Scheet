@@ -546,6 +546,7 @@ export default function WeekGridPage() {
         plan={plan}
         config={config}
         colorScheme={colorScheme}
+        isCurrentWeek={selectedId === currentId}
         displayName={selectedPlanDisplayName}
         dirty={dirty}
         saving={saving}

@@ -28,6 +28,8 @@ interface WeekGridProps {
   colorScheme: EntryColorScheme;
   /** 选中周表的展示名（双表时为 单周/双周，键名已解析）。 */
   displayName: string;
+  /** 选中周表是否为本周轮换表（非本周时表头不标"今天"）。 */
+  isCurrentWeek: boolean;
   dirty: boolean;
   saving: boolean;
   onSave: () => void;
@@ -114,6 +116,7 @@ export default function WeekGrid({
   config,
   colorScheme,
   displayName,
+  isCurrentWeek,
   dirty,
   saving,
   onSave,
@@ -438,7 +441,7 @@ export default function WeekGrid({
                     }`}
                 >
                   {t(`days.${d}`)}
-                  {d === today && (
+                  {isCurrentWeek && d === today && (
                     <span className="ml-1 text-[10px] text-blue-300">{t("grid.today")}</span>
                   )}
                   {pasteTargetWeekday === d && (
