@@ -17,6 +17,7 @@ import {
   type PositionedEntry,
 } from "../../lib/weekgrid";
 import { useTranslation } from "react-i18next";
+import { useShiftHeld } from "../WindowControls";
 import { useHumanizeMinutes } from "../../i18n";
 import { useToday } from "../../state/dateState";
 
@@ -138,6 +139,8 @@ export default function WeekGrid({
     { day: number; topPx: number; label: string } | null
   >(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  // 按住 Shift：cell 任意位置（含功能边）拖动 = 移动事务（极矮 cell 摸不到非功能区时用）
+  const shiftHeld = useShiftHeld();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -546,6 +549,7 @@ export default function WeekGrid({
                             selected={selectedEntryId === p.entry.id}
                             dragging={drag?.entryId === p.entry.id}
                             colorScheme={colorScheme}
+                            shiftHeld={shiftHeld}
                             onBodyPointerDown={(e) => startMoveDrag(e, p.entry)}
                             onCopyPointerDown={(e) => startCopyDrag(e, p.entry)}
                             onResizeStartDown={(e) =>
@@ -576,6 +580,7 @@ function EntryCell({
   selected,
   dragging,
   colorScheme,
+  shiftHeld,
   onBodyPointerDown,
   onCopyPointerDown,
   onResizeStartDown,
@@ -586,6 +591,8 @@ function EntryCell({
   selected: boolean;
   dragging: boolean;
   colorScheme: EntryColorScheme;
+  /** 按住 Shift：功能边临时变为移动手柄。 */
+  shiftHeld: boolean;
   onBodyPointerDown: (e: React.PointerEvent) => void;
   onCopyPointerDown: (e: React.PointerEvent) => void;
   onResizeStartDown: (e: React.PointerEvent) => void;
@@ -644,28 +651,28 @@ function EntryCell({
         }`}
     >
       <div
-        onPointerDown={onResizeStartDown}
+        onPointerDown={shiftHeld ? onBodyPointerDown : onResizeStartDown}
         title={`${tooltip}
 ${t("grid.resizeStart")}`}
-        className={`inset-x-0 top-0 h-1.5 cursor-ns-resize rounded-t-xl ${handle}`}
+        className={`inset-x-0 top-0 h-1.5 rounded-t-xl ${shiftHeld ? "cursor-move" : "cursor-ns-resize"} ${handle}`}
       />
       <div
-        onPointerDown={onResizeEndDown}
+        onPointerDown={shiftHeld ? onBodyPointerDown : onResizeEndDown}
         title={`${tooltip}
 ${t("grid.resizeEnd")}`}
-        className={`inset-x-0 bottom-0 h-1.5 cursor-ns-resize rounded-b-xl ${handle}`}
+        className={`inset-x-0 bottom-0 h-1.5 rounded-b-xl ${shiftHeld ? "cursor-move" : "cursor-ns-resize"} ${handle}`}
       />
       <div
-        onPointerDown={onCopyPointerDown}
+        onPointerDown={shiftHeld ? onBodyPointerDown : onCopyPointerDown}
         title={`${tooltip}
 ${t("grid.copyEdge")}`}
-        className={`inset-y-0 left-0 w-1.5 cursor-ew-resize rounded-l-xl ${handle}`}
+        className={`inset-y-0 left-0 w-1.5 rounded-l-xl ${shiftHeld ? "cursor-move" : "cursor-ew-resize"} ${handle}`}
       />
       <div
-        onPointerDown={onCopyPointerDown}
+        onPointerDown={shiftHeld ? onBodyPointerDown : onCopyPointerDown}
         title={`${tooltip}
 ${t("grid.copyEdge")}`}
-        className={`inset-y-0 right-0 w-1.5 cursor-ew-resize rounded-r-xl ${handle}`}
+        className={`inset-y-0 right-0 w-1.5 rounded-r-xl ${shiftHeld ? "cursor-move" : "cursor-ew-resize"} ${handle}`}
       />
       {entry.notes && (
         <span
