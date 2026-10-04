@@ -134,6 +134,9 @@ export default function WeekGrid({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [wrapHeight, setWrapHeight] = useState(0);
   const { weekday: today } = useToday();
+  const [hoverTime, setHoverTime] = useState<
+    { day: number; topPx: number; label: string } | null
+  >(null);
   const [drag, setDrag] = useState<DragState | null>(null);
 
   useEffect(() => {
@@ -460,6 +463,21 @@ export default function WeekGrid({
                     <div
                       className="relative h-full overflow-hidden "
                       title={t("grid.newHere")}
+                      onPointerMove={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const minute =
+                          dayStart + (e.clientY - rect.top) / pxPerMinute;
+                        const floored = Math.max(
+                          dayStart,
+                          Math.min(dayEnd, Math.floor(minute / 30) * 30),
+                        );
+                        setHoverTime({
+                          day: d,
+                          topPx: (floored - dayStart) * pxPerMinute,
+                          label: minuteToHHMM(floored),
+                        });
+                      }}
+                      onPointerLeave={() => setHoverTime(null)}
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest("[data-entry]")) return;
                         onSelectEntry(null);
@@ -485,6 +503,26 @@ export default function WeekGrid({
                       <span className="pointer-events-none absolute bottom-0.5 left-1 z-0 text-[10px] leading-3 text-zinc-500">
                         {minuteToHHMM(dayEnd)}
                       </span>
+                      {dayStart <= 720 && 720 < dayEnd && (
+                        <div
+                          className="pointer-events-none absolute inset-x-0 z-0 border-t border-dashed border-zinc-500/40"
+                          style={{ top: (720 - dayStart) * pxPerMinute }}
+                        >
+                          <span className="absolute right-1 -top-2 text-[10px] leading-3 text-zinc-500">
+                            12:00
+                          </span>
+                        </div>
+                      )}
+                      {hoverTime?.day === d && !drag && (
+                        <div
+                          className="pointer-events-none absolute inset-x-0 z-20 flex justify-end"
+                          style={{ top: hoverTime.topPx }}
+                        >
+                          <span className="-translate-y-1/2 rounded bg-zinc-950/85 px-1 text-[10px] leading-4 text-zinc-100">
+                            {hoverTime.label}
+                          </span>
+                        </div>
+                      )}
                       {positioned.map((p) => (
                         <div
                           key={p.entry.id}
