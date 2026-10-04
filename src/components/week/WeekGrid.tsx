@@ -584,7 +584,7 @@ function EntryCell({
           .background,
       }}
       onPointerDown={onBodyPointerDown}
-      className={`group relative grid h-full w-full content-center items-center justify-center overflow-hidden rounded-xl px-2 text-xs text-zinc-100 ${outline} ${selectionRing} ${
+      className={`group relative flex h-full w-full flex-col overflow-hidden rounded-xl px-2 text-xs text-zinc-100 ${outline} ${selectionRing} ${
         dragging ? "cursor-grabbing" : "cursor-move"
       }`}
     >
@@ -613,17 +613,19 @@ function EntryCell({
           {minuteToHHMM(entry.startMinute)}
         </span>
       )}
-      <span
-        className={`text-center leading-tight ${
-          entry.entryType === "normal" ? "font-semibold" : ""
-        } ${
-          resolveEntryColors(entry.entryType, entry.color, colorScheme).textDark
-            ? "text-zinc-900"
-            : "text-zinc-100"
-        }`}
-      >
-        {entry.title || typeLabel}
-      </span>
+      <div className="grid min-h-0 grow place-items-center">
+        <span
+          className={`text-center leading-tight ${
+            entry.entryType === "normal" ? "font-semibold" : ""
+          } ${
+            resolveEntryColors(entry.entryType, entry.color, colorScheme).textDark
+              ? "text-zinc-900"
+              : "text-zinc-100"
+          }`}
+        >
+          {entry.title || typeLabel}
+        </span>
+      </div>
       {showTimes && (
         <span className="text-center text-[10px] leading-3 text-zinc-300">
           {minuteToHHMM(realEnd)}
