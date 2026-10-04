@@ -327,6 +327,7 @@ export function serializeEntryPlan(entry: WeekEntry): string {
     endAlarmFile: entry.endAlarmFile,
     endAlarmMode: entry.endAlarmMode,
     color: entry.color,
+    notes: entry.notes,
   });
 }
 
@@ -369,6 +370,7 @@ export function parseEntryPlan(raw: string): Omit<WeekEntry, "id" | "weekday"> |
       endAlarmFile: optionalString(parsed.endAlarmFile),
       endAlarmMode: optionalMode(parsed.endAlarmMode),
       color: optionalString(parsed.color),
+      notes: optionalString(parsed.notes),
     };
   } catch {
     return null;

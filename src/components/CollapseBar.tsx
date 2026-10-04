@@ -8,6 +8,8 @@ export default function CollapseBar({
   children,
   className = "",
   contentClassName = "",
+  open: controlledOpen,
+  onOpenChange,
 }: {
   title: string;
   children: ReactNode;
@@ -15,20 +17,28 @@ export default function CollapseBar({
   className?: string;
   /** 覆写内容区内边距（默认 px-3 pb-3）。 */
   contentClassName?: string;
+  /** 受控展开态（传入 open/onOpenChange 即由外部控制，用于互斥分组）。 */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = controlledOpen ?? internalOpen;
   return (
     <div
       className={`overflow-hidden rounded-lg border border-zinc-600/60 text-left ${className}`}
     >
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          const next = !isOpen;
+          if (onOpenChange) onOpenChange(next);
+          else setInternalOpen(next);
+        }}
         className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-thin text-zinc-200 transition-colors hover:bg-zinc-600/40"
       >
         {title}
         <motion.span
-          animate={{ rotate: open ? 90 : 0 }}
+          animate={{ rotate: isOpen ? 90 : 0 }}
           transition={{ duration: 0.15 }}
           className="flex items-center"
         >
@@ -36,7 +46,7 @@ export default function CollapseBar({
         </motion.span>
       </button>
       <AnimatePresence initial={false}>
-        {open && (
+        {isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}

@@ -128,6 +128,8 @@ export default {
     willBe: "Will be {{duration}}",
     inputWas: " (you typed {{duration}})",
     collapse: "Sounds & color",
+    notes: "Notes",
+    notesPlaceholder: "Write a note… (max 300 chars)",
     startMode: "How it rings at start",
     endMode: "How it rings at end",
     inheritFile: "{{file}} ({{source}})",

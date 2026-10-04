@@ -35,8 +35,10 @@ export interface WeekEntry {
   /** 结束铃声（null 时回落到开始铃声链）；格式同 alarmFile。 */
   endAlarmFile: string | null;
   endAlarmMode: AlarmMode | null;
-  /** 自定义颜色 #RRGGBB；null 时按类型使用默认色（普通=蓝、休息=琥珀）。 */
+  /** 自定义颜色 #RRGGBB；null 时按类型使用默认色。 */
   color: string | null;
+  /** 文字备注（可空，≤300 字符）。 */
+  notes: string | null;
 }
 
 /** 某周表某天的起止时间覆盖。 */

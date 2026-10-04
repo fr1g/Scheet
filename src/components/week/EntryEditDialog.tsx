@@ -81,6 +81,8 @@ export default function EntryEditDialog({
     entry.endAlarmMode ?? "inherit",
   );
   const [color, setColor] = useState(entry.color ?? "");
+  const [notes, setNotes] = useState(entry.notes ?? "");
+  const [openSection, setOpenSection] = useState<"bells" | "notes" | null>(null);
   const [alarmFiles, setAlarmFiles] = useState<string[]>([]);
 
   useEffect(() => {
@@ -170,6 +172,7 @@ export default function EntryEditDialog({
       endAlarmFile: endAlarmChoice === "inherit" ? null : endAlarmChoice,
       endAlarmMode: endModeChoice === "inherit" ? null : endModeChoice,
       color: color === "" ? null : color.toUpperCase(),
+      notes: notes.trim() === "" ? null : notes,
     });
   };
 
@@ -304,6 +307,8 @@ export default function EntryEditDialog({
         title={t("entry.collapse")}
         className="mt-3"
         contentClassName=""
+        open={openSection === "bells"}
+        onOpenChange={(o) => setOpenSection(o ? "bells" : null)}
       >
         <div className="px-2 pb-2 pt-1">
           <div className="grid grid-cols-2 gap-3">
@@ -452,6 +457,26 @@ export default function EntryEditDialog({
           {!colorOk && (
             <p className="mt-2 text-[10px] text-red-400">{t("entry.colorError")}</p>
           )}
+        </div>
+      </CollapseBar>
+
+      <CollapseBar
+        title={t("entry.notes")}
+        className="mt-3"
+        contentClassName=""
+        open={openSection === "notes"}
+        onOpenChange={(o) => setOpenSection(o ? "notes" : null)}
+      >
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value.slice(0, 300))}
+          maxLength={300}
+          rows={4}
+          placeholder={t("entry.notesPlaceholder")}
+          className="w-full resize-y rounded border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400"
+        />
+        <div className="mt-1 text-right text-[10px] text-zinc-500">
+          {notes.length}/300
         </div>
       </CollapseBar>
 

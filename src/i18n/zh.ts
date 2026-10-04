@@ -131,6 +131,8 @@ export default {
     willBe: "保存后是 {{duration}}",
     inputWas: "（你填的是 {{duration}}）",
     collapse: "铃声和颜色",
+    notes: "备注",
+    notesPlaceholder: "写点备注…（最多 300 字）",
     startMode: "开始时怎么响",
     endMode: "结束时怎么响",
     inheritFile: "{{file}}（{{source}}）",

@@ -179,6 +179,7 @@ mod tests {
             color: None,
             end_alarm_file: None,
             end_alarm_mode: None,
+            notes: None,
         }
     }
 

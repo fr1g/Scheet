@@ -62,35 +62,35 @@ const MAX_DURATION_MINUTE = 1440;
 type DragState =
   /** 拖动 cell 顶部边缘：调整开始时间（结束不变）。 */
   | {
-      mode: "resize-start";
-      entryId: number;
-      dayStart: number;
-      startY: number;
-      baseStart: number;
-      baseEnd: number;
-      start: number;
-    }
+    mode: "resize-start";
+    entryId: number;
+    dayStart: number;
+    startY: number;
+    baseStart: number;
+    baseEnd: number;
+    start: number;
+  }
   /** 拖动 cell 底部边缘：调整结束时间（开始不变）。 */
   | {
-      mode: "resize-end";
-      entryId: number;
-      startY: number;
-      baseStart: number;
-      baseEnd: number;
-      end: number;
-    }
+    mode: "resize-end";
+    entryId: number;
+    startY: number;
+    baseStart: number;
+    baseEnd: number;
+    end: number;
+  }
   /** 拖动 cell 本体：保持时长重放（垂直）+ 换天（水平）。 */
   | {
-      mode: "move";
-      entryId: number;
-      sourceWeekday: number;
-      startX: number;
-      startY: number;
-      baseStart: number;
-      duration: number;
-      shift: number;
-      targetDay: number | null;
-    }
+    mode: "move";
+    entryId: number;
+    sourceWeekday: number;
+    startX: number;
+    startY: number;
+    baseStart: number;
+    duration: number;
+    shift: number;
+    targetDay: number | null;
+  }
   /** 按住 cell 左右边缘横向拖拽：复制安排到其他天的同一时段。 */
   | { mode: "copy"; entryId: number; sourceWeekday: number; targetDay: number | null };
 
@@ -333,7 +333,7 @@ export default function WeekGrid({
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerCancel);
     };
-     
+
   }, [drag, pxPerMinute, plan, config, onChangeEntries]);
 
   return (
@@ -424,13 +424,12 @@ export default function WeekGrid({
                         ? t("grid.headerReady")
                         : t("grid.headerEmpty")
                   }
-                  className={`h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100 transition-colors ${
-                    pasteTargetWeekday === d || dragTargetDay === d
-                      ? "bg-zinc-600/70"
-                      : clipboardHasPlan
-                        ? "cursor-pointer"
-                        : "cursor-default"
-                  }`}
+                  className={`h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100 transition-colors ${pasteTargetWeekday === d || dragTargetDay === d
+                    ? "bg-zinc-600/70"
+                    : clipboardHasPlan
+                      ? "cursor-pointer"
+                      : "cursor-default"
+                    }`}
                 >
                   {t(`days.${d}`)}
                   {d === today && (
@@ -457,9 +456,9 @@ export default function WeekGrid({
                   pxPerMinute,
                 );
                 return (
-                  <td key={d} data-day={d} className="border border-zinc-600 p-1 align-top">
+                  <td key={d} data-day={d} className="border border-zinc-600 align-top px-0.5">
                     <div
-                      className="relative h-full overflow-hidden"
+                      className="relative h-full overflow-hidden "
                       title={t("grid.newHere")}
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest("[data-entry]")) return;
@@ -473,7 +472,7 @@ export default function WeekGrid({
                           Math.max(
                             dayStart,
                             dayStart +
-                              Math.floor((e.clientY - rect.top) / pxPerMinute / 5) * 5,
+                            Math.floor((e.clientY - rect.top) / pxPerMinute / 5) * 5,
                           ),
                         );
                         onCreateAt?.(d, minute);
@@ -590,9 +589,8 @@ function EntryCell({
         background: entryColors.background,
       }}
       onPointerDown={onBodyPointerDown}
-      className={`group relative flex h-full w-full flex-col overflow-hidden rounded-xl px-2 text-xs text-zinc-100 ${outline} ${selectionRing} ${
-        dragging ? "cursor-grabbing" : "cursor-move"
-      }`}
+      className={`group relative flex h-full w-full flex-col overflow-hidden rounded-xl px-2 text-xs text-zinc-100 ${outline} ${selectionRing} ${dragging ? "cursor-grabbing" : "cursor-move"
+        }`}
     >
       <div
         onPointerDown={onResizeStartDown}
@@ -619,25 +617,23 @@ ${t("grid.copyEdge")}`}
         className={`inset-y-0 right-0 w-1.5 cursor-ew-resize rounded-r-xl ${handle}`}
       />
       {showTimes && (
-        <span className={`text-center text-[10px] leading-3 ${timeColor}`}>
+        <span className={`text-left text-[9px] leading-3 ${timeColor}`}>
           {minuteToHHMM(entry.startMinute)}
         </span>
       )}
-      <div className="grid min-h-0 grow place-items-center">
+      <div className="grid min-h-0 grow place-items-center -translate-y-px">
         <span
-          className={`text-center leading-tight ${
-            entry.entryType === "normal" ? "font-semibold" : ""
-          } ${
-            resolveEntryColors(entry.entryType, entry.color, colorScheme).textDark
+          className={`text-center leading-tight ${entry.entryType === "normal" ? "font-semibold" : ""
+            } ${resolveEntryColors(entry.entryType, entry.color, colorScheme).textDark
               ? "text-zinc-900"
               : "text-zinc-100"
-          }`}
+            }`}
         >
           {entry.title || typeLabel}
         </span>
       </div>
       {showTimes && (
-        <span className={`text-center text-[10px] leading-3 ${timeColor}`}>
+        <span className={`text-right text-[9px] leading-3 ${timeColor}`}>
           {minuteToHHMM(realEnd)}
         </span>
       )}

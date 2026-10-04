@@ -338,6 +338,7 @@ export default function WeekGridPage() {
       startMinute,
       durationMinute: 30,
       entryType: "normal",
+      notes: null,
       title: "",
       alarmFile: null,
       alarmMode: null,
