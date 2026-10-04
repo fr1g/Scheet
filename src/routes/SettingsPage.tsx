@@ -324,6 +324,36 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config, draft, startTime, endTime, update, showToast, t]);
 
+  // 快捷键：Ctrl+S 保存；Ctrl+Z 丢弃草稿（文本输入框内不拦截，保留原生撤销）
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === "s" && dirty) {
+        e.preventDefault();
+        void handleSave();
+      } else if (key === "z" && dirty) {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        if (config) {
+          e.preventDefault();
+          setDraft(config);
+          setStartTime(minuteToTimeInput(config.dayStartMinute));
+          setEndTime(minuteToTimeInput(config.dayEndMinute));
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [config, dirty, handleSave]);
+
   const handlePosition = useCallback(async (position: WindowControlsPosition) => {
     try {
       await updateWindowControlsPosition(position);
@@ -334,6 +364,9 @@ export default function SettingsPage() {
   }, [update, showToast, t]);
 
   // 渲染闸门放在所有 hook 之后（Rules of Hooks）；之后的代码可把 draft 收窄为非空
+  // ⚠️ 渲染闸门：此行以下禁止声明任何 hook（useXxx/useMemo/useCallback）——
+  //    否则首次渲染（config 未到）与之后的 hook 数量不一致，触发
+  //    "Rendered more hooks than during the previous render"。新 hook 请放到本注释之前。
   if (loadError) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-100">
@@ -904,35 +937,6 @@ export default function SettingsPage() {
     about: aboutPanel,
   };
 
-  // 快捷键：Ctrl+S 保存；Ctrl+Z 丢弃草稿（文本输入框内不拦截，保留原生撤销）
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      const key = e.key.toLowerCase();
-      if (key === "s" && dirty) {
-        e.preventDefault();
-        void handleSave();
-      } else if (key === "z" && dirty) {
-        const target = e.target as HTMLElement | null;
-        if (
-          target &&
-          (target.tagName === "INPUT" ||
-            target.tagName === "TEXTAREA" ||
-            target.isContentEditable)
-        ) {
-          return;
-        }
-        if (config) {
-          e.preventDefault();
-          setDraft(config);
-          setStartTime(minuteToTimeInput(config.dayStartMinute));
-          setEndTime(minuteToTimeInput(config.dayEndMinute));
-        }
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dirty, config, handleSave]);
 
   return (
     <motion.div
