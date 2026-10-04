@@ -48,10 +48,18 @@ function AppShell() {
   const isPopup = getCurrentWindow().label === "alarm-popup";
 
   // 全局屏蔽浏览器默认右键菜单（自定义菜单自行 preventDefault + 打开）
+  // 并拦截 F12：DevTools 只经 设置-高级 的 Shift 隐藏按钮进入
   useEffect(() => {
     const onContextMenu = (e: MouseEvent) => e.preventDefault();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "F12") e.preventDefault();
+    };
     window.addEventListener("contextmenu", onContextMenu);
-    return () => window.removeEventListener("contextmenu", onContextMenu);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("contextmenu", onContextMenu);
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, []);
 
   // 前端运行时错误转发到日志（[R] 源；写入文件并镜像 stderr）

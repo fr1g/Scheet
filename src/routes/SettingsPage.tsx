@@ -4,12 +4,14 @@ import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftIcon, FolderIcon, RefreshIcon, SaveIcon } from "tdesign-icons-react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import Toast from "../components/Toast";
 import CollapseBar from "../components/CollapseBar";
 import { DialogShell, TimeField } from "../components/week/PlanSettingsDialog";
 import { listAlarmSounds } from "../lib/clipboard";
 import { getWeekPlan, listWeekPlans } from "../lib/weeks";
 import { useGlobalConfig } from "../state/GlobalConfigContext";
+import { useShiftHeld } from "../components/WindowControls";
 import { useSettings } from "../state/SettingsContext";
 import logoUrl from "../assets/appicon.png";
 import pkg from "../../package.json";
@@ -364,6 +366,8 @@ export default function SettingsPage() {
   }, [update, showToast, t]);
 
   // 渲染闸门放在所有 hook 之后（Rules of Hooks）；之后的代码可把 draft 收窄为非空
+  const shiftHeld = useShiftHeld();
+
   // ⚠️ 渲染闸门：此行以下禁止声明任何 hook（useXxx/useMemo/useCallback）——
   //    否则首次渲染（config 未到）与之后的 hook 数量不一致，触发
   //    "Rendered more hooks than during the previous render"。新 hook 请放到本注释之前。
@@ -823,6 +827,19 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className={sectionHint}>{t("settings.logLevelHint")}</p>
+      </section>
+
+      <section>
+        {shiftHeld && (
+          <button
+            type="button"
+            onClick={() => void invoke("open_devtools")}
+            title={t("settings.openDevtoolsTitle")}
+            className="rounded border border-zinc-500 px-4 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+          >
+            {t("settings.openDevtools")}
+          </button>
+        )}
       </section>
 
       <section>

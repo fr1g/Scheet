@@ -256,6 +256,16 @@ const ICON_VARIANT_ASSETS: &[(&str, &[u8])] = &[
 /// 允许的图标变体取值。
 pub const ICON_VARIANTS: &[&str] = &["color", "grayscale", "zinc50"];
 
+/// 打开主窗口 DevTools（设置-高级 的 Shift 隐藏按钮；发布版需 tauri devtools feature）。
+#[command]
+pub fn open_devtools(app: tauri::AppHandle) -> Result<(), String> {
+    let Some(win) = app.get_webview_window("main") else {
+        return Err("主窗口不存在".to_string());
+    };
+    win.open_devtools();
+    Ok(())
+}
+
 /// 应用图标变体：设置主窗口图标（Windows 任务栏/标题栏、Linux 窗口）。
 /// macOS 的 Dock/访达图标来自 .app bundle，运行时不可换（用户经 Finder 手动替换）。
 /// 托盘图标使用独立的可见性专用设计，不随变体切换。

@@ -275,6 +275,8 @@ export default {
     iconVariantHint:
       "Switches the taskbar/titlebar icon, applied immediately after saving. On macOS the Dock icon is managed by the system — replace it manually via Get Info in Finder.",
     badIconVariant: "Invalid icon variant choice",
+    openDevtools: "Open DevTools",
+    openDevtoolsTitle: "Developer tools (for debugging)",
     logLevelHint:
       "Logs are written daily to the logs folder inside the app data dir (daily--date.scheet.log), in English only. none logs nothing and creates no file; verbose is the most detailed; default is error. Applies immediately after saving, no restart needed.",
     entryColors: "Default entry colors",

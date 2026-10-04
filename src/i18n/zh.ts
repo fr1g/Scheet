@@ -270,6 +270,8 @@ export default {
     iconVariantHint:
       "切换任务栏/标题栏图标，保存后马上生效。macOS 的 Dock 图标由系统管理，需在访达中右键“显示简介”把图标拖到应用上手动替换。",
     badIconVariant: "图标变体选择不合法",
+    openDevtools: "打开 DevTools",
+    openDevtoolsTitle: "开发者工具（调试用）",
     logLevelHint:
       "日志按天写入应用数据目录的 logs 文件夹（daily--日期.scheet.log），全部为英文。none 不输出也不保存；verbose 最详细；默认 error。保存后马上生效，不用重启。",
     entryColors: "事务默认颜色",

@@ -5,7 +5,7 @@ import { CloseIcon, MinusIcon } from "tdesign-icons-react";
 import type { WindowControlsPosition } from "../types/settings";
 
 /** 跟踪 Shift 键按住状态（窗口失焦时复位，避免状态卡住）。 */
-function useShiftHeld(): boolean {
+export function useShiftHeld(): boolean {
   const [held, setHeld] = useState(false);
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
