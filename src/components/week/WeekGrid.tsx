@@ -627,7 +627,9 @@ function EntryCell({
       end: minuteToHHMM(realEnd),
       duration: humanize(entry.durationMinute),
       title: entry.title || typeLabel,
-    }) + (p.overflow ? t("grid.overflow") : "");
+    }) +
+    (entry.entryType === "rest" ? ` (${typeLabel})` : "") +
+    (p.overflow ? t("grid.overflow") : "");
   const handle =
     "absolute z-10 opacity-0 transition-colors group-hover:bg-zinc-100/25 group-hover:opacity-100";
 
@@ -665,6 +667,22 @@ ${t("grid.copyEdge")}`}
 ${t("grid.copyEdge")}`}
         className={`inset-y-0 right-0 w-1.5 cursor-ew-resize rounded-r-xl ${handle}`}
       />
+      {entry.notes && (
+        <span
+          title={t("entry.notes")}
+          className={`pointer-events-none absolute right-0.5 top-0.5 size-1.5 rounded-full ${
+            entryColors.textDark ? "bg-zinc-900" : "bg-zinc-50"
+          }`}
+        />
+      )}
+      {entry.entryType === "rest" && (
+        <span
+          title={typeLabel}
+          className={`pointer-events-none absolute bottom-0.5 left-1 size-1.5 rounded-full ${
+            entryColors.textDark ? "bg-zinc-900" : "bg-zinc-50"
+          }`}
+        />
+      )}
       {showTimes && (
         <span className={`text-left text-[9px] leading-3 ${timeColor}`}>
           {minuteToHHMM(entry.startMinute)}
