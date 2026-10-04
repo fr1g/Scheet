@@ -596,22 +596,26 @@ function EntryCell({
     >
       <div
         onPointerDown={onResizeStartDown}
-        title={t("grid.resizeStart")}
+        title={`${tooltip}
+${t("grid.resizeStart")}`}
         className={`inset-x-0 top-0 h-1.5 cursor-ns-resize rounded-t-xl ${handle}`}
       />
       <div
         onPointerDown={onResizeEndDown}
-        title={t("grid.resizeEnd")}
+        title={`${tooltip}
+${t("grid.resizeEnd")}`}
         className={`inset-x-0 bottom-0 h-1.5 cursor-ns-resize rounded-b-xl ${handle}`}
       />
       <div
         onPointerDown={onCopyPointerDown}
-        title={t("grid.copyEdge")}
+        title={`${tooltip}
+${t("grid.copyEdge")}`}
         className={`inset-y-0 left-0 w-1.5 cursor-ew-resize rounded-l-xl ${handle}`}
       />
       <div
         onPointerDown={onCopyPointerDown}
-        title={t("grid.copyEdge")}
+        title={`${tooltip}
+${t("grid.copyEdge")}`}
         className={`inset-y-0 right-0 w-1.5 cursor-ew-resize rounded-r-xl ${handle}`}
       />
       {showTimes && (
