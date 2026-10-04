@@ -85,3 +85,4 @@
 - 继承话术统一：不填/留空按全局/继承全局/留空清除 等表达全部改为"留空继承默认"（含单条颜色、周表颜色/时间/文字深浅、日覆盖），en 同步 leave empty to inherit defaults
 - 高级 tab 增 Shift 隐藏式"打开 DevTools"按钮（Rust open_devtools 命令，tauri devtools feature 使发布版可用）；全局拦截 F12
 - 功能边（上下/左右）hover 提示改为两行：第一行 cell 简略信息（时间区间/持续/标题，与主体一致）+ 第二行功能说明——短 cell 只有边缘可 hover 时信息不再丢失
+- 周表视图选中 cell 后 Shift+Delete 直接删除事务（无确认，可 Ctrl+Z 撤回，随主保存入库；文本输入框内不拦截）

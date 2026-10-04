@@ -259,6 +259,17 @@ export default function WeekGridPage() {
     }
   }, [pasteTargetWeekday, showToast, t]);
 
+  /** 删除选中事务（Shift+Delete；无确认，可 Ctrl+Z 撤回，随主保存入库）。 */
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedEntryId == null) return;
+    setPlan((prev) =>
+      prev
+        ? { ...prev, entries: prev.entries.filter((e) => e.id !== selectedEntryId) }
+        : prev,
+    );
+    setSelectedEntryId(null);
+  }, [selectedEntryId]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -268,6 +279,12 @@ export default function WeekGridPage() {
           target.tagName === "TEXTAREA" ||
           target.isContentEditable)
       ) {
+        return;
+      }
+      // Shift+Delete：删除选中事务
+      if (e.shiftKey && e.key === "Delete" && selectedEntryId != null) {
+        e.preventDefault();
+        handleDeleteSelected();
         return;
       }
       const mod = e.ctrlKey || e.metaKey;
@@ -294,6 +311,7 @@ export default function WeekGridPage() {
     handlePaste,
     handleSave,
     handleRevert,
+    handleDeleteSelected,
     selectedEntryId,
     pasteTargetWeekday,
     clipboardHasPlan,
