@@ -557,6 +557,13 @@ function EntryCell({
   const { t } = useTranslation();
   const humanize = useHumanizeMinutes();
   const entry = p.entry;
+  const entryColors = resolveEntryColors(
+    entry.entryType,
+    entry.color,
+    colorScheme,
+  );
+  // 起止时间是次级信息：跟随标题的深浅，但带透明降一档层次
+  const timeColor = entryColors.textDark ? "text-zinc-900/70" : "text-zinc-300";
   const showTimes = p.heightPx - 2 >= TIME_LABEL_MIN_HEIGHT;
   const outline = conflicted
     ? "outline outline-2 outline-red-500"
@@ -580,8 +587,7 @@ function EntryCell({
     <div
       title={tooltip}
       style={{
-        background: resolveEntryColors(entry.entryType, entry.color, colorScheme)
-          .background,
+        background: entryColors.background,
       }}
       onPointerDown={onBodyPointerDown}
       className={`group relative flex h-full w-full flex-col overflow-hidden rounded-xl px-2 text-xs text-zinc-100 ${outline} ${selectionRing} ${
@@ -609,7 +615,7 @@ function EntryCell({
         className={`inset-y-0 right-0 w-1.5 cursor-ew-resize rounded-r-xl ${handle}`}
       />
       {showTimes && (
-        <span className="text-center text-[10px] leading-3 text-zinc-300">
+        <span className={`text-center text-[10px] leading-3 ${timeColor}`}>
           {minuteToHHMM(entry.startMinute)}
         </span>
       )}
@@ -627,7 +633,7 @@ function EntryCell({
         </span>
       </div>
       {showTimes && (
-        <span className="text-center text-[10px] leading-3 text-zinc-300">
+        <span className={`text-center text-[10px] leading-3 ${timeColor}`}>
           {minuteToHHMM(realEnd)}
         </span>
       )}

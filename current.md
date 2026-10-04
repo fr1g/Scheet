@@ -81,3 +81,4 @@
 - 三度踩坑后终于接上静态防护：eslint + eslint-plugin-react-hooks（仅 rules-of-hooks 为 error），解析器 eslint-parser-oxc（typescript-eslint 暂不支持 TS 7）；EntryEditDialog 三个普通函数内调 useTranslation 的隐藏违规一并修复（显式传 t）；lint 脚本入库并加入验收流程
 - cell 布局重构：flex-col+py-1+grow 标题改为 grid(content/items/justify-center)——标题垂直居中、极小 cell 不再被 padding/间距顶出；起止时间显示阈值 72→32px
 - cell 布局二次修正：容器 flex flex-col，标题包进 grid grow place-items-center 的包裹层——起止时间贴上下边、标题在剩余空间正中，无 grid 行分配把时间挤到标题前后的问题
+- cell 起止时间颜色跟随文字深浅设置（深字=zinc-900/70，浅字=zinc-300），salmon 浅底不再固定 zinc-300 灰字
