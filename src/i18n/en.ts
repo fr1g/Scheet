@@ -108,6 +108,10 @@ export default {
     hint: "This configs uses of this day first, then inherits from the plan, then global.",
   },
   entry: {
+    textDark: "Dark text",
+    textLight: "Light text",
+    textInherit: "Inherit type/global",
+    titleTextLabel: "Title text",
     new: "New entry",
     edit: "Edit entry",
     normal: "Task",

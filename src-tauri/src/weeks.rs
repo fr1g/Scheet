@@ -94,6 +94,8 @@ pub struct WeekEntry {
     pub color: Option<String>,
     /// 文字备注（可空，≤300 字符）。
     pub notes: Option<String>,
+    /// 标题文字用深色（None=继承所属类型/全局设置）。
+    pub text_dark: Option<bool>,
 }
 
 /// 某周表某天的起止时间覆盖。
@@ -180,6 +182,7 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
             end_alarm_file TEXT,
             end_alarm_mode TEXT CHECK (end_alarm_mode IS NULL OR end_alarm_mode IN ('once', 'loop')),
             notes TEXT,
+            text_dark INTEGER,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -218,6 +221,13 @@ pub(crate) fn init_weeks_schema(conn: &Connection) -> Result<(), String> {
         if !e.to_string().contains("duplicate column") {
             crate::logging::warn(&format!(
                 "[db] Migration week_entries.notes failed (ignored): {e}"
+            ));
+        }
+    }
+    if let Err(e) = conn.execute("ALTER TABLE week_entries ADD COLUMN text_dark INTEGER", []) {
+        if !e.to_string().contains("duplicate column") {
+            crate::logging::warn(&format!(
+                "[db] Migration week_entries.text_dark failed (ignored): {e}"
             ));
         }
     }
@@ -383,7 +393,7 @@ pub fn get_full_plan(conn: &Connection, plan_id: i64) -> Result<FullPlan, String
     let mut stmt = conn
         .prepare(
             "SELECT id, plan_id, weekday, start_minute, duration_minute, entry_type, title,
-                    alarm_file, alarm_mode, color, end_alarm_file, end_alarm_mode, notes
+                    alarm_file, alarm_mode, color, end_alarm_file, end_alarm_mode, notes, text_dark
              FROM week_entries WHERE plan_id = ?1 ORDER BY weekday, start_minute",
         )
         .map_err(|e| format!("读取事务失败: {e}"))?;
@@ -405,6 +415,7 @@ pub fn get_full_plan(conn: &Connection, plan_id: i64) -> Result<FullPlan, String
                 end_alarm_file: row.get("end_alarm_file")?,
                 end_alarm_mode: end_alarm_mode.map(|m| AlarmMode::from_db(&m)),
                 notes: row.get("notes")?,
+                text_dark: row.get("text_dark")?,
             })
         })
         .map_err(|e| format!("读取事务失败: {e}"))?;
@@ -586,8 +597,8 @@ pub fn save_plan(conn: &Connection, payload: &SavePlanPayload) -> Result<SaveOut
             "INSERT INTO week_entries
                 (plan_id, weekday, start_minute, duration_minute, entry_type, title,
                  alarm_file, alarm_mode, color, end_alarm_file, end_alarm_mode, notes,
-                 created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?13)",
+                 text_dark, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?14)",
             params![
                 payload.id,
                 entry.weekday,
@@ -601,6 +612,7 @@ pub fn save_plan(conn: &Connection, payload: &SavePlanPayload) -> Result<SaveOut
                 entry.end_alarm_file,
                 entry.end_alarm_mode.map(|m| m.as_db()),
                 entry.notes,
+                entry.text_dark,
                 now_str(),
             ],
         )
@@ -873,6 +885,7 @@ mod tests {
             end_alarm_file: None,
             end_alarm_mode: None,
             notes: None,
+            text_dark: None,
         }
     }
 

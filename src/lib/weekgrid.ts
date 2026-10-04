@@ -295,12 +295,14 @@ export function entryColorScheme(
 export function resolveEntryColors(
   entryType: EntryType,
   color: string | null,
+  entryTextDark: boolean | null,
   scheme: EntryColorScheme,
 ): { background: string; textDark: boolean } {
+  // 单条事务的 textDark 覆盖所属类型/全局的设置
   const [alpha, textDark] =
     entryType === "normal"
-      ? [NORMAL_BG_ALPHA, scheme.normalTextDark]
-      : [REST_BG_ALPHA, scheme.restTextDark];
+      ? [NORMAL_BG_ALPHA, entryTextDark ?? scheme.normalTextDark]
+      : [REST_BG_ALPHA, entryTextDark ?? scheme.restTextDark];
   return {
     background:
       hexWithAlpha(
@@ -328,6 +330,7 @@ export function serializeEntryPlan(entry: WeekEntry): string {
     endAlarmMode: entry.endAlarmMode,
     color: entry.color,
     notes: entry.notes,
+    textDark: entry.textDark,
   });
 }
 
@@ -360,6 +363,8 @@ export function parseEntryPlan(raw: string): Omit<WeekEntry, "id" | "weekday"> |
       v == null || typeof v !== "string" ? null : v;
     const optionalMode = (v: unknown): AlarmMode | null =>
       v === "loop" ? "loop" : v === "once" ? "once" : null;
+    const optionalBool = (v: unknown): boolean | null =>
+      typeof v === "boolean" ? v : null;
     return {
       entryType,
       title: typeof parsed.title === "string" ? parsed.title : "",
@@ -371,6 +376,7 @@ export function parseEntryPlan(raw: string): Omit<WeekEntry, "id" | "weekday"> |
       endAlarmMode: optionalMode(parsed.endAlarmMode),
       color: optionalString(parsed.color),
       notes: optionalString(parsed.notes),
+      textDark: optionalBool(parsed.textDark),
     };
   } catch {
     return null;

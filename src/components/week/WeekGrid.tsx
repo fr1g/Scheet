@@ -597,6 +597,7 @@ function EntryCell({
   const entryColors = resolveEntryColors(
     entry.entryType,
     entry.color,
+    entry.textDark,
     colorScheme,
   );
   // 起止时间是次级信息：跟随标题的深浅，但带透明降一档层次

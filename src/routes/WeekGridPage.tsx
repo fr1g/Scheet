@@ -339,6 +339,7 @@ export default function WeekGridPage() {
       durationMinute: 30,
       entryType: "normal",
       notes: null,
+      textDark: null,
       title: "",
       alarmFile: null,
       alarmMode: null,
@@ -572,6 +573,7 @@ export default function WeekGridPage() {
                 background: resolveEntryColors(
                   clipboardPlan.entryType,
                   clipboardPlan.color,
+                  clipboardPlan.textDark,
                   colorScheme,
                 ).background,
               }}

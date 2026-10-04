@@ -180,6 +180,7 @@ mod tests {
             end_alarm_file: None,
             end_alarm_mode: None,
             notes: None,
+            text_dark: None,
         }
     }
 

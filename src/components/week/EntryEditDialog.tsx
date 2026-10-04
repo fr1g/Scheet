@@ -82,6 +82,9 @@ export default function EntryEditDialog({
   );
   const [color, setColor] = useState(entry.color ?? "");
   const [notes, setNotes] = useState(entry.notes ?? "");
+  const [textChoice, setTextChoice] = useState<"inherit" | "dark" | "light">(
+    entry.textDark == null ? "inherit" : entry.textDark ? "dark" : "light",
+  );
   const [openSection, setOpenSection] = useState<"bells" | "notes" | null>(null);
   const [alarmFiles, setAlarmFiles] = useState<string[]>([]);
 
@@ -173,6 +176,7 @@ export default function EntryEditDialog({
       endAlarmMode: endModeChoice === "inherit" ? null : endModeChoice,
       color: color === "" ? null : color.toUpperCase(),
       notes: notes.trim() === "" ? null : notes,
+      textDark: textChoice === "inherit" ? null : textChoice === "dark",
     });
   };
 
@@ -457,6 +461,21 @@ export default function EntryEditDialog({
           {!colorOk && (
             <p className="mt-2 text-[10px] text-red-400">{t("entry.colorError")}</p>
           )}
+
+          <label className="mt-3 block text-xs text-zinc-300">
+            {t("entry.titleTextLabel")}
+            <select
+              value={textChoice}
+              onChange={(e) =>
+                setTextChoice(e.target.value as "inherit" | "dark" | "light")
+              }
+              className={selectClass}
+            >
+              <option value="inherit">{t("entry.textInherit")}</option>
+              <option value="dark">{t("entry.textDark")}</option>
+              <option value="light">{t("entry.textLight")}</option>
+            </select>
+          </label>
         </div>
       </CollapseBar>
 

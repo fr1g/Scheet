@@ -111,6 +111,10 @@ export default {
     hint: "若某一天没有设置，则依次继承本周表、全局的设置。",
   },
   entry: {
+    textDark: "黑字",
+    textLight: "白字",
+    textInherit: "继承类型/全局",
+    titleTextLabel: "标题文字",
     new: "新建安排",
     edit: "编辑安排",
     normal: "普通事务",

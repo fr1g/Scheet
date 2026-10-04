@@ -39,6 +39,8 @@ export interface WeekEntry {
   color: string | null;
   /** 文字备注（可空，≤300 字符）。 */
   notes: string | null;
+  /** 标题文字用深色（null = 继承类型/全局设置）。 */
+  textDark: boolean | null;
 }
 
 /** 某周表某天的起止时间覆盖。 */
