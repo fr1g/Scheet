@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftIcon, FolderIcon, RefreshIcon, SaveIcon } from "tdesign-icons-react";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import Toast from "../components/Toast";
 import CollapseBar from "../components/CollapseBar";
 import { DialogShell, TimeField } from "../components/week/PlanSettingsDialog";
