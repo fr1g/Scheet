@@ -610,6 +610,16 @@ function EntryCell({
   const selectionRing = selected ? "ring-2 ring-zinc-100/80" : "";
   const typeLabel = entry.entryType === "normal" ? t("grid.normal") : t("grid.rest");
   const realEnd = entry.startMinute + entry.durationMinute;
+  const h = p.heightPx;
+  // 极矮 cell（≤10px）：标题放不下，改横向显示起止时间区间，随高度等比缩放
+  const compact = h <= 10;
+  const compactScale = h / 16;
+  // 偏矮 cell（<26px）：标题等比缩小（26px 处恢复原大）
+  const titleScale = h < 26 ? h / 26 : 1;
+  const content = compact
+    ? `${minuteToHHMM(entry.startMinute)}~${minuteToHHMM(realEnd)}`
+    : entry.title || typeLabel;
+  const scale = compact ? compactScale : titleScale;
   const tooltip =
     t("grid.tooltip", {
       start: minuteToHHMM(entry.startMinute),
@@ -662,12 +672,13 @@ ${t("grid.copyEdge")}`}
       <div className="grid min-h-0 grow place-items-center -translate-y-px">
         <span
           className={`text-center leading-tight ${entry.entryType === "normal" ? "font-semibold" : ""
-            } ${resolveEntryColors(entry.entryType, entry.color, colorScheme).textDark
+            } ${entryColors.textDark
               ? "text-zinc-900"
               : "text-zinc-100"
-            }`}
+            } ${compact ? "whitespace-nowrap" : ""}`}
+          style={{ transform: `scale(${scale})` }}
         >
-          {entry.title || typeLabel}
+          {content}
         </span>
       </div>
       {showTimes && (
