@@ -216,7 +216,7 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [alarmFiles, alarmSlotSignature]);
 
   // 起止时间存放在独立的输入状态里，比较时需一并纳入，否则改时间无法激活保存按钮
@@ -321,7 +321,7 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [config, draft, startTime, endTime, update, showToast, t]);
 
   // 快捷键：Ctrl+S 保存；Ctrl+Z 丢弃草稿（文本输入框内不拦截，保留原生撤销）

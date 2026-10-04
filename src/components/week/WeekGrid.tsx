@@ -333,7 +333,7 @@ export default function WeekGrid({
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerCancel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [drag, pxPerMinute, plan, config, onChangeEntries]);
 
   return (

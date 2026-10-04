@@ -290,10 +290,10 @@ export default function EntryEditDialog({
         {t("entry.snapHint")}
         {snappedDuration != null && durationMinutes != null && durationMinutes > 0 && (
           <>
-            ：{t("entry.willBe", { duration: humanizeMinutes(snappedDuration) })}
+            ：{t("entry.willBe", { duration: humanizeMinutes(t, snappedDuration) })}
             {durationMinutes !== snappedDuration && (
               <span className="text-zinc-400">
-                （{t("entry.inputWas", { duration: humanizeMinutes(durationMinutes) })}）
+                （{t("entry.inputWas", { duration: humanizeMinutes(t, durationMinutes) })}）
               </span>
             )}
           </>
@@ -316,7 +316,7 @@ export default function EntryEditDialog({
               >
                 <option value="inherit">
                   {t("entry.inheritFile", {
-                    file: alarmFileLabel(startChain.file),
+                    file: alarmFileLabel(t, startChain.file),
                     source: t(`entry.${startChain.fileSource}`),
                   })}
                 </option>
@@ -338,7 +338,7 @@ export default function EntryEditDialog({
               >
                 <option value="inherit">
                   {t("entry.inheritFile", {
-                    file: alarmFileLabel(endChain.file),
+                    file: alarmFileLabel(t, endChain.file),
                     source: t(`entry.${endChain.fileSource}`),
                   })}
                 </option>
@@ -362,7 +362,7 @@ export default function EntryEditDialog({
               >
                 <option value="inherit">
                   {t("entry.inheritMode", {
-                    mode: alarmModeLabel(startChain.mode),
+                    mode: alarmModeLabel(t, startChain.mode),
                     source: t(`entry.${startChain.modeSource}`),
                   })}
                 </option>
@@ -379,7 +379,7 @@ export default function EntryEditDialog({
               >
                 <option value="inherit">
                   {t("entry.inheritMode", {
-                    mode: alarmModeLabel(endChain.mode),
+                    mode: alarmModeLabel(t, endChain.mode),
                     source: t(`entry.${endChain.modeSource}`),
                   })}
                 </option>
@@ -462,8 +462,9 @@ export default function EntryEditDialog({
   );
 }
 
-function humanizeMinutes(minutes: number): string {
-  const { t } = useTranslation();
+type Translate = (key: string, opts?: Record<string, unknown>) => string;
+
+function humanizeMinutes(t: Translate, minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return t("duration.m", { m });
@@ -471,12 +472,14 @@ function humanizeMinutes(minutes: number): string {
   return t("duration.hM", { h, m });
 }
 
-function alarmFileLabel(value: "builtin" | "none" | string): string {
-  const { t } = useTranslation();
-  return value === "builtin" ? t("settings.builtin") : value === "none" ? t("entry.none") : value;
+function alarmFileLabel(t: Translate, value: "builtin" | "none" | string): string {
+  return value === "builtin"
+    ? t("settings.builtin")
+    : value === "none"
+      ? t("entry.none")
+      : value;
 }
 
-function alarmModeLabel(mode: AlarmMode): string {
-  const { t } = useTranslation();
+function alarmModeLabel(t: Translate, mode: AlarmMode): string {
   return mode === "loop" ? t("settings.loop") : t("settings.once");
 }
