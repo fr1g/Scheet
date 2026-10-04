@@ -79,3 +79,4 @@
 - 事务颜色继承链：全局（外观 tab 背景色×2+标题文字深浅×2）→ 周表覆盖（PlanSettingsDialog 可空输入）→ 单条 color 覆盖；渲染走 resolveEntryColors（alpha 随类型 0.88/0.87）；快捷键：周表视图 Ctrl+Z 直接 discard、设置页 Ctrl+S 保存 / Ctrl+Z 丢弃草稿（文本输入框内不拦截）
 - SettingsPage 快捷键 useEffect 曾插到渲染闸门之后（又触发了 hook 数量崩溃）：已移回 handleSave 之后、闸门之前，并在闸门处立护栏注释（此后禁止声明 hook）
 - 三度踩坑后终于接上静态防护：eslint + eslint-plugin-react-hooks（仅 rules-of-hooks 为 error），解析器 eslint-parser-oxc（typescript-eslint 暂不支持 TS 7）；EntryEditDialog 三个普通函数内调 useTranslation 的隐藏违规一并修复（显式传 t）；lint 脚本入库并加入验收流程
+- cell 布局重构：flex-col+py-1+grow 标题改为 grid(content/items/justify-center)——标题垂直居中、极小 cell 不再被 padding/间距顶出；起止时间显示阈值 72→32px

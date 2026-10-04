@@ -11,7 +11,7 @@ import type { GlobalConfig } from "../types/global-config";
 export const PX_PER_MINUTE = 3.2;
 
 /** cell 内嵌时间标签的最小高度（低于此值降级为 hover tooltip）。 */
-export const TIME_LABEL_MIN_HEIGHT = 72;
+export const TIME_LABEL_MIN_HEIGHT = 32;
 
 /** 分钟数 → "HH:MM"（允许 24:00 表示溢出到次日）。 */
 export function minuteToHHMM(minute: number): string {

@@ -584,7 +584,7 @@ function EntryCell({
           .background,
       }}
       onPointerDown={onBodyPointerDown}
-      className={`group relative h-full w-full flex flex-col overflow-hidden rounded-xl px-2 py-1 text-xs text-zinc-100 ${outline} ${selectionRing} ${
+      className={`group relative grid h-full w-full content-center items-center justify-center overflow-hidden rounded-xl px-2 text-xs text-zinc-100 ${outline} ${selectionRing} ${
         dragging ? "cursor-grabbing" : "cursor-move"
       }`}
     >
@@ -609,12 +609,12 @@ function EntryCell({
         className={`inset-y-0 right-0 w-1.5 cursor-ew-resize rounded-r-xl ${handle}`}
       />
       {showTimes && (
-        <span className="text-[10px] leading-3 text-zinc-300">
+        <span className="text-center text-[10px] leading-3 text-zinc-300">
           {minuteToHHMM(entry.startMinute)}
         </span>
       )}
       <span
-        className={`grid grow place-items-center text-center leading-tight ${
+        className={`text-center leading-tight ${
           entry.entryType === "normal" ? "font-semibold" : ""
         } ${
           resolveEntryColors(entry.entryType, entry.color, colorScheme).textDark
@@ -625,7 +625,7 @@ function EntryCell({
         {entry.title || typeLabel}
       </span>
       {showTimes && (
-        <span className="text-[10px] leading-3 text-zinc-300">
+        <span className="text-center text-[10px] leading-3 text-zinc-300">
           {minuteToHHMM(realEnd)}
         </span>
       )}
