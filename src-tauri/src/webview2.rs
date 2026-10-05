@@ -109,7 +109,37 @@ fn open_download_page() {
 }
 
 /// 在应用启动前确保 WebView2 可用；缺失时下载/引导安装，最终失败则退出进程。
+/// 临时规避：WebView2 运行时 154.0.4258.48 存在宿主堆损坏缺陷（0xc0000374），
+/// 9/30 自动升级后于 10/1 起稳定复现。若当前运行时为该版本且旧版 .37 仍在，
+/// 将 WEBVIEW2_BROWSER_EXECUTABLE_FOLDER 钉到旧版（必须在创建任何 WebView2 环境前设置）。
+/// 运行时修复（.49+）后删除本段，并提醒用户移除用户级同名环境变量。
+const BROKEN_RUNTIME_VERSION: &str = "154.0.4258.48";
+const FALLBACK_RUNTIME_FOLDER: &str =
+    r"C:\Program Files (x86)\Microsoft\EdgeWebView\Application\154.0.4258.37";
+
+pub fn pin_runtime_if_broken() {
+    // 用户已手动钉住（用户级/进程级环境变量）则不干预
+    if std::env::var_os("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER").is_some() {
+        return;
+    }
+    let Ok(current) = tauri::webview_version() else {
+        return;
+    };
+    if current != BROKEN_RUNTIME_VERSION {
+        return;
+    }
+    if !std::path::Path::new(FALLBACK_RUNTIME_FOLDER).exists() {
+        return;
+    }
+    std::env::set_var("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER", FALLBACK_RUNTIME_FOLDER);
+    crate::logging::info(&format!(
+        "[wv] Broken runtime {current} detected, pinned to fallback {}",
+        FALLBACK_RUNTIME_FOLDER
+    ));
+}
+
 pub fn ensure_runtime() {
+    pin_runtime_if_broken();
     if runtime_installed() {
         match tauri::webview_version() {
             Ok(v) => crate::logging::log(

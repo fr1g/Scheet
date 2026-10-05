@@ -11,6 +11,28 @@ body,
   height: 100%;
 }
 
+/* @keyframes init-move {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 0.3;
+  }
+  99% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+#main-content > div {
+  animation: forwards init-move 1.2s cubic-bezier(0.075, 0.82, 0.165, 1);
+} */
+
 body {
   @apply bg-zinc-700 text-zinc-100 antialiased;
   margin: 0;

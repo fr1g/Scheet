@@ -99,3 +99,4 @@
 - 弹窗回归验证通过：WM_CLOSE 销毁后下一次提醒弹窗重新出现（visible=True）
 - 弹窗右边距 12→16 逻辑像素（对齐主窗口 snackbar 的 right-4），popup.rs popup_position()
 - 弹窗交互拆分：本体点击=停铃+关闭（不回主窗口）；右下"打开主窗口"按钮=停铃+关闭+回主窗口
+- 应用启动全局淡入改纯 CSS 实现（#root animation，用户 React 版尝试曾致崩溃）；webview2.rs 启动时自动检测缺陷运行时 .48 并钉回 .37（不再依赖终端环境变量）
