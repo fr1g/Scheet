@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { dismissAlarmPopup } from "../lib/popup";
+import { closeAlarmPopup, dismissAlarmPopup } from "../lib/popup";
 
 interface AlarmPopupData {
   title: string;
@@ -53,7 +53,7 @@ export default function AlarmPopupPage() {
 
   return (
     <div
-      onClick={() => void dismissAlarmPopup().catch(() => undefined)}
+      onClick={() => void closeAlarmPopup().catch(() => undefined)}
       title={t("popup.clickHint")}
       className="h-screen w-screen cursor-pointer border border-zinc-600 bg-zinc-800 p-3 text-zinc-100 shadow-2xl"
     >
@@ -70,7 +70,19 @@ export default function AlarmPopupPage() {
         </div>
       )}
       {data.body && <div className="truncate text-xs text-zinc-300">{data.body}</div>}
-      <div className="mt-1 text-[10px] text-zinc-500">{t("popup.clickHint")}</div>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-[10px] text-zinc-500">{t("popup.clickHint")}</span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            void dismissAlarmPopup().catch(() => undefined);
+          }}
+          className="rounded border border-zinc-500 px-2 py-0.5 text-[10px] text-zinc-100 transition-colors hover:bg-zinc-600"
+        >
+          {t("popup.openMain")}
+        </button>
+      </div>
     </div>
   );
 }

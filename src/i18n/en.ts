@@ -157,7 +157,7 @@ export default {
   },
   todo: {
     title: "Today's to-dos",
-    placeholder: "Type a to-do, press Enter",
+    placeholder: "Type a to-do and add by ↵ Enter",
     empty: "Nothing to do today",
     delete: "Delete",
   },
@@ -173,7 +173,8 @@ export default {
   popup: {
     looping: "Ringing in a loop · click to stop",
     reminder: "Entry reminder",
-    clickHint: "Click: stop the sound and return to the main window",
+    clickHint: "Click anywhere to stop the alarm and close",
+    openMain: "Open main window",
   },
   toasts: {
     saved: "Saved",

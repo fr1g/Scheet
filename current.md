@@ -98,3 +98,4 @@
 - 弹窗不显示真凶：lib.rs CloseRequested 全局 prevent_close+hide 使 dismiss 的 close 变 hide，弹窗隐形残留后所有提醒走更新路径不可见；修复为仅主窗口驻留 + popup::show 更新路径补 show 防御
 - 弹窗回归验证通过：WM_CLOSE 销毁后下一次提醒弹窗重新出现（visible=True）
 - 弹窗右边距 12→16 逻辑像素（对齐主窗口 snackbar 的 right-4），popup.rs popup_position()
+- 弹窗交互拆分：本体点击=停铃+关闭（不回主窗口）；右下"打开主窗口"按钮=停铃+关闭+回主窗口

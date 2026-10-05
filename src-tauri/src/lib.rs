@@ -146,6 +146,7 @@ pub fn run() {
             clipboard::write_clipboard_text,
             clipboard::list_alarm_sounds,
             popup::dismiss_alarm_popup,
+            popup::close_alarm_popup,
             tray::exit_application,
             fonts::get_fonts_dir,
             logging::write_log,

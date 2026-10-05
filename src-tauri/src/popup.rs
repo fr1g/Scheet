@@ -125,7 +125,15 @@ pub fn dismiss(app: &AppHandle) {
     }
 }
 
-/// 弹窗点击回调（由弹窗页面调用）：停止响铃、关闭弹窗、聚焦主窗口。
+/// 关闭提醒弹窗并停止响铃（不聚焦主窗口）。
+#[command]
+pub async fn close_alarm_popup(app: AppHandle) -> Result<(), String> {
+    crate::sound::stop();
+    dismiss(&app);
+    Ok(())
+}
+
+/// 弹窗"打开主窗口"按钮回调：停止响铃、关闭弹窗、聚焦主窗口。
 #[command]
 pub async fn dismiss_alarm_popup(app: AppHandle) -> Result<(), String> {
     crate::sound::stop();

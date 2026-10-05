@@ -160,7 +160,7 @@ export default {
   },
   todo: {
     title: "今天要做",
-    placeholder: "写一件要做的事，回车添加",
+    placeholder: "写一件待办，按 ↵ Enter添加",
     empty: "今天还没有要做的。如果前一天有未完成的任务，今天会自动继承。",
     delete: "删",
   },
@@ -176,7 +176,8 @@ export default {
   popup: {
     looping: "正在循环响铃 · 点一下就停",
     reminder: "事务提醒",
-    clickHint: "点击以停止响铃并回到主窗口",
+    clickHint: "点击任意位置停止响铃并关闭",
+    openMain: "打开主窗口",
   },
   toasts: {
     saved: "保存好了",
