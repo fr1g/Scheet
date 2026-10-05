@@ -211,9 +211,18 @@ export default function WeekGridPage() {
 
   useEffect(() => {
     void refreshClipboardState();
-    const onFocus = () => void refreshClipboardState();
+    let timer = 0;
+    // 焦点后延迟读取：避开焦点事件风暴期（该读取走 arboard 原生剪贴板，
+    // 曾疑似与堆损坏相关），150ms 足以让窗口恢复的收尾操作先行完成
+    const onFocus = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void refreshClipboardState(), 150);
+    };
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.clearTimeout(timer);
+    };
   }, [refreshClipboardState]);
 
   // 剪贴板失效时熄灭已设置的粘贴目标

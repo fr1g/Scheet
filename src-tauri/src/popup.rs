@@ -121,11 +121,13 @@ fn popup_position(app: &AppHandle) -> (f64, f64) {
 /// 关闭弹窗（不存在时为无害空操作）。
 pub fn dismiss(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(POPUP_LABEL) {
-        let _ = window.close();
+        // 隐藏而非销毁：下一次提醒经 popup::show 的 show() 重新显示
+        let _ = window.hide();
     }
 }
 
-/// 关闭提醒弹窗并停止响铃（不聚焦主窗口）。
+/// 收起提醒弹窗并停止响铃（隐藏而非销毁——销毁 WebView 的时机已验证与
+/// 堆损坏相关，且下一次提醒会经 show() 重新显示，无需反复销毁重建）。
 #[command]
 pub async fn close_alarm_popup(app: AppHandle) -> Result<(), String> {
     crate::sound::stop();
@@ -133,7 +135,7 @@ pub async fn close_alarm_popup(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// 弹窗"打开主窗口"按钮回调：停止响铃、关闭弹窗、聚焦主窗口。
+/// 弹窗"打开主窗口"按钮回调：停止响铃、收起弹窗、聚焦主窗口。
 #[command]
 pub async fn dismiss_alarm_popup(app: AppHandle) -> Result<(), String> {
     crate::sound::stop();
