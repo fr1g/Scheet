@@ -132,7 +132,7 @@ pub fn pin_runtime_if_broken() {
         return;
     }
     std::env::set_var("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER", FALLBACK_RUNTIME_FOLDER);
-    crate::logging::info(&format!(
+    crate::logging::warn(&format!(
         "[wv] Broken runtime {current} detected, pinned to fallback {}",
         FALLBACK_RUNTIME_FOLDER
     ));
@@ -142,12 +142,9 @@ pub fn ensure_runtime() {
     pin_runtime_if_broken();
     if runtime_installed() {
         match tauri::webview_version() {
-            Ok(v) => crate::logging::log(
-                crate::logging::LEVEL_INFO,
-                "INFO",
-                "[WV]",
-                &format!("WebView2 runtime present, version {v}"),
-            ),
+            Ok(v) => crate::logging::warn(&format!(
+                "[wv] WebView2 runtime present, version {v}"
+            )),
             Err(e) => crate::logging::warn(&format!(
                 "[wv] WebView2 runtime present, version query failed: {e}"
             )),

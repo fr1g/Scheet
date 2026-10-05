@@ -107,7 +107,7 @@ function AppShell() {
   return (
     <div className="flex h-full flex-col">
       <TitleBar />
-      <main className="min-h-0 flex-1">
+      <main id="main-content" className="min-h-0 flex-1">
         <ErrorBoundary>{content}</ErrorBoundary>
       </main>
       <WindowSizeBadge />

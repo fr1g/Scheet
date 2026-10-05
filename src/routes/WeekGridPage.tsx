@@ -416,39 +416,39 @@ export default function WeekGridPage() {
 
   const tabMenuItems: ContextMenuItem[] = tabMenu
     ? [
-        {
-          label: t("menu.planSettings"),
-          onSelect: () => setPlanSettings(tabMenu.plan),
-        },
-        {
-          label: t("menu.setActive"),
-          hidden: tabMenu.plan.id === currentId,
-          onSelect: () => void handleSetActive(tabMenu.plan),
-        },
-        {
-          label: t("menu.deletePlan"),
-          danger: true,
-          hidden: tabMenu.plan.slot === 1,
-          onSelect: () => setConfirmDelete(tabMenu.plan),
-        },
-      ]
+      {
+        label: t("menu.planSettings"),
+        onSelect: () => setPlanSettings(tabMenu.plan),
+      },
+      {
+        label: t("menu.setActive"),
+        hidden: tabMenu.plan.id === currentId,
+        onSelect: () => void handleSetActive(tabMenu.plan),
+      },
+      {
+        label: t("menu.deletePlan"),
+        danger: true,
+        hidden: tabMenu.plan.slot === 1,
+        onSelect: () => setConfirmDelete(tabMenu.plan),
+      },
+    ]
     : [];
 
   const dayMenuItems: ContextMenuItem[] = dayMenu
     ? [
-        {
-          label: t("menu.daySettings"),
-          onSelect: () => {
-            if (!plan) return;
-            const o = plan.overrides.find((o) => o.weekday === dayMenu.weekday);
-            setDaySettings({
-              weekday: dayMenu.weekday,
-              initialStart: o?.dayStartMinute ?? null,
-              initialEnd: o?.dayEndMinute ?? null,
-            });
-          },
+      {
+        label: t("menu.daySettings"),
+        onSelect: () => {
+          if (!plan) return;
+          const o = plan.overrides.find((o) => o.weekday === dayMenu.weekday);
+          setDaySettings({
+            weekday: dayMenu.weekday,
+            initialStart: o?.dayStartMinute ?? null,
+            initialEnd: o?.dayEndMinute ?? null,
+          });
         },
-      ]
+      },
+    ]
     : [];
 
   /** 周表设置确认：只改工作副本，随主保存按钮入库。 */
@@ -471,15 +471,15 @@ export default function WeekGridPage() {
     setPlan((prev) =>
       prev
         ? {
-            ...prev,
-            plan: {
-              ...prev.plan,
-              name: finalName,
-              dayStartMinute: dayStart,
-              dayEndMinute: dayEnd,
-              ...colors,
-            },
-          }
+          ...prev,
+          plan: {
+            ...prev.plan,
+            name: finalName,
+            dayStartMinute: dayStart,
+            dayEndMinute: dayEnd,
+            ...colors,
+          },
+        }
         : prev,
     );
   };
@@ -531,7 +531,7 @@ export default function WeekGridPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.15 }}
+      transition={{ duration: 0.5 }}
       className="flex h-full min-h-0"
     >
       <WeekPlanTabs

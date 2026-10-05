@@ -12,7 +12,8 @@ body,
 }
 
 /* 应用启动淡入（纯 CSS，位于 React 之外——加载屏淡出后根节点整体渐显） */
-#root {
+#main-content,
+.apply-once-fade-in {
   animation: app-fade-in 0.25s ease-out;
 }
 
