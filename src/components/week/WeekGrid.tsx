@@ -680,18 +680,20 @@ ${t("grid.copyEdge")}`}
       {entry.notes && (
         <span
           title={t("entry.notes")}
-          className={`pointer-events-none absolute right-0.5 top-0.5 size-1.5 rounded-full ${
-            entryColors.textDark ? "bg-zinc-900" : "bg-zinc-50"
-          }`}
-        />
+          className={`pointer-events-none absolute right-1.5 top-1.5 size-1 rounded-full opacity-35 ${entryColors.textDark ? "bg-zinc-900" : "bg-zinc-50"
+            }`}
+        >
+
+        </span>
       )}
       {entry.entryType === "rest" && (
         <span
           title={typeLabel}
-          className={`pointer-events-none absolute bottom-0.5 left-1 size-1.5 rounded-full ${
-            entryColors.textDark ? "bg-zinc-900" : "bg-zinc-50"
-          }`}
-        />
+          className={`pointer-events-none absolute bottom-1.5 left-1.5 size-1 rounded-full opacity-35 ${entryColors.textDark ? "bg-zinc-900" : "bg-zinc-50"
+            }`}
+        >
+
+        </span>
       )}
       {showTimes && (
         <span className={`text-left text-[9px] leading-3 ${timeColor}`}>

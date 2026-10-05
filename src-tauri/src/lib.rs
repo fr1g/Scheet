@@ -99,8 +99,12 @@ pub fn run() {
         .on_window_event(|window, event| {
             // 托盘驻留：点关闭只是隐藏窗口，真正退出走托盘菜单的"退出"
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
+                // 仅主窗口驻留托盘（关闭=隐藏）；其他窗口（提醒弹窗等）正常关闭销毁，
+                // 否则 dismiss 的 close 被拦成 hide，弹窗隐形残留、后续提醒全部不可见
+                if window.label() == "main" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
             }
             // 主窗口获得焦点时自动关闭提醒弹窗
             if let tauri::WindowEvent::Focused(true) = event {

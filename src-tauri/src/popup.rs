@@ -55,7 +55,9 @@ pub fn show(
         time: time.map(|t| t.to_string()),
         mode: mode.to_string(),
     };
-    if app.get_webview_window(POPUP_LABEL).is_some() {
+    if let Some(win) = app.get_webview_window(POPUP_LABEL) {
+        // 防御：窗口可能处于隐藏态（如被其他路径 hide），更新前先确保可见
+        let _ = win.show();
         return app
             .emit_to(POPUP_LABEL, "scheet://alarm-popup", data)
             .map_err(|e| format!("更新提醒弹窗失败: {e}"));
