@@ -105,3 +105,4 @@
 - 新增 scripts/debugger-watch.py 迷你调试器（DebugActiveProcess+事件循环，二次Chance异常时打印异常地址所属模块）——fastfail 崩溃绕过 WER 无法转储时的定位工具
 - 本周轮换表的"今天"列叠加 zinc-100/10 提亮（含半透明 cell 透出的微亮）
 - 弹窗提醒补类型标注：popup 链路传 entryType（Rust payload/URL/事件）；无标题休息事务标题位回退显示"休息事务"；弹窗时间行追加类型文字；snackbar 空标题同回退
+- 弹窗显示改 SW_SHOWNA（Windows）——出现/复显均不激活窗口，不再抢当前工作焦点

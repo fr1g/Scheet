@@ -61,7 +61,7 @@ pub fn show(
     };
     if let Some(win) = app.get_webview_window(POPUP_LABEL) {
         // 防御：窗口可能处于隐藏态（如被其他路径 hide），更新前先确保可见
-        let _ = win.show();
+        show_popup(&win);
         return app
             .emit_to(POPUP_LABEL, "scheet://alarm-popup", data)
             .map_err(|e| format!("更新提醒弹窗失败: {e}"));
@@ -101,8 +101,24 @@ pub fn show(
         .map_err(|e| format!("创建提醒弹窗失败: {e}"))?;
     // 再以逻辑坐标精确微调一次（构建器 position 的坐标语义随平台而异）
     let _ = window.set_position(LogicalPosition::new(x, y));
-    let _ = window.show();
+    show_popup(&window);
     Ok(())
+}
+
+/// 显示弹窗但不激活（不抢当前工作窗口的焦点）。
+/// Windows 用 SW_SHOWNA（SW_SHOW 会激活窗口打断输入）；其他平台维持 show。
+fn show_popup(win: &tauri::WebviewWindow) {
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::UI::WindowsAndMessaging::{ShowWindow, SW_SHOWNA};
+        if let Ok(hwnd) = win.hwnd() {
+            unsafe {
+                ShowWindow(hwnd.0 as _, SW_SHOWNA);
+            }
+            return;
+        }
+    }
+    let _ = win.show();
 }
 
 /// 主显示器可用区域（预留任务栏空间）右下角的逻辑坐标。
