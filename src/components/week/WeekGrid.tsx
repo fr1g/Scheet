@@ -467,7 +467,9 @@ export default function WeekGrid({
                 return (
                   <td key={d} data-day={d} className="border border-zinc-600 align-top px-0.5">
                     <div
-                      className="relative h-full overflow-hidden "
+                      className={`relative h-full overflow-hidden ${
+                        isCurrentWeek && d === today ? "bg-zinc-100/10" : ""
+                      }`}
                       title={t("grid.newHere")}
                       onPointerMove={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();

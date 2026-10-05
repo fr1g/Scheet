@@ -103,3 +103,4 @@
 - 新增 pnpm dev:safe 安全启动脚本（scripts/dev-safe.ps1 钉运行时）；运行时版本与钉住决策日志升级为 WARN 级（默认日志级别下崩溃会话也留痕）
 - 焦点崩溃防御三件套：popup dismiss 改隐藏不销毁（焦点时唯一的 WebView 销毁操作消失，show() 防御保证下次提醒复显）；焦点剪贴板读取延迟 150ms 避开事件风暴；arboard 已在 blocking 线程（主线程无涉）
 - 新增 scripts/debugger-watch.py 迷你调试器（DebugActiveProcess+事件循环，二次Chance异常时打印异常地址所属模块）——fastfail 崩溃绕过 WER 无法转储时的定位工具
+- 本周轮换表的"今天"列叠加 zinc-100/10 提亮（含半透明 cell 透出的微亮）
