@@ -11,27 +11,16 @@ body,
   height: 100%;
 }
 
-/* @keyframes init-move {
-  0% {
-    opacity: 0;
-  }
-  40% {
-    opacity: 0;
-  }
-  60% {
-    opacity: 0.3;
-  }
-  99% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 1;
-  }
+/* 应用启动淡入（纯 CSS，位于 React 之外——加载屏淡出后根节点整体渐显） */
+#root {
+  animation: app-fade-in 0.25s ease-out;
 }
 
-#main-content > div {
-  animation: forwards init-move 1.2s cubic-bezier(0.075, 0.82, 0.165, 1);
-} */
+@keyframes app-fade-in {
+  from {
+    opacity: 0;
+  }
+}
 
 body {
   @apply bg-zinc-700 text-zinc-100 antialiased;
