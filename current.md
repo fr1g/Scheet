@@ -95,3 +95,5 @@
 - 按住 Shift：cell 功能边与本体拖动均为移动（极矮 cell 摸不到非功能区时的移动方案），光标同步切换
 - todo 列表文字截断时 hover tooltip 显示完整内容
 - 选中周表非本周轮换表时，表头不再标注"今天"
+- 弹窗不显示真凶：lib.rs CloseRequested 全局 prevent_close+hide 使 dismiss 的 close 变 hide，弹窗隐形残留后所有提醒走更新路径不可见；修复为仅主窗口驻留 + popup::show 更新路径补 show 防御
+- 弹窗回归验证通过：WM_CLOSE 销毁后下一次提醒弹窗重新出现（visible=True）
