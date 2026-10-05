@@ -108,7 +108,7 @@ fn popup_position(app: &AppHandle) -> (f64, f64) {
             let scale = monitor.scale_factor();
             let x = (area.position.x as f64 + area.size.width as f64) / scale
                 - POPUP_WIDTH
-                - 12.0;
+                - 16.0;
             let y = (area.position.y as f64 + area.size.height as f64) / scale
                 - POPUP_HEIGHT
                 - 48.0;
