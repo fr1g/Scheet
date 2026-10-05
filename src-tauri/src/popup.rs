@@ -23,6 +23,8 @@ struct AlarmPopupData {
     /// "HH:MM"。
     time: Option<String>,
     mode: String,
+    /// "normal" | "rest"（周课表提醒；手动提醒没有）。
+    entry_type: Option<String>,
 }
 
 fn urlencode(s: &str) -> String {
@@ -47,6 +49,7 @@ pub fn show(
     kind: Option<&str>,
     time: Option<&str>,
     mode: &str,
+    entry_type: Option<&str>,
 ) -> Result<(), String> {
     let data = AlarmPopupData {
         title: title.to_string(),
@@ -54,6 +57,7 @@ pub fn show(
         kind: kind.map(|k| k.to_string()),
         time: time.map(|t| t.to_string()),
         mode: mode.to_string(),
+        entry_type: entry_type.map(|e| e.to_string()),
     };
     if let Some(win) = app.get_webview_window(POPUP_LABEL) {
         // 防御：窗口可能处于隐藏态（如被其他路径 hide），更新前先确保可见
@@ -72,6 +76,9 @@ pub fn show(
     }
     if let Some(t) = time {
         query.push_str(&format!("&time={}", urlencode(t)));
+    }
+    if let Some(et) = entry_type {
+        query.push_str(&format!("&entryType={}", urlencode(et)));
     }
     let builder = WebviewWindowBuilder::new(
         app,

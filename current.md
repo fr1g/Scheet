@@ -104,3 +104,4 @@
 - 焦点崩溃防御三件套：popup dismiss 改隐藏不销毁（焦点时唯一的 WebView 销毁操作消失，show() 防御保证下次提醒复显）；焦点剪贴板读取延迟 150ms 避开事件风暴；arboard 已在 blocking 线程（主线程无涉）
 - 新增 scripts/debugger-watch.py 迷你调试器（DebugActiveProcess+事件循环，二次Chance异常时打印异常地址所属模块）——fastfail 崩溃绕过 WER 无法转储时的定位工具
 - 本周轮换表的"今天"列叠加 zinc-100/10 提亮（含半透明 cell 透出的微亮）
+- 弹窗提醒补类型标注：popup 链路传 entryType（Rust payload/URL/事件）；无标题休息事务标题位回退显示"休息事务"；弹窗时间行追加类型文字；snackbar 空标题同回退

@@ -235,6 +235,7 @@ pub(crate) fn poll_due(app: &tauri::AppHandle, db: &DataDb) -> Result<(), String
             None,
             None,
             mode_text,
+            None,
         ) {
             crate::logging::warn(&format!(
             "[reminders] Reminder popup failed (ignored, id={}): {e}",

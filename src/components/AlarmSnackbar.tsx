@@ -62,7 +62,12 @@ export default function AlarmSnackbar() {
             </span>
             {isLoop && <span className="text-amber-300">{t("alarmSnackbar.looping")}</span>}
           </div>
-          <div className="mt-1 truncate text-sm text-zinc-100">{event.title}</div>
+          <div className="mt-1 truncate text-sm text-zinc-100">
+            {event.title ||
+              (event.entryType === "rest"
+                ? t("alarmSnackbar.rest")
+                : t("alarmSnackbar.normal"))}
+          </div>
           <div className="mt-0.5 text-xs text-zinc-300">{event.body}</div>
           <div className="mt-2 flex justify-end">
             <button

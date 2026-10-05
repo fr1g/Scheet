@@ -174,6 +174,7 @@ fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent) {
                 AlarmMode::Once => "once",
                 AlarmMode::Loop => "loop",
             },
+            Some(event.entry_type.as_db()),
         ) {
             crate::logging::warn(&format!("[scheduler] Reminder popup failed (ignored): {e}"));
         }

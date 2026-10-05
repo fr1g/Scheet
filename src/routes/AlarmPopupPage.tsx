@@ -13,7 +13,16 @@ interface AlarmPopupData {
   /** "HH:MM"（周课表提醒）。 */
   time: string;
   mode: string;
+  /** "normal" | "rest"（周课表提醒；手动提醒没有）。 */
+  entryType: string;
 }
+
+const typeName = (t: (k: string) => string, entryType: string): string =>
+  entryType === "rest"
+    ? t("alarmSnackbar.rest")
+    : entryType === "normal"
+      ? t("alarmSnackbar.normal")
+      : "";
 
 function clockText(): string {
   const d = new Date();
@@ -32,6 +41,7 @@ export default function AlarmPopupPage() {
     kind: params.get("kind") ?? "",
     time: params.get("time") ?? "",
     mode: params.get("mode") ?? "once",
+    entryType: params.get("entryType") ?? "",
   }));
   const [clock, setClock] = useState(clockText());
 
@@ -63,10 +73,13 @@ export default function AlarmPopupPage() {
         </span>
         <span className="font-mono text-xs text-zinc-200">{clock}</span>
       </div>
-      <div className="mt-1 truncate text-sm font-medium">{data.title}</div>
+      <div className="mt-1 truncate text-sm font-medium">
+        {data.title || (data.entryType ? typeName(t, data.entryType) : "")}
+      </div>
       {data.kind && data.time && (
         <div className="truncate text-xs text-zinc-300">
           {t(data.kind === "end" ? "alarm.end" : "alarm.start")} · {data.time}
+          {data.entryType && ` · ${typeName(t, data.entryType)}`}
         </div>
       )}
       {data.body && <div className="truncate text-xs text-zinc-300">{data.body}</div>}
