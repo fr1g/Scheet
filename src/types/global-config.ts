@@ -50,5 +50,9 @@ export interface GlobalConfig {
   entryNormalTextDark: boolean;
   /** 休息事务标题文字用深色。 */
   entryRestTextDark: boolean;
+  /** 标题栏显示系统时间（默认关）。 */
+  titlebarClock: boolean;
+  /** 标题栏时钟显示秒（默认关）。 */
+  titlebarClockSeconds: boolean;
 }
 

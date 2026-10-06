@@ -569,6 +569,28 @@ export default function SettingsPage() {
     </section>
   );
 
+  /** WebView2 开关行：点击切换草稿值，保存后重启应用生效。 */
+  const webviewToggle = (
+    labelKey: string,
+    key: "webviewHwAccel" | "webviewSmoothScrolling" | "titlebarClock" | "titlebarClockSeconds",
+  ) => (
+    <button
+      type="button"
+      onClick={() =>
+        setDraft((prev) => (prev ? { ...prev, [key]: !prev[key] } : prev))
+      }
+      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${draft[key]
+        ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+        : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+        }`}
+    >
+      <span>{t(labelKey)}</span>
+      <span className="text-[10px] text-zinc-400">
+        {draft[key] ? t("settings.on") : t("settings.off")}
+      </span>
+    </button>
+  );
+
   const appearancePanel = (
     <>
       <section>
@@ -632,6 +654,21 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className={sectionHint}>{t("settings.fontSizeHint")}</p>
+      </section>
+
+      <section>
+        <h2 className={sectionTitle}>{t("settings.titlebarClockSection")}</h2>
+        <p className={sectionHint}>{t("settings.titlebarClockHint")}</p>
+        <div className="mt-2 space-y-3">
+          <div>
+            {webviewToggle("settings.titlebarClock", "titlebarClock")}
+            {draft.titlebarClock && (
+              <div className="mt-1">
+                {webviewToggle("settings.titlebarClockSeconds", "titlebarClockSeconds")}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       <section>
@@ -765,28 +802,6 @@ export default function SettingsPage() {
         <p className={sectionHint}>{t("settings.positionHint")}</p>
       </section>
     </>
-  );
-
-  /** WebView2 开关行：点击切换草稿值，保存后重启应用生效。 */
-  const webviewToggle = (
-    labelKey: string,
-    key: "webviewHwAccel" | "webviewSmoothScrolling",
-  ) => (
-    <button
-      type="button"
-      onClick={() =>
-        setDraft((prev) => (prev ? { ...prev, [key]: !prev[key] } : prev))
-      }
-      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${draft[key]
-        ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-        : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-        }`}
-    >
-      <span>{t(labelKey)}</span>
-      <span className="text-[10px] text-zinc-400">
-        {draft[key] ? t("settings.on") : t("settings.off")}
-      </span>
-    </button>
   );
 
   const advancedPanel = (

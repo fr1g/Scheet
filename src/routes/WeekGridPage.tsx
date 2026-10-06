@@ -34,11 +34,25 @@ import {
 import type { FullPlan, WeekEntry, WeekPlan } from "../types/weeks";
 import { setTitleState } from "../state/titleState";
 import { useGlobalConfig } from "../state/GlobalConfigContext";
+import { useToday } from "../state/dateState";
 
 /** 周表页：左侧 tab 列 + 中央网格 + 右侧待办。编辑在工作副本上进行，显式保存入库。 */
 export default function WeekGridPage() {
   const { t } = useTranslation();
   const { config, error: configError, reload: reloadConfig } = useGlobalConfig();
+  const { weekday: todayWeekday } = useToday();
+  // 当前分钟（1s 刷新）：用于圈出覆盖当前时刻的事务 cell
+  const [nowMinute, setNowMinute] = useState(() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  });
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const d = new Date();
+      setNowMinute(d.getHours() * 60 + d.getMinutes());
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [plans, setPlans] = useState<WeekPlan[]>([]);
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -535,6 +549,16 @@ export default function WeekGridPage() {
 
   // 事务默认色方案：周表覆盖 → 全局默认（guard 之后 config/plan 均非空）
   const colorScheme: EntryColorScheme = entryColorScheme(plan.plan, config);
+  // 覆盖当前时刻的事务（仅本周轮换表；不在任何事务内则为 null）
+  const isCurrentWeek = selectedId === currentId;
+  const nowEntryId = isCurrentWeek
+    ? (plan.entries.find(
+      (e) =>
+        e.weekday === todayWeekday &&
+        e.startMinute <= nowMinute &&
+        nowMinute < e.startMinute + e.durationMinute,
+    )?.id ?? null)
+    : null;
 
   return (
     <motion.div
@@ -556,6 +580,7 @@ export default function WeekGridPage() {
         config={config}
         colorScheme={colorScheme}
         isCurrentWeek={selectedId === currentId}
+        nowEntryId={nowEntryId}
         displayName={selectedPlanDisplayName}
         dirty={dirty}
         saving={saving}

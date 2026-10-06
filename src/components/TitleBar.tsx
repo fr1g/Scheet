@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import ConfirmDialog from "./ConfirmDialog";
 import { exitApplication } from "../lib/app";
 import { useSettings } from "../state/SettingsContext";
+import { useGlobalConfig } from "../state/GlobalConfigContext";
 import { useTitleState } from "../state/titleState";
 import { useToday } from "../state/dateState";
 import WindowControls from "./WindowControls";
@@ -45,16 +46,37 @@ function AppTitle() {
   );
 }
 
+/** 标题栏系统时钟（HH:MM 或 HH:MM:SS，按设置）。 */
+function Clock({ seconds }: { seconds: boolean }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const text = [now.getHours(), now.getMinutes(), ...(seconds ? [now.getSeconds()] : [])]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
+  return (
+    <span className="flex h-full items-center px-2 font-mono text-xs text-zinc-300">
+      {text}
+    </span>
+  );
+}
+
 export default function TitleBar() {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  const { config } = useGlobalConfig();
   const position = settings?.windowControls.position ?? "right";
   const [confirmExit, setConfirmExit] = useState(false);
+  const clockOn = config?.titlebarClock ?? false;
+  const clockSeconds = clockOn && (config?.titlebarClockSeconds ?? false);
 
   return (
     <>
       <header className="flex h-10 shrink-0 items-stretch">
         {position === "right" && <AppTitle />}
+        {position === "left" && clockOn && <Clock seconds={clockSeconds} />}
         {position === "left" && (
           <WindowControls
             position="left"
@@ -68,6 +90,7 @@ export default function TitleBar() {
             onExitRequest={() => setConfirmExit(true)}
           />
         )}
+        {position === "right" && clockOn && <Clock seconds={clockSeconds} />}
         {position !== "right" && <AppTitle />}
       </header>
       <ConfirmDialog

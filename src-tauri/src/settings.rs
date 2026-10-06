@@ -244,6 +244,10 @@ pub struct GlobalConfig {
     pub entry_normal_text_dark: bool,
     /// 休息事务标题文字用深色（默认 true = 黑字，浅粉底上更可读）。
     pub entry_rest_text_dark: bool,
+    /// 标题栏显示系统时间（默认关）。
+    pub titlebar_clock: bool,
+    /// 标题栏时钟显示秒（默认关；仅 titlebar_clock 开启时有意义）。
+    pub titlebar_clock_seconds: bool,
 }
 
 /// 运行时图标变体资产（256px，源图为 generated/appicon-256-*.png）。
@@ -314,6 +318,8 @@ impl Default for GlobalConfig {
             entry_rest_color: "#fecac0".to_string(),
             entry_normal_text_dark: false,
             entry_rest_text_dark: true,
+            titlebar_clock: false,
+            titlebar_clock_seconds: false,
         }
     }
 }
@@ -378,6 +384,12 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         entry_rest_text_dark: get_setting(conn, "entryRestTextDark")?
             .and_then(|s| s.parse().ok())
             .unwrap_or(true),
+        titlebar_clock: get_setting(conn, "titlebarClock")?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(false),
+        titlebar_clock_seconds: get_setting(conn, "titlebarClockSeconds")?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(false),
     })
 }
 
@@ -449,6 +461,12 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
         conn,
         "entryRestTextDark",
         &cfg.entry_rest_text_dark.to_string(),
+    )?;
+    set_setting(conn, "titlebarClock", &cfg.titlebar_clock.to_string())?;
+    set_setting(
+        conn,
+        "titlebarClockSeconds",
+        &cfg.titlebar_clock_seconds.to_string(),
     )?;
     for (key, value) in mode_entries {
         match value {

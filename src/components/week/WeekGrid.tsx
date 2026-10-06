@@ -30,6 +30,8 @@ interface WeekGridProps {
   displayName: string;
   /** 选中周表是否为本周轮换表（非本周时表头不标"今天"）。 */
   isCurrentWeek: boolean;
+  /** 覆盖当前时刻的事务 id（仅本周轮换表；null = 无标记）。 */
+  nowEntryId: number | null;
   dirty: boolean;
   saving: boolean;
   onSave: () => void;
@@ -117,6 +119,7 @@ export default function WeekGrid({
   colorScheme,
   displayName,
   isCurrentWeek,
+  nowEntryId,
   dirty,
   saving,
   onSave,
@@ -555,6 +558,7 @@ export default function WeekGrid({
                             dragging={drag?.entryId === p.entry.id}
                             colorScheme={colorScheme}
                             shiftHeld={shiftHeld}
+                            nowActive={p.entry.id === nowEntryId}
                             onBodyPointerDown={(e) => startMoveDrag(e, p.entry)}
                             onCopyPointerDown={(e) => startCopyDrag(e, p.entry)}
                             onResizeStartDown={(e) =>
@@ -586,6 +590,7 @@ function EntryCell({
   dragging,
   colorScheme,
   shiftHeld,
+  nowActive,
   onBodyPointerDown,
   onCopyPointerDown,
   onResizeStartDown,
@@ -598,6 +603,8 @@ function EntryCell({
   colorScheme: EntryColorScheme;
   /** 按住 Shift：功能边临时变为移动手柄。 */
   shiftHeld: boolean;
+  /** 覆盖当前时刻：accent 细环标记。 */
+  nowActive: boolean;
   onBodyPointerDown: (e: React.PointerEvent) => void;
   onCopyPointerDown: (e: React.PointerEvent) => void;
   onResizeStartDown: (e: React.PointerEvent) => void;
@@ -621,6 +628,7 @@ function EntryCell({
       ? "outline outline-2 outline-amber-400"
       : "";
   const selectionRing = selected ? "ring-2 ring-zinc-100/80" : "";
+  const nowRing = nowActive ? "ring-1 ring-blue-400" : "";
   const typeLabel = entry.entryType === "normal" ? t("grid.normal") : t("grid.rest");
   const realEnd = entry.startMinute + entry.durationMinute;
   const h = p.heightPx;
@@ -652,7 +660,7 @@ function EntryCell({
         background: entryColors.background,
       }}
       onPointerDown={onBodyPointerDown}
-      className={`group relative flex h-full w-full flex-col overflow-hidden rounded-xl px-2 text-xs text-zinc-100 ${outline} ${selectionRing} ${dragging ? "cursor-grabbing" : "cursor-move"
+      className={`group relative flex h-full w-full flex-col overflow-hidden rounded-xl px-2 text-xs text-zinc-100 ${outline} ${selectionRing} ${nowRing} ${dragging ? "cursor-grabbing" : "cursor-move"
         }`}
     >
       <div
