@@ -43,6 +43,10 @@ pub struct AlarmEvent {
     pub title: String,
     /// 当天分钟（0–1439），结束铃已按当天结束时间钳制。
     pub fire_minute: i64,
+    /// 事务开始（当天分钟）——弹窗载荷的 time_start。
+    pub start_minute: i64,
+    /// 事务结束（当天分钟，已钳制）——弹窗载荷的 time_end。
+    pub end_minute: i64,
     pub ringtone: Ringtone,
     pub mode: AlarmMode,
 }
@@ -138,6 +142,8 @@ pub fn compute_day_events(
             entry_type: entry.entry_type,
             title: entry.title.clone(),
             fire_minute: entry.start_minute,
+            start_minute: entry.start_minute,
+            end_minute: end_minute.min(day_end_minute),
             ringtone: start_ringtone,
             mode: start_mode,
         });
@@ -154,6 +160,8 @@ pub fn compute_day_events(
                 entry_type: entry.entry_type,
                 title: entry.title.clone(),
                 fire_minute: end_minute.min(day_end_minute),
+                start_minute: entry.start_minute,
+                end_minute: end_minute.min(day_end_minute),
                 ringtone: end_ringtone,
                 mode: end_mode,
             });

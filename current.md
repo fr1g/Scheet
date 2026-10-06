@@ -115,3 +115,4 @@
   5. scheduler.rs：AlarmEvent += start_minute/end_minute（compute_day_events 填充，end 钳到 day_end）；fire_alarm_event 组装 payload（lang=cfg.ui_language.as_db()）。reminders.rs：手动提醒 payload（kind/time_end/entry_type=None，time_start=fire 时刻 HH:MM 本地，lang 从 data 读 cfg）。
   6. 退役：src/routes/AlarmPopupPage.tsx 删除、App.tsx 的 /alarm-popup 路由删除；lib/popup.ts 保留（静态页复用 close/dismiss 封装）；i18n 零新键（静态页直连 zh/en 既有键）。
   7. 验证：cargo test + pnpm build + 插入 reminder 端到端（弹窗出现、无标题栏、内容正确、dismiss 后重建）。
+- 静态弹窗落地并验证：popup.html 静态页（Vite 多页入口，无 React 无加载态）+ AlarmPopupPayload DTO（lang/title/body/kind/time_start/time_end/mode/entry_type）+ PAYLOAD 仓库 + get_last_alarm_payload IPC；弹窗渲染验证通过（无边框、无标题栏、内容齐全）；AlarmPopupPage 退役

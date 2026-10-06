@@ -140,7 +140,7 @@ fn poll_timetable(
                 if event.fire_minute <= window_start || event.fire_minute > now_minute {
                     continue;
                 }
-                fire_alarm_event(app, &event);
+                fire_alarm_event(app, &event, &cfg.ui_language.as_db());
             }
         }
     }
@@ -148,8 +148,8 @@ fn poll_timetable(
     Ok(())
 }
 
-fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent) {
-    // 标题原样传递；空标题由前端按事务类型回退显示（文案走 i18n）
+fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent, lang: &str) {
+    // 标题原样传递；空标题由静态弹窗页按事务类型回退显示
     let title = event.title.trim().to_string();
 
     let ringtone_name = match &event.ringtone {
@@ -164,18 +164,21 @@ fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent) {
             AlarmKind::Start => "start",
             AlarmKind::End => "end",
         };
-        if let Err(e) = popup::show(
-            app,
-            &title,
-            None,
-            Some(kind_text),
-            Some(&minute_to_hhmm(event.fire_minute)),
-            match event.mode {
+        let payload = crate::popup::AlarmPopupPayload {
+            lang: lang.to_string(),
+            title: title.clone(),
+            body: None,
+            kind: Some(kind_text.to_string()),
+            time_start: Some(minute_to_hhmm(event.start_minute)),
+            time_end: Some(minute_to_hhmm(event.end_minute)),
+            mode: match event.mode {
                 AlarmMode::Once => "once",
                 AlarmMode::Loop => "loop",
-            },
-            Some(event.entry_type.as_db()),
-        ) {
+            }
+            .to_string(),
+            entry_type: Some(event.entry_type.as_db().to_string()),
+        };
+        if let Err(e) = popup::show(app, payload) {
             crate::logging::warn(&format!("[scheduler] Reminder popup failed (ignored): {e}"));
         }
         let sound_file = match &event.ringtone {

@@ -1,110 +1,61 @@
 //! 提醒弹窗子窗口（系统通知的替代方案）。
 //!
 //! 部分环境（勿扰模式、未注册 AUMID 等）下 WinRT 系统通知不可见，
-//! 因此提醒改为在屏幕右下角弹出一个置顶小窗：展示事务信息与实时时钟，
-//! 点击任意位置 → 停止响铃 + 关闭弹窗 + 聚焦主窗口；
-//! 主窗口获得焦点时也会自动关闭弹窗。跨平台行为一致。
+//! 因此提醒改为在屏幕右下角弹出一个置顶小窗：展示事务信息与实时时钟。
+//! 弹窗内容为静态 popup.html（独立 Vite 入口，无 React、无加载态）：
+//! 页面加载后经 IPC 从本模块的载荷仓库取数渲染，复用时经事件更新。
+//!
+//! 交互约定：点击弹窗本体 = 停止响铃 + 收起（隐藏，不聚焦主窗口）；
+//! 点击"打开主窗口"按钮 = 停止响铃 + 收起 + 聚焦主窗口；
+//! 主窗口获得焦点时自动收起。收起 = 隐藏而非销毁（无可见性过渡，
+//! 下一次提醒经 set_visible(true) 复显，无标题栏再生风险）。
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{command, AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder};
 
 pub const POPUP_LABEL: &str = "alarm-popup";
 const POPUP_WIDTH: f64 = 360.0;
 const POPUP_HEIGHT: f64 = 132.0;
 
-#[derive(Debug, Clone, Serialize)]
+/// 弹窗渲染所需的全部数据（静态页经 IPC 取用；serde camelCase 与前端接口一致）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct AlarmPopupData {
-    title: String,
-    /// 手动提醒的自定义内容（周课表提醒不传，文案由前端生成）。
-    body: Option<String>,
-    /// "start" | "end"（周课表提醒）。
-    kind: Option<String>,
-    /// "HH:MM"。
-    time: Option<String>,
-    mode: String,
+pub struct AlarmPopupPayload {
+    /// UI 语言：配置原值 "auto" | "zh" | "en"（auto 由静态页按 navigator.language 解析）。
+    pub lang: String,
+    /// 提醒标题；空 = 静态页按 entry_type 回退显示类型名。
+    pub title: String,
+    /// 手动提醒的自定义内容（周课表提醒没有）。
+    pub body: Option<String>,
+    /// "start" | "end"（周课表提醒；手动提醒没有）。
+    pub kind: Option<String>,
+    /// "HH:MM" 开始时间（周课表提醒）。
+    pub time_start: Option<String>,
+    /// "HH:MM" 结束时间（周课表提醒；手动提醒没有）。
+    pub time_end: Option<String>,
+    /// "once" | "loop"。
+    pub mode: String,
     /// "normal" | "rest"（周课表提醒；手动提醒没有）。
-    entry_type: Option<String>,
+    pub entry_type: Option<String>,
 }
 
-fn urlencode(s: &str) -> String {
-    let mut out = String::new();
-    for b in s.as_bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                out.push(*b as char)
-            }
-            _ => out.push_str(&format!("%{b:02X}")),
-        }
+/// 最近一次提醒的载荷仓库：静态页加载时经 IPC 取用。
+static PAYLOAD: std::sync::Mutex<Option<AlarmPopupPayload>> = std::sync::Mutex::new(None);
+
+fn store_payload(payload: &AlarmPopupPayload) {
+    if let Ok(mut guard) = PAYLOAD.lock() {
+        *guard = Some(payload.clone());
     }
-    out
 }
 
-/// 显示（或刷新）提醒弹窗。已存在时仅更新内容，不重建窗口。
-#[allow(clippy::too_many_arguments)]
-pub fn show(
-    app: &AppHandle,
-    title: &str,
-    body: Option<&str>,
-    kind: Option<&str>,
-    time: Option<&str>,
-    mode: &str,
-    entry_type: Option<&str>,
-) -> Result<(), String> {
-    let data = AlarmPopupData {
-        title: title.to_string(),
-        body: body.map(|b| b.to_string()),
-        kind: kind.map(|k| k.to_string()),
-        time: time.map(|t| t.to_string()),
-        mode: mode.to_string(),
-        entry_type: entry_type.map(|e| e.to_string()),
-    };
-    let (x, y) = popup_position(app);
-    if let Some(win) = app.get_webview_window(POPUP_LABEL) {
-        // 从屏幕外移回角落（保持可见标志不变，无可见性过渡）
-        let _ = win.set_position(LogicalPosition::new(x, y));
-        return app
-            .emit_to(POPUP_LABEL, "scheet://alarm-popup", data)
-            .map_err(|e| format!("更新提醒弹窗失败: {e}"));
-    }
-
-    let mut query = format!("title={}&mode={}", urlencode(title), urlencode(mode));
-    if let Some(b) = body {
-        query.push_str(&format!("&body={}", urlencode(b)));
-    }
-    if let Some(k) = kind {
-        query.push_str(&format!("&kind={}", urlencode(k)));
-    }
-    if let Some(t) = time {
-        query.push_str(&format!("&time={}", urlencode(t)));
-    }
-    if let Some(et) = entry_type {
-        query.push_str(&format!("&entryType={}", urlencode(et)));
-    }
-    let builder = WebviewWindowBuilder::new(
-        app,
-        POPUP_LABEL,
-        WebviewUrl::App(format!("index.html#/alarm-popup?{query}").into()),
-    )
-    .title("Scheet 提醒")
-    .decorations(false)
-    .always_on_top(true)
-    .resizable(false)
-    .skip_taskbar(true)
-    .focused(false)
-    .inner_size(POPUP_WIDTH, POPUP_HEIGHT);
-
-    let window = builder
-        .position(x, y)
-        .build()
-        .map_err(|e| format!("创建提醒弹窗失败: {e}"))?;
-    // 再以逻辑坐标精确微调一次（构建器 position 的坐标语义随平台而异）
-    let _ = window.set_position(LogicalPosition::new(x, y));
-    Ok(())
+/// 静态弹窗页加载时取回最近一次提醒的载荷。
+#[command]
+pub fn get_last_alarm_payload() -> Result<Option<AlarmPopupPayload>, String> {
+    PAYLOAD
+        .lock()
+        .map_err(|_| "弹窗载荷锁已中毒".to_string())
+        .map(|g| g.clone())
 }
-
-/// （显示/收起弹窗统一走 Window::show/hide —— tao 事件循环内重算样式，
-///  SWP_NOACTIVATE | SWP_FRAMECHANGED，无激活且边框状态同步。）
 
 /// 主显示器可用区域（预留任务栏空间）右下角的逻辑坐标。
 /// 工作区给出的是物理像素，set_position 消费逻辑坐标——必须除以缩放因子，
@@ -126,19 +77,45 @@ fn popup_position(app: &AppHandle) -> (f64, f64) {
     }
 }
 
-/// 关闭弹窗（不存在时为无害空操作）。
-/// 收起提醒弹窗：移到屏幕外（保持可见标志不变——可见性过渡会触发
-/// NCCALCSIZE(0) 重算，在无边框窗口上再生原生标题栏）。
-/// 下一次提醒经 popup::show 移回屏幕角落。
+/// 显示（或刷新）提醒弹窗：载荷入仓库 → 窗口已存在则移回屏幕角落 +
+/// set_visible(true) + 事件更新；否则在角落创建（创建即可见，无显示过渡）。
+pub fn show(app: &AppHandle, payload: AlarmPopupPayload) -> Result<(), String> {
+    store_payload(&payload);
+    let (x, y) = popup_position(app);
+    if let Some(win) = app.get_webview_window(POPUP_LABEL) {
+        let _ = win.set_position(LogicalPosition::new(x, y));
+        let _ = win.show();
+        return app
+            .emit_to(POPUP_LABEL, "scheet://alarm-popup", payload)
+            .map_err(|e| format!("更新提醒弹窗失败: {e}"));
+    }
+
+    let _window = WebviewWindowBuilder::new(
+        app,
+        POPUP_LABEL,
+        WebviewUrl::App("popup.html".into()),
+    )
+    .title("Scheet 提醒")
+    .decorations(false)
+    .always_on_top(true)
+    .resizable(false)
+    .skip_taskbar(true)
+    .focused(false)
+    .position(x, y)
+    .build()
+    .map_err(|e| format!("创建提醒弹窗失败: {e}"))?;
+    Ok(())
+}
+
+/// 收起提醒弹窗：隐藏而非销毁（走 tao 标志系统，无 NCCALCSIZE 重算、
+/// 无原生标题栏再生）；下一次提醒经 set_visible(true) 复显。
 pub fn dismiss(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(POPUP_LABEL) {
-        // 正常关闭销毁（lib.rs 的 CloseRequested 拦截仅对 main 生效）
-        let _ = window.close();
+        let _ = window.hide();
     }
 }
 
-/// 收起提醒弹窗并停止响铃（隐藏而非销毁——销毁 WebView 的时机已验证与
-/// 堆损坏相关，且下一次提醒会经 show() 重新显示，无需反复销毁重建）。
+/// 弹窗本体点击回调：停止响铃 + 收起弹窗（不聚焦主窗口）。
 #[command]
 pub async fn close_alarm_popup(app: AppHandle) -> Result<(), String> {
     crate::sound::stop();

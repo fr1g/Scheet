@@ -6,6 +6,15 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   clearScreen: false,
+  build: {
+    rollupOptions: {
+      // 多页入口：主应用 + 提醒弹窗（静态页，无 React）
+      input: {
+        main: "index.html",
+        popup: "popup.html",
+      },
+    },
+  },
   server: {
     port: 1420,
     strictPort: true,

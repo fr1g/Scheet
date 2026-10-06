@@ -147,6 +147,7 @@ pub fn run() {
             clipboard::list_alarm_sounds,
             popup::dismiss_alarm_popup,
             popup::close_alarm_popup,
+            popup::get_last_alarm_payload,
             tray::exit_application,
             fonts::get_fonts_dir,
             logging::write_log,

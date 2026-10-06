@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::{DateTime, Local, SecondsFormat, Utc};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tauri::{command, State};
@@ -228,15 +228,20 @@ pub(crate) fn poll_due(app: &tauri::AppHandle, db: &DataDb) -> Result<(), String
             crate::sound::AlarmMode::Loop => "loop",
             crate::sound::AlarmMode::Once => "once",
         };
-        if let Err(e) = crate::popup::show(
-            app,
-            &reminder.title,
-            Some(&reminder.body),
-            None,
-            None,
-            mode_text,
-            None,
-        ) {
+        let payload = crate::popup::AlarmPopupPayload {
+            lang: db
+                .with_conn(|conn| crate::settings::load_global_config(conn))
+                .map(|c| c.ui_language.as_db().to_string())
+                .unwrap_or_else(|_| "auto".to_string()),
+            title: reminder.title.clone(),
+            body: Some(reminder.body.clone()),
+            kind: None,
+            time_start: Some(Local::now().format("%H:%M").to_string()),
+            time_end: None,
+            mode: mode_text.to_string(),
+            entry_type: None,
+        };
+        if let Err(e) = crate::popup::show(app, payload) {
             crate::logging::warn(&format!(
             "[reminders] Reminder popup failed (ignored, id={}): {e}",
             reminder.id

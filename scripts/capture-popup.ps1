@@ -17,7 +17,9 @@ public class PopCap {
       uint p; GetWindowThreadProcessId(h, out p);
       if (p == pid) {
         var sb = new StringBuilder(256); GetWindowText(h, sb, 256);
-        if (sb.ToString().Contains("提醒")) { found = h; return false; }
+        string title = sb.ToString();
+        // popup title = "Scheet <xxxx>" (starts with "Scheet", no CJK date prefix)
+        if (title.StartsWith("Scheet") && !title.Contains("\uFF0C")) { found = h; return false; }
       }
       return true;
     }, IntPtr.Zero);
@@ -37,5 +39,5 @@ $g = [System.Drawing.Graphics]::FromImage($bmp)
 $dc = $g.GetHdc()
 [PopCap]::PrintWindow($h, $dc, 2)
 $g.ReleaseHdc($dc)
-$bmp.Save("popup-render.png", [System.Drawing.Imaging.ImageFormat]::Png)
+$bmp.Save("$PSScriptRoot\..\popup-render.png", [System.Drawing.Imaging.ImageFormat]::Png)
 Write-Output ("captured ${w}x${ht}")

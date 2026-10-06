@@ -12,7 +12,6 @@ import { SettingsProvider, useSettings } from "./state/SettingsContext";
 import { GlobalConfigProvider } from "./state/GlobalConfigContext";
 import WeekGridPage from "./routes/WeekGridPage";
 import SettingsPage from "./routes/SettingsPage";
-import AlarmPopupPage from "./routes/AlarmPopupPage";
 
 /** 拖拽调整窗口大小时，右下角低可见度地显示当前窗口尺寸，停止拖拽约 1.2s 后淡出。 */
 function WindowSizeBadge() {
@@ -92,7 +91,6 @@ function AppShell() {
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<WeekGridPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/alarm-popup" element={<AlarmPopupPage />} />
           </Routes>
         </AnimatePresence>
         {!isPopup && <AlarmSnackbar />}
