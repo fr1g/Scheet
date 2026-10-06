@@ -57,7 +57,7 @@ function Clock({ seconds }: { seconds: boolean }) {
     .map((n) => String(n).padStart(2, "0"))
     .join(":");
   return (
-    <span className="flex h-full items-center px-2 font-mono text-xs text-zinc-300">
+    <span className="flex h-full items-center px-2 scale-x-101 translate-x-px font-semibold font-mono text-xs text-zinc-300">
       {text}
     </span>
   );
@@ -74,23 +74,25 @@ export default function TitleBar() {
 
   return (
     <>
-      <header className="flex h-10 shrink-0 items-stretch">
+      <header className={`flex h-10 shrink-0 items-stretch   ${position === 'hidden' ? 'px-2.5' : ''}`}>
+        {position === "hidden" && clockOn && <Clock seconds={clockSeconds} />}
+
         {position === "right" && <AppTitle />}
-        {position === "left" && clockOn && <Clock seconds={clockSeconds} />}
         {position === "left" && (
           <WindowControls
             position="left"
             onExitRequest={() => setConfirmExit(true)}
           />
         )}
+        {position === "left" && clockOn && <Clock seconds={clockSeconds} />}
         <div data-tauri-drag-region className="min-w-0 flex-1" />
+        {position === "right" && clockOn && <Clock seconds={clockSeconds} />}
         {position === "right" && (
           <WindowControls
             position="right"
             onExitRequest={() => setConfirmExit(true)}
           />
         )}
-        {position === "right" && clockOn && <Clock seconds={clockSeconds} />}
         {position !== "right" && <AppTitle />}
       </header>
       <ConfirmDialog

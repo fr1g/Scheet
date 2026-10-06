@@ -8,3 +8,6 @@ src-tauri/gen/schemas/
 # 本地日志与 ZCode 工作区状态
 *.log
 .zcode/
+
+# Agent, 以后有临时文件放在这里：
+_temps/*
