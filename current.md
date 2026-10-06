@@ -107,3 +107,11 @@
 - 弹窗提醒补类型标注：popup 链路传 entryType（Rust payload/URL/事件）；无标题休息事务标题位回退显示"休息事务"；弹窗时间行追加类型文字；snackbar 空标题同回退
 - 弹窗显示改 SW_SHOWNA（Windows）——出现/复显均不激活窗口，不再抢当前工作焦点
 - 标题栏系统时钟（外观 tab 两级开关：显示时间/显示秒，默认关）；时钟贴窗口按钮组外侧、按钮组隐藏时固定标题栏左侧；cell 高亮改为 nowEntryId ring（覆盖当前时刻的事务，仅本周轮换表，不在事务内则无标记）
+- 【进行中】B 方案静态弹窗实施规格（防压缩丢失）：
+  1. Vite 多页：vite.config.ts 加 build.rollupOptions.input = { main: "index.html", popup: "popup.html" }；根新建 popup.html（内联深色卡片样式复刻现弹窗 + <script type="module" src="/src/popup-page/main.ts">）。
+  2. src/popup-page/main.ts（原生 TS 无 React）：invoke("get_last_alarm_payload") 取 DTO → 同步渲染（无加载态）；lang "auto" → navigator.language 解析（同 detectLanguage）；取词直接 import zh/en（构建期内联零漂移，零新 i18n 键）；listen("scheet://alarm-popup") 更新；时钟 interval；按钮 invoke("dismiss_alarm_popup")；本体点击 invoke("close_alarm_popup")。
+  3. popup.rs：AlarmPopupPayload DTO（serde camelCase：lang/title/body?/kind?/time_start?/time_end?/mode/entry_type?）+ static PAYLOAD: Mutex<Option<DTO>> + get_last_alarm_payload 命令；show(app, payload)（存仓库 → 窗口已存在？set_position 角落+set_visible(true)+emit 更新 : 新建 visible(true) 于角落，URL=popup.html 无 query）；dismiss(app)=set_visible(false)。
+  4. DTO 字段：lang("auto"/"zh"/"en" 原值，页面解析 auto)、title(空=页面回退类型名)、body?、kind?("start"/"end")、time_start?("HH:MM")、time_end?、mode("once"/"loop")、entry_type?("normal"/"rest")。time 改 time_start/time_end 双字段（起止都进弹窗）。
+  5. scheduler.rs：AlarmEvent += start_minute/end_minute（compute_day_events 填充，end 钳到 day_end）；fire_alarm_event 组装 payload（lang=cfg.ui_language.as_db()）。reminders.rs：手动提醒 payload（kind/time_end/entry_type=None，time_start=fire 时刻 HH:MM 本地，lang 从 data 读 cfg）。
+  6. 退役：src/routes/AlarmPopupPage.tsx 删除、App.tsx 的 /alarm-popup 路由删除；lib/popup.ts 保留（静态页复用 close/dismiss 封装）；i18n 零新键（静态页直连 zh/en 既有键）。
+  7. 验证：cargo test + pnpm build + 插入 reminder 端到端（弹窗出现、无标题栏、内容正确、dismiss 后重建）。
