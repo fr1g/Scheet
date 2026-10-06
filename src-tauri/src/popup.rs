@@ -59,9 +59,10 @@ pub fn show(
         mode: mode.to_string(),
         entry_type: entry_type.map(|e| e.to_string()),
     };
+    let (x, y) = popup_position(app);
     if let Some(win) = app.get_webview_window(POPUP_LABEL) {
-        // 防御：窗口可能处于隐藏态（如被其他路径 hide），更新前先确保可见
-        show_popup(&win);
+        // 从屏幕外移回角落（保持可见标志不变，无可见性过渡）
+        let _ = win.set_position(LogicalPosition::new(x, y));
         return app
             .emit_to(POPUP_LABEL, "scheet://alarm-popup", data)
             .map_err(|e| format!("更新提醒弹窗失败: {e}"));
@@ -91,35 +92,19 @@ pub fn show(
     .resizable(false)
     .skip_taskbar(true)
     .focused(false)
-    .visible(false)
     .inner_size(POPUP_WIDTH, POPUP_HEIGHT);
 
-    let (x, y) = popup_position(app);
     let window = builder
         .position(x, y)
         .build()
         .map_err(|e| format!("创建提醒弹窗失败: {e}"))?;
     // 再以逻辑坐标精确微调一次（构建器 position 的坐标语义随平台而异）
     let _ = window.set_position(LogicalPosition::new(x, y));
-    show_popup(&window);
     Ok(())
 }
 
-/// 显示弹窗但不激活（不抢当前工作窗口的焦点）。
-/// Windows 用 SW_SHOWNA（SW_SHOW 会激活窗口打断输入）；其他平台维持 show。
-fn show_popup(win: &tauri::WebviewWindow) {
-    #[cfg(target_os = "windows")]
-    {
-        use windows_sys::Win32::UI::WindowsAndMessaging::{ShowWindow, SW_SHOWNA};
-        if let Ok(hwnd) = win.hwnd() {
-            unsafe {
-                ShowWindow(hwnd.0 as _, SW_SHOWNA);
-            }
-            return;
-        }
-    }
-    let _ = win.show();
-}
+/// （显示/收起弹窗统一走 Window::show/hide —— tao 事件循环内重算样式，
+///  SWP_NOACTIVATE | SWP_FRAMECHANGED，无激活且边框状态同步。）
 
 /// 主显示器可用区域（预留任务栏空间）右下角的逻辑坐标。
 /// 工作区给出的是物理像素，set_position 消费逻辑坐标——必须除以缩放因子，
@@ -142,10 +127,13 @@ fn popup_position(app: &AppHandle) -> (f64, f64) {
 }
 
 /// 关闭弹窗（不存在时为无害空操作）。
+/// 收起提醒弹窗：移到屏幕外（保持可见标志不变——可见性过渡会触发
+/// NCCALCSIZE(0) 重算，在无边框窗口上再生原生标题栏）。
+/// 下一次提醒经 popup::show 移回屏幕角落。
 pub fn dismiss(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(POPUP_LABEL) {
-        // 隐藏而非销毁：下一次提醒经 popup::show 的 show() 重新显示
-        let _ = window.hide();
+        // 正常关闭销毁（lib.rs 的 CloseRequested 拦截仅对 main 生效）
+        let _ = window.close();
     }
 }
 

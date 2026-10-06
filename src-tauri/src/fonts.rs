@@ -53,9 +53,10 @@ pub fn extract_bundled_fonts() -> Result<usize, String> {
     }
     // 清理不再打包的遗留字体（fonts 目录完全由应用管理）
     let bundled: Vec<&str> = EMBEDDED_FONTS.iter().map(|(name, _)| *name).collect();
-    for entry in fs::read_dir(&dir) {
+    if let Ok(entries) = fs::read_dir(&dir) {
+    for entry in entries {
         for path in entry {
-            let path = path.map_err(|e| format!("读取字体目录失败: {e}"))?.path();
+            let path = path.path();
             if path.extension().is_some_and(|ext| ext == "ttf")
                 && path
                     .file_name()
@@ -65,6 +66,7 @@ pub fn extract_bundled_fonts() -> Result<usize, String> {
                 let _ = fs::remove_file(&path);
             }
         }
+    }
     }
     Ok(extracted)
 }
