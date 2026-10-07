@@ -16,7 +16,7 @@ pnpm install            # 安装前端依赖
 pnpm tauri dev          # 开发模式（自动启动 vite + tauri）
 pnpm tauri build        # 构建发布产物
 cargo test              # 在 src-tauri/ 下运行 Rust 单元测试
-pnpm exec tauri icon <png>  # 重新生成 src-tauri/icons/（源图 1024x1024）
+pnpm exec tauri icon app-icon.png  # 重新生成 src-tauri/icons/（源图=根目录 app-icon.png，1024x1024，打包入口在 src-tauri/icons/）
 ```
 
 ### 单文件构建产物
