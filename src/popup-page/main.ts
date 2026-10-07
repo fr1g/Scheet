@@ -4,6 +4,7 @@
 // 文案：构建期内联 zh/en（与主应用同一事实源，零漂移）。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { applyUiFont, registerBundledFontFaces } from "../lib/fonts";
 import zh from "../i18n/zh";
 import en from "../i18n/en";
 
@@ -81,12 +82,22 @@ $("open-main").addEventListener("click", (e) => {
 tick();
 window.setInterval(tick, 250);
 
+// 界面字体：注册内置字体 @font-face（asset 协议）后按全局设置应用；
+// 失败保持 popup.html 的默认字体栈。每次弹窗显示时重取（设置中途换字体也能跟上）。
+async function applyFont(): Promise<void> {
+  const cfg = await invoke<{ uiFont: string }>("get_global_config");
+  await registerBundledFontFaces();
+  applyUiFont(cfg.uiFont);
+}
+
 // 初始载荷
 void invoke<AlarmPopupPayload>("get_last_alarm_payload")
   .then((p) => render(p))
   .catch(() => undefined);
+void applyFont().catch(() => undefined);
 
 // 复用路径：后端 emit 更新
-void listen<AlarmPopupPayload>("scheet://alarm-popup", (e) => render(e.payload)).catch(
-  () => undefined,
-);
+void listen<AlarmPopupPayload>("scheet://alarm-popup", (e) => {
+  render(e.payload);
+  void applyFont().catch(() => undefined);
+}).catch(() => undefined);

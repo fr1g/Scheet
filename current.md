@@ -117,3 +117,4 @@
   7. 验证：cargo test + pnpm build + 插入 reminder 端到端（弹窗出现、无标题栏、内容正确、dismiss 后重建）。
 - 静态弹窗落地并验证：popup.html 静态页（Vite 多页入口，无 React 无加载态）+ AlarmPopupPayload DTO（lang/title/body/kind/time_start/time_end/mode/entry_type）+ PAYLOAD 仓库 + get_last_alarm_payload IPC；弹窗渲染验证通过（无边框、无标题栏、内容齐全）；AlarmPopupPage 退役
 - 修复新弹窗"特别长"：popup.rs 重写时 WebviewWindowBuilder 漏配 inner_size，窗口落到 Tauri 默认 800x600，内容被拉伸；补 .inner_size(POPUP_WIDTH, POPUP_HEIGHT)（360x132 逻辑像素，与定位计算同一常量），cargo check 通过
+- 弹窗接入界面字体：popup.html 字体栈移到 html（body 继承，JS 可覆盖）；popup-page/main.ts 增 applyFont()（get_global_config 取 uiFont + registerBundledFontFaces 注册 @font-face + applyUiFont 覆盖根元素），启动与每次弹窗显示（事件路径）都同步，设置中途换字体即时跟上；asset 协议 scope 应用级已覆盖 fonts 目录，capability 已含 alarm-popup 窗口，纯前端零 Rust 改动；pnpm build 通过

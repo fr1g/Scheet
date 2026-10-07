@@ -6,10 +6,11 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
       html, body { height: 100%; overflow: hidden; background: #1c1c1f; }
+      /* 字体栈放 html：main.ts 会用设置字体覆盖 documentElement 内联样式，body 继承 */
+      html { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; }
       body {
         border: 1px solid #52525b;
         color: #f4f4f5;
-        font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
         font-size: 12px;
         cursor: pointer;
         display: flex;
