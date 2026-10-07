@@ -97,6 +97,7 @@ pub fn show(app: &AppHandle, payload: AlarmPopupPayload) -> Result<(), String> {
     )
     .title("Scheet 提醒")
     .decorations(false)
+    .inner_size(POPUP_WIDTH, POPUP_HEIGHT)
     .always_on_top(true)
     .resizable(false)
     .skip_taskbar(true)
