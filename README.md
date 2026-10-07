@@ -1,9 +1,10 @@
 # Scheet
 
-<div align="center">
-  <img src="logo-designs/concept-logo-v5.png" alt="Scheet" width="160">
-  <p><strong>以周为单位，安排你的生活</strong></p>
+<div style="display: flex; flex-direction: column;">
+  <img src="logo-designs/concept-logo-v5.png" alt="Scheet" style="margin: auto" width="160">
+  <p style="text-align: center"><strong>以周为单位，安排你的生活</strong></p>
 </div>
+
 
 Scheet 是一款本地优先的周课表应用：以 5 分钟为粒度编排一周的普通事务与休息，到点自动弹窗响铃提醒，右侧还有每日待办清单。所有数据都保存在你自己的电脑上。
 
@@ -30,6 +31,8 @@ Scheet 是一款本地优先的周课表应用：以 5 分钟为粒度编排一�
 pnpm install       # 安装前端依赖（首次）
 pnpm tauri dev     # 启动开发实例，前端改动热更新
 ```
+
+前端调试时如需使用DevTools，前往设置-高级，按住shift然后点击【打开DevTools】
 
 ### 构建发布产物
 
@@ -68,5 +71,3 @@ cargo test         # Rust 单元测试（含调度器/冲突检测/铃声链等�
   - 系统托盘驻留（左键回焦、菜单退出、关闭窗口隐藏到托盘，`src-tauri/src/tray.rs`）；
   - 本 README、AGENTS.md 项目规范与应用占位图标。
 - 生成代码已通过 tsc 类型检查、vite 构建、cargo 编译、Rust 单元测试与实机冒烟验证。
-- M1-M6 迭代（周课表网格/交互/冲突校验/提醒弹窗/snackbar/设置页/todo/剪贴板预览/内置字体/待办面板三态/剪贴板备份恢复）均由 AI 按里程碑实现并提交，验收点记录见 [current.md](current.md) 与 [plan.md](plan.md)。
-- 后续迭代建议继续由 AI 按 [AGENTS.md](AGENTS.md) 的约定协作完成；人工负责需求定义、代码审阅与验收。

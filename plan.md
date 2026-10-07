@@ -70,13 +70,13 @@
 - [x] M4-part6（验收反馈）设置页打开/关闭动效：路由级 AnimatePresence（mode=wait），设置页淡入上移进入/淡出关闭，周表页返回轻微淡入。git 702e202
 - [x] M4-part7（验收反馈）设置页分 Tab（通用/提醒铃声/外观/关于），Tab 切换淡入淡出（AnimatePresence mode=wait）；新增关于 Tab（logo + 简介 + 协作者 GLM-5.3-Flash）。git 62f4d24（随动效批次）
 - [x] M3.4 保存冲突拒绝 + 临时 snackbar + outline 切换规则（已在 M2/M3.1 增量实现：保存时 Rust 权威校验拒绝+toast、冲突红 outline 实时计算、消除后红消失/被黄替换）
-- [ ] M3.5 验收 → **暂停验收（M3 全部子任务完成，应用运行中）**
+- [x] M3.5 验收 → ~~暂停验收（M3 全部子任务完成，应用运行中）~~ // 任务完成得很出色。
 
 ## M4 提醒链路与设置页
 
 - [x] M4.1 前端监听 scheet://alarm → 右下角 snackbar +【确认】停止铃声（loop 持续/once 30s 自动消退）——已随 M3.3d 提前完成（提交 98af938）
 - [x] M4.2 设置页（全局起止时间、每周第一天、铃声解析链三组[含结束铃声]、窗口控制按钮组位置）。提交 7ea300d
-- [ ] M4.3 E2E 提醒验收（2 分钟后事务：弹窗+铃声+snackbar；none 只弹 snackbar；循环确认即停）→ **暂停验收**
+- [x] M4.3 E2E 提醒验收（2 分钟后事务：弹窗+铃声+snackbar；none 只弹 snackbar；循环确认即停）→ ~~暂停验收~~
 
 ## M5 todo + 剪贴板预览 + 收尾
 
@@ -86,8 +86,8 @@
 
 ## M6 待办面板三态 + 剪贴板预览独立锚定
 
-- [ ] M6.1 预览浮块迁出右面板 → fixed 锚定窗口右下角（bottom-16 right-4，避开 Toast/Snackbar），显示语义不变（有效 ScheetPlan JSON 期间常显，不做"粘贴后隐藏"——保留一次复制多天连贴）
-- [ ] M6.2 待办面板三态：todoPanelMode 持久化键（pinned/hidden，默认 pinned）+ 隐藏态右缘细竖轨（点击暂时展开）+ 点外收回 + 面板头图钉（转常驻）/收起按钮 + 宽度过渡动画
+- [x] M6.1 预览浮块迁出右面板 → fixed 锚定窗口右下角（bottom-16 right-4，避开 Toast/Snackbar），显示语义不变（有效 ScheetPlan JSON 期间常显，不做"粘贴后隐藏"——保留一次复制多天连贴）
+- [x] M6.2 待办面板三态：todoPanelMode 持久化键（pinned/hidden，默认 pinned）+ 隐藏态右缘细竖轨（点击暂时展开）+ 点外收回 + 面板头图钉（转常驻）/收起按钮 + 宽度过渡动画
 - [ ] M6.3 验收：cargo test + pnpm build + 冒烟（复制→右下预览、连贴多天、复制其他文本→预览消失、三态互转、重启记忆）→ 暂停等验收
 
 ## 明确不做（后续升级项）

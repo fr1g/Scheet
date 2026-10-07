@@ -107,7 +107,7 @@
 - 弹窗提醒补类型标注：popup 链路传 entryType（Rust payload/URL/事件）；无标题休息事务标题位回退显示"休息事务"；弹窗时间行追加类型文字；snackbar 空标题同回退
 - 弹窗显示改 SW_SHOWNA（Windows）——出现/复显均不激活窗口，不再抢当前工作焦点
 - 标题栏系统时钟（外观 tab 两级开关：显示时间/显示秒，默认关）；时钟贴窗口按钮组外侧、按钮组隐藏时固定标题栏左侧；cell 高亮改为 nowEntryId ring（覆盖当前时刻的事务，仅本周轮换表，不在事务内则无标记）
-- 【进行中】B 方案静态弹窗实施规格（防压缩丢失）：
+- B 方案静态弹窗实施规格（防压缩丢失）：
   1. Vite 多页：vite.config.ts 加 build.rollupOptions.input = { main: "index.html", popup: "popup.html" }；根新建 popup.html（内联深色卡片样式复刻现弹窗 + <script type="module" src="/src/popup-page/main.ts">）。
   2. src/popup-page/main.ts（原生 TS 无 React）：invoke("get_last_alarm_payload") 取 DTO → 同步渲染（无加载态）；lang "auto" → navigator.language 解析（同 detectLanguage）；取词直接 import zh/en（构建期内联零漂移，零新 i18n 键）；listen("scheet://alarm-popup") 更新；时钟 interval；按钮 invoke("dismiss_alarm_popup")；本体点击 invoke("close_alarm_popup")。
   3. popup.rs：AlarmPopupPayload DTO（serde camelCase：lang/title/body?/kind?/time_start?/time_end?/mode/entry_type?）+ static PAYLOAD: Mutex<Option<DTO>> + get_last_alarm_payload 命令；show(app, payload)（存仓库 → 窗口已存在？set_position 角落+set_visible(true)+emit 更新 : 新建 visible(true) 于角落，URL=popup.html 无 query）；dismiss(app)=set_visible(false)。
@@ -124,7 +124,7 @@
 - 弹窗防抢焦点：根因是 tao 创建后即移除 MARKER_DONT_FOCUS，复显 set_visible→SW_SHOW 会激活窗口（focused(false) 只管创建首秀）；popup.rs 加 focusable(false) 挂 WS_EX_NOACTIVATE 同时压住复显与点击激活，弹窗纯点击交互无副作用；cargo check 通过。另归档 滚动条悬浮方案.md（A=WebView2 Fluent overlay flag，B=自绘悬浮条）
 - 主窗口最小宽度 1080→1200（tauri.conf.json minWidth，与默认宽度一致；minHeight 700 不变），cargo check 重嵌入配置通过
 - M6.1+M6.2 落地（未提交，等验收）：①剪贴板预览浮块从右面板迁出，fixed 锚定窗口右下（bottom-16 right-4 z-30 避开 Toast/Snackbar），显示语义不变（有效 JSON 常显，支持连贴）；②待办面板三态——GlobalConfig 新增 todoPanelMode（pinned/hidden，默认 pinned，两端镜像+加载过滤+保存校验），隐藏态右缘 20px 竖轨（ChevronLeft，点击暂时展开），暂时展开点击面板外收回（pointerdown 监听），面板头部按模式注入图钉（隐藏→常驻）/收起（常驻→隐藏）按钮，aside 宽度 240↔20 带 200ms 过渡（内容 w-60 定宽防挤压重排）；③TodoPanel 改受控按钮注入（onPin/onCollapse），i18n 新键 todo.collapse/expand/pin；cargo test 37 绿 + pnpm build 通过
-- 验收反馈修正（仍未提交）：①剪贴板预览 w-56→w-44 收窄，整卡加 bg-zinc-800 底 + border-2 border-white + rounded-xl + shadow-xl，内层事务色块 rounded-lg；②收起/展开按钮提亮放大（h-6 w-6、zinc-300、13px 图标、rounded-md），并把三态判定从 ==="pinned" 改为 !=="hidden"（旧后端缺字段时回退常驻态而非误入竖轨）；③更正表述：剪贴板检查本就不是 150ms 轮询，而是窗口 focus + 150ms 去抖（arboard 堆损坏规避），本次把 DOM focus 换成 tauri://focus 窗口级事件（点标题栏激活也触发），应用内复制仍为直接更新状态；pnpm build 通过
+- 验收反馈修正（仍未提交）：①剪贴板预览 w-56→w-44 收窄，整卡加 bg-zinc-800 底 + border-2 border-white + rounded-xl + shadow-xl，内层事务色块 rounded-lg；②收起/展开按钮提亮放大（h-6 w-6、zinc-300、13px 图标、rounded-md），并把三态判定从 === "pinned" 改为 !=="hidden"（旧后端缺字段时回退常驻态而非误入竖轨）；③更正表述：剪贴板检查本就不是 150ms 轮询，而是窗口 focus + 150ms 去抖（arboard 堆损坏规避），本次把 DOM focus 换成 tauri://focus 窗口级事件（点标题栏激活也触发），应用内复制仍为直接更新状态；pnpm build 通过
 - 修复按钮"消失"：根因是 rem/px 混用——面板内层 w-60（15rem）随界面字号档位缩放（lg 档根字号 18px 时 = 270px），而 aside 外壳为内联 px 240，右对齐的日期+按钮组落进被 overflow-hidden 裁掉的 30px；内层改为 w-[240px]/w-[20px] px 定值与外壳对齐，任意字号档位下按钮均可见；pnpm build 通过
 - 修复剪贴板预览文字颜色：卡片只用了 resolveEntryColors 的 background，文字硬编码白/zinc-300，textDark 解析链（事务→类型→全局）没生效，浅色底（如 salmon+全局深字）上白字可见性差；改为派生 clipboardColors 传入背景与文字（标题 zinc-900/zinc-100、时间 zinc-900/70/zinc-300，与 EntryCell 同参数），JSON 中 textDark=null 时正确回落全局默认；pnpm build 通过
 - 首用剪贴板提示弹窗：data.db 增 flags 表（key/value，幂等建表老库自动补）+ flags.rs 两命令 get_app_flag/set_app_flag（async+spawn_blocking，已注册）；前端 lib/flags.ts 封装 + ClipboardNotice 组件（HeadlessUI 单按钮，App 加载完成分支挂载、popup 不渲染），首启查 clipboardNoticeShown 非 "1" 则弹窗（中英文案：读取场景=窗口聚焦/应用内复制、复制占用剪贴板、完全离线不泄露），确认或 Esc 均写标记视为已读；cargo test 37 绿 + pnpm build 通过

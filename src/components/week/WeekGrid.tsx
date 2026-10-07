@@ -468,7 +468,7 @@ export default function WeekGrid({
                   pxPerMinute,
                 );
                 return (
-                  <td key={d} data-day={d} className="border border-zinc-600 align-top px-0.5">
+                  <td key={d} data-day={d} className="border border-zinc-600 align-top px-0.5 overflow-clip [overflow-clip-margin:10px]">
                     <div
                       className={`relative h-full overflow-clip [overflow-clip-margin:6px] ${isCurrentWeek && d === today ? "bg-zinc-100/10" : ""
                         }`}
@@ -712,17 +712,17 @@ ${t("grid.copyEdge")}`}
         </span>
       )}
       {showTimes && (
-        <span className={`text-left text-[9px] leading-3 ${timeColor}`}>
+        <span className={`text-left text-[9px] translate-y-0.5 leading-3 ${timeColor}`}>
           {minuteToHHMM(entry.startMinute)}
         </span>
       )}
-      <div className="grid min-h-0 grow place-items-center -translate-y-px">
+      <div className="grid min-h-0 grow place-items-center ">
         <span
           className={`text-center leading-tight ${entry.entryType === "normal" ? "font-semibold" : ""
             } ${entryColors.textDark
               ? "text-zinc-900"
               : "text-zinc-100"
-            } ${compact ? "whitespace-nowrap" : ""}`}
+            } ${compact ? "whitespace-nowrap" : "-translate-y-px"}`}
           style={{ transform: `scale(${scale})` }}
         >
           {content}
