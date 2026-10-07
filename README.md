@@ -1,3 +1,5 @@
+**简体中文** | [English](README.en.md)
+
 # Scheet
 
 <div style="display: flex; flex-direction: column;">
@@ -70,6 +72,10 @@ Tauri, Vite, React, TailwindCSS, TS, Rust, SQLite
 ## 许可证
 
 MIT。包括附带的音频和图像。*不过哪天想起什么了或是做了点别的什么神奇变更那我大概会给许可证改改*
+
+软件源码、打包和发布时包含一些OFL字体：Maple Mono、LXGW Wenkai、HarmonySans 这些资源需要遵守对应的许可协议。
+
+软件依赖一些其他开源项目。这些同样需要遵守对应的协议。
 
 ## 如何构建
 
