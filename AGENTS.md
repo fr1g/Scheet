@@ -146,5 +146,5 @@ SQLite 中一切时间按三类存储，**不得混用**（约定实现见 `src-
 - Rust 命令统一返回 `Result<T, String>`；新增耗时 DB 操作一律 async 命令 + `spawn_blocking`。
 - 前端调用后端的封装放在 `src/lib/`，全局状态放 `src/state/`（titleState/dateState 为 useSyncExternalStore 外部存储）。
 - 周课表页（WeekGridPage）：左侧周表 tab 列、中央绝对定位网格（冲突泳道并排）、右侧当日待办面板 + 剪贴板事务预览浮块。
-- 测试用例库见根目录 `测试用例.md`（黑白盒，按里程碑验收勾选）。
+- 测试用例库见 `docs/测试用例.md`（黑白盒，按里程碑验收勾选）；已知问题与平台注意事项见 `docs/problems.md`。
 - 根目录下的`_temps`为临时文件存放，目录下所有内容都不会也不应被git追踪。

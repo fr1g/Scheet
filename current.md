@@ -1,7 +1,7 @@
 # 执行进度日志
 
 > 每完成一个子任务记一笔（一行即可），避免上下文膨胀。新条目追加在文件末尾。
-> 详细计划见 [plan.md](plan.md)，需求见 [fn-req.md](fn-req.md)。
+> 详细计划见 [plan.md](plan.md)，需求见 [docs/fn-req.md](docs/fn-req.md)。
 
 - 2026-09-27 计划批准并落盘（plan.md / current.md 建立）。下一子任务：M1.1
 - 2026-09-27 M1.1 完成：db.rs 重构为 LazyDb（按文件名惰性打开+各自 schema 初始化），DataDb 包装类型，全部引用点更新，14 测试绿
@@ -132,3 +132,4 @@
 - 剪贴板备份改进：连续事务复制不覆盖最初备份——备份槽升级为 ClipboardBackup{original, last_written}，stash_and_write_text 发现剪贴板仍是上次写入的内容（含连贴后反复复制）时保持 original 不动，被外部改动才重新快照；restore 同时清 last_written（恢复后下次复制重新快照当前内容）；前端零改动；cargo check/test 通过
 - 内置默认开始/结束铃：default-ringtones 两个 m4a（AAC 44.1k 立体声 3.78s，ffmpeg -vn 丢封面转 PCM16 WAV）→ assets/default-alarm-start.wav、default-alarm-end.wav；sound.rs 增 BuiltinAlarm{Generic,Start,End}（wav() 选资产），play/load_source/循环看护全链传参，play_alarm_sound 命令增 builtin 参数；scheduler 按事件 kind 传 Start/End，reminders 手动提醒传 Generic，EntryEditDialog 试听跟随槽位；AGENTS.md 铃声说明同步；cargo test 38 绿 + pnpm build 通过
 - 崩溃监控入口进 package.json：debugger-watch.py 增按进程名附加（PROCESSENTRY32 快照找 PID，.exe 后缀可省，多实例取第一个；实测 explorer 查找通过），新增脚本 debug:attach（按名附加 dev 实例，HMR 瞬间崩溃假设的验证路径）与 debug:run（自启动 debug exe）；用法写进脚本 docstring
+- 目录整理：新建 docs/（fn-req、测试用例、problems、滚动条悬浮方案 四份文档移入，README/AGENTS/plan/current/problems 内活引用同步更新）；app-icon.png 归入 logo-designs/；popup 验证截图（popup-render/static-check）删除；default-ringtones 素材转 _temps/；.gitignore 增 crashdumps/ 与 __pycache__/（修正无末尾换行导致的粘连）；已删除的 My Song 18.m4a 一并入库

@@ -44,7 +44,7 @@ cd src-tauri
 cargo test         # Rust 单元测试（含调度器/冲突检测/铃声链等）
 ```
 
-更多的功能验收用例见 [测试用例.md](测试用例.md)，已知问题与平台注意事项见 [problems.md](problems.md)，项目规范见 [AGENTS.md](AGENTS.md)。
+更多的功能验收用例见 [docs/测试用例.md](docs/测试用例.md)，已知问题与平台注意事项见 [docs/problems.md](docs/problems.md)，项目规范见 [AGENTS.md](AGENTS.md)。
 
 ## AI Usage
 

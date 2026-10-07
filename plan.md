@@ -1,6 +1,6 @@
 # Scheet 周课表实现计划
 
-> 依据 fn-req.md 整理，2026-09-27 批准。执行进度日志见 [current.md](current.md)。
+> 依据 [docs/fn-req.md](docs/fn-req.md) 整理，2026-09-27 批准。执行进度日志见 [current.md](current.md)。
 > 推进方式：按里程碑验收——每个里程碑完成即 `cargo test` + `pnpm build` + 冒烟，暂停等验收后再继续。
 
 ## 已确认决策
