@@ -410,7 +410,7 @@ export default function WeekGrid({
 
       <div
         ref={wrapRef}
-        className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-2"
+        className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden"
       >
         <table
           className="h-full w-full min-w-[840px] table-fixed border-collapse"
@@ -470,9 +470,8 @@ export default function WeekGrid({
                 return (
                   <td key={d} data-day={d} className="border border-zinc-600 align-top px-0.5">
                     <div
-                      className={`relative h-full overflow-clip [overflow-clip-margin:6px] ${
-                        isCurrentWeek && d === today ? "bg-zinc-100/10" : ""
-                      }`}
+                      className={`relative h-full overflow-clip [overflow-clip-margin:6px] ${isCurrentWeek && d === today ? "bg-zinc-100/10" : ""
+                        }`}
                       title={t("grid.newHere")}
                       onPointerMove={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();

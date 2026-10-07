@@ -217,7 +217,7 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-     
+
   }, [alarmFiles, alarmSlotSignature]);
 
   // 起止时间存放在独立的输入状态里，比较时需一并纳入，否则改时间无法激活保存按钮
@@ -322,7 +322,7 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
-     
+
   }, [config, draft, startTime, endTime, update, showToast, t]);
 
   // 快捷键：Ctrl+S 保存；Ctrl+Z 丢弃草稿（文本输入框内不拦截，保留原生撤销）
@@ -708,11 +708,10 @@ export default function SettingsPage() {
                     prev ? { ...prev, entryNormalColor: e.target.value } : prev
                   )
                 }
-                className={`w-full rounded border bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400 ${
-                  /^#[0-9a-fA-F]{6}$/.test(draft.entryNormalColor)
-                    ? "border-zinc-600"
-                    : "border-red-500"
-                }`}
+                className={`w-full rounded border bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400 ${/^#[0-9a-fA-F]{6}$/.test(draft.entryNormalColor)
+                  ? "border-zinc-600"
+                  : "border-red-500"
+                  }`}
               />
               <span
                 className="size-7 shrink-0 rounded border border-zinc-600"
@@ -731,11 +730,10 @@ export default function SettingsPage() {
                     prev ? { ...prev, entryRestColor: e.target.value } : prev
                   )
                 }
-                className={`w-full rounded border bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400 ${
-                  /^#[0-9a-fA-F]{6}$/.test(draft.entryRestColor)
-                    ? "border-zinc-600"
-                    : "border-red-500"
-                }`}
+                className={`w-full rounded border bg-zinc-700 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-zinc-400 ${/^#[0-9a-fA-F]{6}$/.test(draft.entryRestColor)
+                  ? "border-zinc-600"
+                  : "border-red-500"
+                  }`}
               />
               <span
                 className="size-7 shrink-0 rounded border border-zinc-600"
@@ -939,7 +937,18 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-      <CollapseBar title={t("about.infoTitle")}>
+      <div className="w-full max-w-sm rounded-lg  text-left grid grid-cols-3 gap-3">
+        <div className="border p-3 border-zinc-600/60 rounded-lg min-h-5">
+          {/* 查看仓库 */}
+        </div>
+        <div className="border p-3 border-zinc-600/60 rounded-lg min-h-5">
+          {/* vibration club */}
+        </div>
+        <div className="border p-3 border-zinc-600/60 rounded-lg min-h-5"></div>
+      </div>
+      <hr className="mx-auto border-zinc-100/30 border-2 rounded translate-y-0.5 w-5/7" />
+      <p className="text-xs! opacity-70 font-mono translate-y-[3px]">the Program and its source code are permitted to copy, share, release and modify under MIT license, but some of the relied parts requires other permission.</p>
+      <CollapseBar title={t("about.infoTitle")} className="w-full!">
         <pre className="typo indent-6">{t("about.info")}</pre>
         <ul className="mt-3 space-y-1 text-xs text-zinc-400">
           {OPENSOURCE.map(([name, url]) => (
