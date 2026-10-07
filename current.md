@@ -134,3 +134,4 @@
 - 崩溃监控入口进 package.json：debugger-watch.py 增按进程名附加（PROCESSENTRY32 快照找 PID，.exe 后缀可省，多实例取第一个；实测 explorer 查找通过），新增脚本 debug:attach（按名附加 dev 实例，HMR 瞬间崩溃假设的验证路径）与 debug:run（自启动 debug exe）；用法写进脚本 docstring
 - 目录整理：新建 docs/（fn-req、测试用例、problems、滚动条悬浮方案 四份文档移入，README/AGENTS/plan/current/problems 内活引用同步更新）；app-icon.png 归入 logo-designs/；popup 验证截图（popup-render/static-check）删除；default-ringtones 素材转 _temps/；.gitignore 增 crashdumps/ 与 __pycache__/（修正无末尾换行导致的粘连）；已删除的 My Song 18.m4a 一并入库
 - README 写完：新增"功能特性"六条（编排/交互/提醒/待办/本地优先/可定制）；AI Usage 过期内容刷新（系统通知→置顶弹窗子窗口、合成默认铃→三套内置铃、M1-M5→M1-M6）；文档链接已随目录整理更新
+- 新建 HANDOFF.md（面向下一个 agent 的交接快照，AGENTS.md 之外的当前状态/环境陷阱/协作节奏三节；跨 harness 冷启动入口），可配合用户备胎 harness 评估
