@@ -247,7 +247,11 @@ pub(crate) fn poll_due(app: &tauri::AppHandle, db: &DataDb) -> Result<(), String
             reminder.id
         ));
         }
-        if let Err(e) = crate::sound::play(&reminder.alarm_file, reminder.alarm_mode) {
+        if let Err(e) = crate::sound::play(
+            &reminder.alarm_file,
+            reminder.alarm_mode,
+            crate::sound::BuiltinAlarm::Generic,
+        ) {
             crate::logging::warn(&format!(
                 "[reminders] Alarm sound failed (ignored, id={}): {e}",
                 reminder.id

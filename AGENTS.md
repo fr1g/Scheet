@@ -114,11 +114,14 @@ pnpm exec tauri icon <png>  # 重新生成 src-tauri/icons/（源图 1024x1024�
 - reminders 表含 `alarm_file`（alarms 下的裸文件名，空 = 默认提示音）与
   `alarm_mode`（`once` 播放一次 / `loop` 循环播放）；旧库由 `db.rs::migrate` 自动补列。
 - 播放逻辑在 `sound.rs`：**未指定文件、文件名非法、文件不存在或解码失败时，
-  一律回退为内置默认提示音（`src-tauri/assets/default-alarm.wav`，合成铃声，恒播放一次）**；
-  任何播放失败只记录日志绝不 panic（无音频设备时应用照常运行）。
+  一律回退为内置默认提示音**；内置铃按类别区分——
+  `default-alarm.wav`（通用，手动提醒与未指明类别的预览）、
+  `default-alarm-start.wav` / `default-alarm-end.wav`（周课表开始/结束事件回退，
+  均恒播放一次）；任何播放失败只记录日志绝不 panic（无音频设备时应用照常运行）。
 - 全局同时只有一个播放引擎：新播放替换当前播放；`loop` 会一直循环，
   直到被新播放替换、调用 `stop_alarm_sound` 命令或应用退出（未来 UI 应在用户确认提醒时调用它）。
-- 命令：`play_alarm_sound(alarm_file?, alarm_mode?)`（预览）、`stop_alarm_sound()`。
+- 命令：`play_alarm_sound(alarm_file?, alarm_mode?, builtin?)`（预览，builtin 取
+  generic/start/end 决定回退哪个内置铃）、`stop_alarm_sound()`。
 - 文件名只允许裸文件名（拒绝路径分隔符与 `..`，防目录穿越）。
 - Linux 构建机需要 `libasound2-dev`（ALSA 头文件）；运行时无需额外依赖。
 

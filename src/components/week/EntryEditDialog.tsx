@@ -156,7 +156,8 @@ export default function EntryEditDialog({
     const file = previewFileFor(kind);
     if (file == null) return;
     try {
-      await playAlarmSound(file, previewModeFor(kind));
+      // 试听回退内置铃时跟随槽位：开始槽听默认开始铃，结束槽听默认结束铃
+      await playAlarmSound(file, previewModeFor(kind), kind);
     } catch (e: unknown) {
       console.error("试听失败", e);
     }

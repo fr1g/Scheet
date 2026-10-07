@@ -26,6 +26,29 @@ use tauri::command;
 
 /// 内置默认提示音（构建期嵌入，无外部文件依赖）。
 const DEFAULT_ALARM_WAV: &[u8] = include_bytes!("../assets/default-alarm.wav");
+/// 内置默认开始/结束铃（周课表事件未配置铃声时的回退，按事件类别区分）。
+const DEFAULT_START_WAV: &[u8] = include_bytes!("../assets/default-alarm-start.wav");
+const DEFAULT_END_WAV: &[u8] = include_bytes!("../assets/default-alarm-end.wav");
+
+/// 内置铃声类别：周课表开始/结束事件各回退各自的默认铃；
+/// 手动提醒与未指明类别的预览用通用铃。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BuiltinAlarm {
+    Generic,
+    Start,
+    End,
+}
+
+impl BuiltinAlarm {
+    fn wav(self) -> &'static [u8] {
+        match self {
+            BuiltinAlarm::Generic => DEFAULT_ALARM_WAV,
+            BuiltinAlarm::Start => DEFAULT_START_WAV,
+            BuiltinAlarm::End => DEFAULT_END_WAV,
+        }
+    }
+}
 /// 循环模式下两轮播放之间的静默间隔。
 const LOOP_GAP: Duration = Duration::from_secs(5);
 /// 循环看护线程的轮询间隔。
@@ -101,7 +124,7 @@ fn ensure_device_sink() -> Result<(), String> {
 }
 
 /// 播放提示音（会替换当前正在播放的声音）。
-pub fn play(alarm_file: &str, mode: AlarmMode) -> Result<(), String> {
+pub fn play(alarm_file: &str, mode: AlarmMode, builtin: BuiltinAlarm) -> Result<(), String> {
     stop();
     let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
     ensure_device_sink()?;
@@ -111,12 +134,12 @@ pub fn play(alarm_file: &str, mode: AlarmMode) -> Result<(), String> {
             .map_err(|_| "[sound] 音频设备锁已中毒".to_string())?;
         Player::connect_new(guard.as_ref().expect("设备流已在上方初始化").mixer())
     };
-    let source = load_source(alarm_file)?;
+    let source = load_source(alarm_file, builtin)?;
     player.append(source);
     let mut engine = ENGINE.lock().map_err(|_| "[sound] 音频引擎锁已中毒")?;
     *engine = Some((generation, SoundEngine { player }));
     if mode == AlarmMode::Loop {
-        spawn_loop_watcher(generation, alarm_file.trim().to_string());
+        spawn_loop_watcher(generation, alarm_file.trim().to_string(), builtin);
     }
     Ok(())
 }
@@ -142,7 +165,7 @@ fn resolve_alarm_path(name: &str) -> Result<PathBuf, String> {
 
 /// 加载待播放音源：用户文件优先，任何失败回退内置默认提示音。
 /// 循环由看护线程驱动，因此这里恒定只加载"一轮"。
-fn load_source(alarm_file: &str) -> Result<Box<dyn Source + Send>, String> {
+fn load_source(alarm_file: &str, builtin: BuiltinAlarm) -> Result<Box<dyn Source + Send>, String> {
     if !alarm_file.trim().is_empty() {
         match resolve_alarm_path(alarm_file) {
             Ok(path) => {
@@ -174,14 +197,14 @@ fn load_source(alarm_file: &str) -> Result<Box<dyn Source + Send>, String> {
             )),
         }
     }
-    let decoder = Decoder::new(Cursor::new(DEFAULT_ALARM_WAV))
+    let decoder = Decoder::new(Cursor::new(builtin.wav()))
         .map_err(|e| format!("内置默认提示音解码失败: {e}"))?;
     Ok(Box::new(decoder))
 }
 
 /// 循环看护线程：当前一轮播完后静默 [`LOOP_GAP`] 再续播下一轮，
 /// 直到引擎被替换（世代号变化）或停止。
-fn spawn_loop_watcher(generation: u64, alarm_file: String) {
+fn spawn_loop_watcher(generation: u64, alarm_file: String, builtin: BuiltinAlarm) {
     let spawned = std::thread::Builder::new().name("alarm-loop".into()).spawn(move || loop {
         std::thread::sleep(LOOP_TICK);
         {
@@ -204,8 +227,8 @@ fn spawn_loop_watcher(generation: u64, alarm_file: String) {
             Ok(guard) => guard,
             Err(_) => return,
         };
-        match guard.as_mut() {
-            Some((g, engine)) if *g == generation => match load_source(&alarm_file) {
+            match guard.as_mut() {
+                Some((g, engine)) if *g == generation => match load_source(&alarm_file, builtin) {
                 Ok(source) => engine.player.append(source),
                 Err(e) => {
                     crate::logging::error(&format!("[sound] Loop replay failed (stopped): {e}"));
@@ -226,11 +249,13 @@ fn spawn_loop_watcher(generation: u64, alarm_file: String) {
 pub async fn play_alarm_sound(
     alarm_file: Option<String>,
     alarm_mode: Option<AlarmMode>,
+    builtin: Option<BuiltinAlarm>,
 ) -> Result<(), String> {
     let file = alarm_file.unwrap_or_default();
     let mode = alarm_mode.unwrap_or(AlarmMode::Once);
+    let builtin = builtin.unwrap_or(BuiltinAlarm::Generic);
     Ok(
-        tauri::async_runtime::spawn_blocking(move || play(&file, mode))
+        tauri::async_runtime::spawn_blocking(move || play(&file, mode, builtin))
             .await
             .map_err(|e| e.to_string())??,
     )
@@ -280,5 +305,15 @@ mod tests {
         // RIFF....WAVE 魔数
         assert_eq!(&DEFAULT_ALARM_WAV[..4], b"RIFF");
         assert_eq!(&DEFAULT_ALARM_WAV[8..12], b"WAVE");
+    }
+
+    #[test]
+    fn default_start_end_assets_are_wavs() {
+        for wav in [DEFAULT_START_WAV, DEFAULT_END_WAV] {
+            assert_eq!(&wav[..4], b"RIFF");
+            assert_eq!(&wav[8..12], b"WAVE");
+        }
+        // 三个内置铃必须是三份不同的资产
+        assert!(!std::ptr::eq(DEFAULT_START_WAV.as_ptr(), DEFAULT_END_WAV.as_ptr()));
     }
 }

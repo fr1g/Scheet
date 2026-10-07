@@ -185,7 +185,11 @@ fn fire_alarm_event(app: &AppHandle, event: &AlarmEvent, lang: &str) {
             Ringtone::File(name) => name.as_str(),
             _ => "",
         };
-        if let Err(e) = crate::sound::play(sound_file, event.mode) {
+        let builtin = match event.kind {
+            crate::timetable::AlarmKind::Start => crate::sound::BuiltinAlarm::Start,
+            crate::timetable::AlarmKind::End => crate::sound::BuiltinAlarm::End,
+        };
+        if let Err(e) = crate::sound::play(sound_file, event.mode, builtin) {
             crate::logging::warn(&format!("[scheduler] Alarm sound failed (ignored): {e}"));
         }
     }
