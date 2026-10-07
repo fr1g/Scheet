@@ -410,7 +410,7 @@ export default function WeekGrid({
 
       <div
         ref={wrapRef}
-        className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden"
+        className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-2"
       >
         <table
           className="h-full w-full min-w-[840px] table-fixed border-collapse"
@@ -470,7 +470,7 @@ export default function WeekGrid({
                 return (
                   <td key={d} data-day={d} className="border border-zinc-600 align-top px-0.5">
                     <div
-                      className={`relative h-full overflow-hidden ${
+                      className={`relative h-full overflow-clip [overflow-clip-margin:6px] ${
                         isCurrentWeek && d === today ? "bg-zinc-100/10" : ""
                       }`}
                       title={t("grid.newHere")}
@@ -526,7 +526,7 @@ export default function WeekGrid({
                       )}
                       {hoverTime?.day === d && !drag && (
                         <div
-                          className="pointer-events-none absolute inset-x-0 z-20 flex justify-end"
+                          className="pointer-events-none absolute inset-x-0 z-40 flex justify-end"
                           style={{ top: hoverTime.topPx }}
                         >
                           <span className="-translate-y-1/2 rounded bg-zinc-950/85 px-1 text-[10px] leading-4 text-zinc-100">
@@ -538,7 +538,12 @@ export default function WeekGrid({
                         <div
                           key={p.entry.id}
                           data-entry
-                          className="absolute z-10 px-px py-px"
+                          className={`absolute px-px py-px ${drag?.entryId === p.entry.id
+                            ? "z-30"
+                            : p.entry.id === nowEntryId || selectedEntryId === p.entry.id
+                              ? "z-20"
+                              : "z-10"
+                            }`}
                           style={{
                             top: p.topPx,
                             height: p.heightPx,
