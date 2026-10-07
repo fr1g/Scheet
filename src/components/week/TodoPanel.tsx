@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AddIcon, CloseIcon } from "tdesign-icons-react";
+import { AddIcon, ChevronRightIcon, CloseIcon, PinIcon } from "tdesign-icons-react";
 import { useToday } from "../../state/dateState";
 import {
   addTodoForToday,
@@ -10,8 +10,15 @@ import {
 } from "../../lib/todo";
 import type { Todo } from "../../types/todo";
 
-/** 右侧当日待办面板：增删/勾选；跨天（useToday 驱动）自动刷新（后端负责滚动复制）。 */
-export default function TodoPanel({ className }: { className?: string }) {
+/** 右侧当日待办面板：增删/勾选；跨天（useToday 驱动）自动刷新（后端负责滚动复制）。
+ * onPin/onCollapse 由宿主按三态模式注入（隐藏态暂时展开时显示图钉，常驻态显示收起）。 */
+export default function TodoPanel({
+  onCollapse,
+  onPin,
+}: {
+  onCollapse?: () => void;
+  onPin?: () => void;
+}) {
   const { t } = useTranslation();
   const { date } = useToday();
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -62,12 +69,34 @@ export default function TodoPanel({ className }: { className?: string }) {
   };
 
   return (
-    <div className={`flex h-full flex-col ${className ?? ""}`}>
+    <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-3 pt-3">
         <span className="text-xs text-zinc-400">{t("todo.title")}</span>
-        <span className="text-[10px] text-zinc-500">{date}</span>
+        <span className="flex items-center gap-0.5">
+          <span className="text-[10px] text-zinc-500 mr-1.5">{date}</span>
+          {onPin && (
+            <button
+              type="button"
+              onClick={onPin}
+              title={t("todo.pin")}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-300 transition-colors hover:bg-zinc-600 hover:text-zinc-100"
+            >
+              <PinIcon size="13px" />
+            </button>
+          )}
+          {onCollapse && (
+            <button
+              type="button"
+              onClick={onCollapse}
+              title={t("todo.collapse")}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-300 transition-colors hover:bg-zinc-600 hover:text-zinc-100"
+            >
+              <ChevronRightIcon size="13px" />
+            </button>
+          )}
+        </span>
       </div>
-      <div className="mt-2 flex gap-1 px-3">
+      <div className="mt-2 flex gap-1 px-2">
         <input
           type="text"
           value={draft}
@@ -87,7 +116,7 @@ export default function TodoPanel({ className }: { className?: string }) {
           <AddIcon size="14px" />
         </button>
       </div>
-      <ul className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+      <ul className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto px-1 pb-3">
         {todos.map((todo) => (
           <li
             key={todo.id}
@@ -101,9 +130,8 @@ export default function TodoPanel({ className }: { className?: string }) {
             />
             <span
               title={todo.content}
-              className={`min-w-0 flex-1 truncate text-xs ${
-                todo.done ? "text-zinc-500 line-through" : "text-zinc-100"
-              }`}
+              className={`min-w-0 flex-1 truncate text-xs ${todo.done ? "text-zinc-500 line-through" : "text-zinc-100"
+                }`}
             >
               {todo.content}
             </span>

@@ -248,6 +248,8 @@ pub struct GlobalConfig {
     pub titlebar_clock: bool,
     /// 标题栏时钟显示秒（默认关；仅 titlebar_clock 开启时有意义）。
     pub titlebar_clock_seconds: bool,
+    /// 右侧待办面板显示模式：pinned=常驻，hidden=隐藏（前端可暂时展开；默认 pinned）。
+    pub todo_panel_mode: String,
 }
 
 /// 运行时图标变体资产（256px，源图为 generated/appicon-256-*.png）。
@@ -259,6 +261,9 @@ const ICON_VARIANT_ASSETS: &[(&str, &[u8])] = &[
 
 /// 允许的图标变体取值。
 pub const ICON_VARIANTS: &[&str] = &["color", "grayscale", "zinc50"];
+
+/// 允许的待办面板显示模式取值。
+pub const TODO_PANEL_MODES: &[&str] = &["pinned", "hidden"];
 
 /// 打开主窗口 DevTools（设置-高级 的 Shift 隐藏按钮；发布版需 tauri devtools feature）。
 #[command]
@@ -320,6 +325,7 @@ impl Default for GlobalConfig {
             entry_rest_text_dark: true,
             titlebar_clock: false,
             titlebar_clock_seconds: false,
+            todo_panel_mode: "pinned".to_string(),
         }
     }
 }
@@ -390,6 +396,9 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         titlebar_clock_seconds: get_setting(conn, "titlebarClockSeconds")?
             .and_then(|s| s.parse().ok())
             .unwrap_or(false),
+        todo_panel_mode: get_setting(conn, "todoPanelMode")?
+            .filter(|s| TODO_PANEL_MODES.contains(&s.as_str()))
+            .unwrap_or_else(|| "pinned".to_string()),
     })
 }
 
@@ -468,6 +477,7 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
         "titlebarClockSeconds",
         &cfg.titlebar_clock_seconds.to_string(),
     )?;
+    set_setting(conn, "todoPanelMode", &cfg.todo_panel_mode)?;
     for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,
@@ -510,6 +520,9 @@ pub async fn set_global_config(
         &config.alarm_rest_file,
     ] {
         validate_alarm_file_value(value)?;
+    }
+    if !TODO_PANEL_MODES.contains(&config.todo_panel_mode.as_str()) {
+        return Err("待办面板显示模式必须是 pinned 或 hidden".to_string());
     }
     let config_clone = config.clone();
     let db = db.inner().clone();

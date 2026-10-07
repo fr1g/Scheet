@@ -5,6 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { appLog } from "./lib/logger";
 import ErrorBoundary from "./components/ErrorBoundary";
 import AlarmSnackbar from "./components/AlarmSnackbar";
+import ClipboardNotice from "./components/ClipboardNotice";
 import ErrorScreen from "./components/ErrorScreen";
 import LoadingScreen from "./components/LoadingScreen";
 import TitleBar from "./components/TitleBar";
@@ -94,6 +95,7 @@ function AppShell() {
           </Routes>
         </AnimatePresence>
         {!isPopup && <AlarmSnackbar />}
+        {!isPopup && <ClipboardNotice />}
       </>
     );
   }

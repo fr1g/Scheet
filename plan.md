@@ -84,6 +84,12 @@
 - [x] M5.2 todo 区上方剪贴板预览浮块（focus 嗅探 objectType:ScheetPlan，渲染为 cell 样式预览）。提交 b063cc4
 - [x] M5.3 AGENTS/README 收尾（文档已更新）+ release 构建冒烟通过（release/scheet.exe 14MB 独立运行验证）。提交 b063cc4 → **M1-M5 全部完成，最终验收**
 
+## M6 待办面板三态 + 剪贴板预览独立锚定
+
+- [ ] M6.1 预览浮块迁出右面板 → fixed 锚定窗口右下角（bottom-16 right-4，避开 Toast/Snackbar），显示语义不变（有效 ScheetPlan JSON 期间常显，不做"粘贴后隐藏"——保留一次复制多天连贴）
+- [ ] M6.2 待办面板三态：todoPanelMode 持久化键（pinned/hidden，默认 pinned）+ 隐藏态右缘细竖轨（点击暂时展开）+ 点外收回 + 面板头图钉（转常驻）/收起按钮 + 宽度过渡动画
+- [ ] M6.3 验收：cargo test + pnpm build + 冒烟（复制→右下预览、连贴多天、复制其他文本→预览消失、三态互转、重启记忆）→ 暂停等验收
+
 ## 明确不做（后续升级项）
 
 - 事务独立窗口编辑（本期模态窗，结构上预留升级）

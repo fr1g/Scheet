@@ -54,5 +54,7 @@ export interface GlobalConfig {
   titlebarClock: boolean;
   /** 标题栏时钟显示秒（默认关）。 */
   titlebarClockSeconds: boolean;
+  /** 右侧待办面板显示模式：pinned=常驻，hidden=隐藏（可暂时展开）。 */
+  todoPanelMode: "pinned" | "hidden";
 }
 

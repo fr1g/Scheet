@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ChevronLeftIcon } from "tdesign-icons-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
 import Toast from "../components/Toast";
@@ -10,7 +12,11 @@ import PlanSettingsDialog from "../components/week/PlanSettingsDialog";
 import TodoPanel from "../components/week/TodoPanel";
 import WeekPlanTabs from "../components/week/WeekPlanTabs";
 import WeekGrid from "../components/week/WeekGrid";
-import { readClipboardText, writeClipboardText } from "../lib/clipboard";
+import {
+  readClipboardText,
+  restoreStashedClipboard,
+  stashAndWriteText,
+} from "../lib/clipboard";
 import {
   entryColorScheme,
   resolveEntryColors,
@@ -39,7 +45,7 @@ import { useToday } from "../state/dateState";
 /** 周表页：左侧 tab 列 + 中央网格 + 右侧待办。编辑在工作副本上进行，显式保存入库。 */
 export default function WeekGridPage() {
   const { t } = useTranslation();
-  const { config, error: configError, reload: reloadConfig } = useGlobalConfig();
+  const { config, error: configError, reload: reloadConfig, update } = useGlobalConfig();
   const { weekday: todayWeekday } = useToday();
   // 当前分钟（1s 刷新）：用于圈出覆盖当前时刻的事务 cell
   const [nowMinute, setNowMinute] = useState(() => {
@@ -63,6 +69,35 @@ export default function WeekGridPage() {
   const [saving, setSaving] = useState(false);
   const toastTimer = useRef<number | undefined>(undefined);
 
+  // 待办面板三态：todoPanelMode 持久化（pinned/hidden）；peek = 不入库的暂时展开
+  const [todoPeek, setTodoPeek] = useState(false);
+  const todoAsideRef = useRef<HTMLElement | null>(null);
+
+  // 暂时展开期间点击面板外 → 收回（持久模式不变）
+  useEffect(() => {
+    if (!todoPeek) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (todoAsideRef.current && !todoAsideRef.current.contains(e.target as Node)) {
+        setTodoPeek(false);
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [todoPeek]);
+
+  // 切换持久模式（隐藏态图钉 = 转常驻；常驻态收起 = 转隐藏）
+  const setTodoPanelMode = useCallback(
+    (mode: "pinned" | "hidden") => {
+      setTodoPeek(false);
+      if (config) {
+        void update({ ...config, todoPanelMode: mode }).catch((e: unknown) =>
+          console.error("保存待办面板模式失败", e),
+        );
+      }
+    },
+    [config, update],
+  );
+
   // 右键菜单与设置弹窗状态
   const [tabMenu, setTabMenu] = useState<{ x: number; y: number; plan: WeekPlan } | null>(null);
   const [dayMenu, setDayMenu] = useState<{ x: number; y: number; weekday: number } | null>(null);
@@ -81,6 +116,8 @@ export default function WeekGridPage() {
     Omit<WeekEntry, "id" | "weekday"> | null
   >(null);
   const clipboardHasPlan = clipboardPlan != null;
+  // 复制前的剪贴板备份是否有可恢复内容（Rust 内存单槽，会话级）
+  const [hasClipboardStash, setHasClipboardStash] = useState(false);
   /** 编辑中的事务；createdNow=双击无安排区域刚创建，取消时撤销。 */
   const [editEntry, setEditEntry] = useState<{
     entry: WeekEntry;
@@ -226,15 +263,20 @@ export default function WeekGridPage() {
   useEffect(() => {
     void refreshClipboardState();
     let timer = 0;
+    let unlisten: (() => void) | undefined;
     // 焦点后延迟读取：避开焦点事件风暴期（该读取走 arboard 原生剪贴板，
-    // 曾疑似与堆损坏相关），150ms 足以让窗口恢复的收尾操作先行完成
-    const onFocus = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => void refreshClipboardState(), 150);
-    };
-    window.addEventListener("focus", onFocus);
+    // 曾疑似与堆损坏相关），150ms 足以让窗口恢复的收尾操作先行完成。
+    // 用窗口级 tauri://focus 而非 DOM focus：点击标题栏激活窗口时后者不触发。
+    void getCurrentWindow()
+      .listen("tauri://focus", () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => void refreshClipboardState(), 150);
+      })
+      .then((fn) => {
+        unlisten = fn;
+      });
     return () => {
-      window.removeEventListener("focus", onFocus);
+      unlisten?.();
       window.clearTimeout(timer);
     };
   }, [refreshClipboardState]);
@@ -244,14 +286,34 @@ export default function WeekGridPage() {
     if (!clipboardHasPlan) setPasteTargetWeekday(null);
   }, [clipboardHasPlan]);
 
+  /** 恢复复制前的剪贴板备份：提示局限性 → 恢复 → 收起预览。 */
+  const handleRestoreClipboard = useCallback(async () => {
+    try {
+      await restoreStashedClipboard();
+    } catch (e: unknown) {
+      showToast(String(e));
+      return;
+    }
+    setHasClipboardStash(false);
+    setClipboardPlan(null);
+    showToast(t("toasts.clipboardRestored"));
+  }, [showToast, t]);
+
   // ============ 选中 / 复制 / 粘贴 ============
 
   const handleCopy = useCallback(async () => {
     if (!plan || selectedEntryId == null) return;
     const entry = plan.entries.find((e) => e.id === selectedEntryId);
     if (!entry) return;
-    await writeClipboardText(serializeEntryPlan(entry));
-    setClipboardPlan(parseEntryPlan(serializeEntryPlan(entry)));
+    const json = serializeEntryPlan(entry);
+    try {
+      // 先备份原剪贴板（文本/图片），再写入事务 JSON
+      setHasClipboardStash(await stashAndWriteText(json));
+    } catch (e: unknown) {
+      showToast(String(e));
+      return;
+    }
+    setClipboardPlan(parseEntryPlan(json));
     showToast(t("toasts.copied"));
   }, [plan, selectedEntryId, showToast, t]);
 
@@ -559,6 +621,15 @@ export default function WeekGridPage() {
         nowMinute < e.startMinute + e.durationMinute,
     )?.id ?? null)
     : null;
+  // 剪贴板预览的颜色解析：textDark/color 未指定时回落 scheme 默认，与 cell 渲染同链
+  const clipboardColors = clipboardPlan
+    ? resolveEntryColors(
+      clipboardPlan.entryType,
+      clipboardPlan.color,
+      clipboardPlan.textDark,
+      colorScheme,
+    )
+    : null;
 
   return (
     <motion.div
@@ -598,36 +669,73 @@ export default function WeekGridPage() {
         onEditEntry={(entry) => setEditEntry({ entry, createdNow: false })}
         onCreateAt={handleCreateAt}
       />
-      <aside className="relative w-64 shrink-0 border-l border-zinc-600">
-        {clipboardPlan && (
-          <div className="absolute inset-x-3 top-3 z-20">
-            <div className="text-[10px] text-zinc-400">{t("clipboard.hint")}</div>
-            <div
-              className="mt-1 flex flex-col rounded-xl px-2 py-1 text-xs text-zinc-100 shadow-lg"
-              style={{
-                background: resolveEntryColors(
-                  clipboardPlan.entryType,
-                  clipboardPlan.color,
-                  clipboardPlan.textDark,
-                  colorScheme,
-                ).background,
-              }}
+      <aside
+        ref={todoAsideRef}
+        className="relative shrink-0 overflow-hidden border-l border-zinc-600 transition-[width] duration-200 ease-out"
+        style={{ width: config.todoPanelMode !== "hidden" || todoPeek ? 240 : 20 }}
+      >
+        {config.todoPanelMode !== "hidden" || todoPeek ? (
+          <div className="h-full w-[240px]">
+            <TodoPanel
+              onPin={
+                config.todoPanelMode === "hidden"
+                  ? () => setTodoPanelMode("pinned")
+                  : undefined
+              }
+              onCollapse={
+                config.todoPanelMode !== "hidden"
+                  ? () => setTodoPanelMode("hidden")
+                  : undefined
+              }
+            />
+          </div>
+        ) : (
+          <div className="flex h-full w-[20px] flex-col items-center pt-3">
+            <button
+              type="button"
+              onClick={() => setTodoPeek(true)}
+              title={t("todo.expand")}
+              className="flex h-7 w-5 items-center justify-center rounded text-zinc-300 transition-colors hover:bg-zinc-600 hover:text-zinc-100"
             >
-              <span className="text-[10px] leading-3 text-zinc-300">
-                {minuteToHHMM(clipboardPlan.startMinute)}
-              </span>
-              <span className="grid grow place-items-center py-1 text-center leading-tight">
-                {clipboardPlan.title ||
-                  t(clipboardPlan.entryType === "normal" ? "grid.normal" : "grid.rest")}
-              </span>
-              <span className="text-[10px] leading-3 text-zinc-300">
-                {minuteToHHMM(clipboardPlan.startMinute + clipboardPlan.durationMinute)}
-              </span>
-            </div>
+              <ChevronLeftIcon size="13px" />
+            </button>
           </div>
         )}
-        <TodoPanel className={clipboardPlan ? "pt-24" : ""} />
       </aside>
+      {/* 剪贴板事务预览：独立锚定窗口右下角（不随待办面板显隐；bottom-16 避开 Toast/Snackbar） */}
+      {clipboardPlan && clipboardColors && (
+        <div className="fixed bottom-16 right-4 z-30 w-44 rounded-xl border-2 border-white bg-zinc-800 p-2 shadow-xl">
+          <div className="text-[10px] leading-4 text-zinc-400">{t("clipboard.hint")}</div>
+          <div
+            className={`mt-1.5 flex flex-col rounded-lg px-2 py-1 text-xs ${clipboardColors.textDark ? "text-zinc-900" : "text-zinc-100"}`}
+            style={{ background: clipboardColors.background }}
+          >
+            <span
+              className={`text-[10px] leading-3 ${clipboardColors.textDark ? "text-zinc-900/70" : "text-zinc-300"}`}
+            >
+              {minuteToHHMM(clipboardPlan.startMinute)}
+            </span>
+            <span className="grid grow place-items-center py-1 text-center leading-tight">
+              {clipboardPlan.title ||
+                t(clipboardPlan.entryType === "normal" ? "grid.normal" : "grid.rest")}
+            </span>
+            <span
+              className={`text-[10px] leading-3 ${clipboardColors.textDark ? "text-zinc-900/70" : "text-zinc-300"}`}
+            >
+              {minuteToHHMM(clipboardPlan.startMinute + clipboardPlan.durationMinute)}
+            </span>
+          </div>
+          {hasClipboardStash && (
+            <button
+              type="button"
+              onClick={() => void handleRestoreClipboard()}
+              className="mt-1.5 w-full rounded-lg bg-zinc-700 px-2 py-1 text-[10px] text-zinc-200 transition-colors hover:bg-zinc-600"
+            >
+              {t("clipboard.restore")}
+            </button>
+          )}
+        </div>
+      )}
       <AnimatePresence>
         {tabMenu && (
           <ContextMenu

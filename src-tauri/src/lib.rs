@@ -1,6 +1,7 @@
 mod clipboard;
 mod clock;
 mod db;
+mod flags;
 mod fonts;
 mod logging;
 // 系统通知实现保留备用（当前提醒推送改用 popup.rs 的置顶弹窗方案）
@@ -125,6 +126,8 @@ pub fn run() {
             settings::open_devtools,
             settings::restart_application,
             settings::request_clear_data,
+            flags::get_app_flag,
+            flags::set_app_flag,
             reminders::create_reminder,
             reminders::cancel_reminder,
             reminders::list_reminders,
@@ -142,6 +145,8 @@ pub fn run() {
             todo::delete_todo_command,
             sound::play_alarm_sound,
             sound::stop_alarm_sound,
+            clipboard::stash_and_write_text,
+            clipboard::restore_stashed_clipboard,
             clipboard::read_clipboard_text,
             clipboard::write_clipboard_text,
             clipboard::list_alarm_sounds,

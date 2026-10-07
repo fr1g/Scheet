@@ -121,10 +121,14 @@ const ALARMS_README: &str = "Scheet 提示音目录
 若文件名留空、文件被移动或删除，Scheet 会改播内置默认提示音。
 ";
 
-/// data.db 初始化：应用设置（app_settings）+ 手动提醒（reminders）。
+/// data.db 初始化：应用设置（app_settings）+ 一次性标记（flags）+ 手动提醒（reminders）。
 pub(crate) fn init_data_schema(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS app_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS flags (
             key   TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
