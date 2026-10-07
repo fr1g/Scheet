@@ -122,3 +122,4 @@
 - 修复 now 脉动两处显示问题：①相邻 cell 同为 z-10 后画者盖住前者下半动效 → 定位包装层分级（拖拽 z-30 / now·选中 z-20 / 其余 z-10），悬停时间徽标 z-20→z-40 保持最上；②天列容器 overflow-hidden 在列边缘裁掉横向动效（表格两侧最明显）→ 改 overflow-clip + [overflow-clip-margin:6px]（装饰最大出血 5px，允许越过列界/边框），滚动容器加 px-2 给最外两侧留出血空间（表格边缘外仍有约 2px 脉动，8px 内边距完全容纳）；pnpm build 通过
 - now/选中动效拆色：now-cell-pulse 色带 blue-400→emerald-300；选中改用同构 selected-cell-pulse（白环+blue-400 色带，取代 ring-2 ring-zinc-100/80），包装层选中 z-21 > now z-20（选中是临时状态高一级），同时选中且当前时刻时选中效果优先（nowRing 加 !selected 防 box-shadow 动画互相覆盖）；pnpm build 通过
 - 弹窗防抢焦点：根因是 tao 创建后即移除 MARKER_DONT_FOCUS，复显 set_visible→SW_SHOW 会激活窗口（focused(false) 只管创建首秀）；popup.rs 加 focusable(false) 挂 WS_EX_NOACTIVATE 同时压住复显与点击激活，弹窗纯点击交互无副作用；cargo check 通过。另归档 滚动条悬浮方案.md（A=WebView2 Fluent overlay flag，B=自绘悬浮条）
+- 主窗口最小宽度 1080→1200（tauri.conf.json minWidth，与默认宽度一致；minHeight 700 不变），cargo check 重嵌入配置通过
