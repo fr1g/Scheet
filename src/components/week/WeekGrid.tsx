@@ -603,7 +603,7 @@ function EntryCell({
   colorScheme: EntryColorScheme;
   /** 按住 Shift：功能边临时变为移动手柄。 */
   shiftHeld: boolean;
-  /** 覆盖当前时刻：accent 细环标记。 */
+  /** 覆盖当前时刻：白色环 + 蓝色脉动边缘（now-cell-pulse，不依赖 cell 底色）。 */
   nowActive: boolean;
   onBodyPointerDown: (e: React.PointerEvent) => void;
   onCopyPointerDown: (e: React.PointerEvent) => void;
@@ -628,7 +628,7 @@ function EntryCell({
       ? "outline outline-2 outline-amber-400"
       : "";
   const selectionRing = selected ? "ring-2 ring-zinc-100/80" : "";
-  const nowRing = nowActive ? "ring-1 ring-blue-400" : "";
+  const nowRing = nowActive ? "now-cell-pulse" : "";
   const typeLabel = entry.entryType === "normal" ? t("grid.normal") : t("grid.rest");
   const realEnd = entry.startMinute + entry.durationMinute;
   const h = p.heightPx;

@@ -90,3 +90,23 @@ select option:checked {
 .alarm-snackbar-pulse {
   animation: alarm-snackbar-pulse 1.8s ease-in-out infinite;
 }
+
+/* 当前时刻 cell 标记：白色静态环（画在 cell 外缘，对任意 cell 底色恒可见）
+   + 外圈蓝色细脉动。纯 spread 动画：无 x/y 位移、无模糊，读作"动态边框"而非阴影；
+   蓝色带最粗 4px、峰值透明度 0.85，保持收敛，可见性完全由白环承担。 */
+@keyframes now-cell-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(244 244 245 / 0.95),
+      0 0 0 3px rgb(96 165 250 / 0.85);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgb(244 244 245 / 0.95),
+      0 0 0 6px rgb(96 165 250 / 0.25);
+  }
+}
+.now-cell-pulse {
+  animation: now-cell-pulse 2s ease-in-out infinite;
+}
