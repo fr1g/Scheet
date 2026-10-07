@@ -4,8 +4,9 @@
 
 <div style="display: flex; flex-direction: column;">
   <img src="logo-designs/concept-logo-v5.png" alt="Scheet" style="margin: auto" width="160">
-  <p style="text-align: center"><strong>Plan your life, week by week</strong></p>
+  <p style="text-align: center"><strong>Plan your week, 5 minutes at a time</strong></p>
 </div>
+
 
 Scheet is a local-first weekly timetable app: plan your week's tasks and breaks in 5-minute increments, get automatic ringing popup reminders when time's up, and keep a daily todo list in the right-hand panel. All data stays on your own computer. Supports Windows / macOS / Linux.
 
