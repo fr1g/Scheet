@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """scheet.exe 崩溃诊断调试器：
-   python scripts/debugger-watch.py            # 启动 target\\debug\\scheet.exe 并附加
-   python scripts/debugger-watch.py <pid>      # 附加到已运行实例
+   python scripts/debugger-watch.py                  # 启动 target\\debug\\scheet.exe 并附加
+   python scripts/debugger-watch.py scheet.exe      # 按进程名附加到已运行实例
+   python scripts/debugger-watch.py <pid>           # 附加到指定 PID
 第二次Chance异常时打印 异常代码/地址/所属模块（堆损坏 0xc0000374 即可定位出错 DLL）。
+package.json 入口：pnpm debug:attach（按名附加 dev 实例）/ pnpm debug:run（自启动）。
 """
 import ctypes
 import os
@@ -101,14 +103,54 @@ def locate(addr, mods):
     return f"unknown module (addr 0x{addr:x})"
 
 
+TH32CS_SNAPPROCESS = 0x2
+k32.Process32First.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32)]
+k32.Process32Next.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32)]
+
+
+def find_pids_by_name(name):
+    """按进程名列出所有 PID（不区分大小写，.exe 后缀可省略）。"""
+    name = name.lower()
+    if not name.endswith(".exe"):
+        name += ".exe"
+    pids = []
+    snap = k32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+    if snap in (-1, None):
+        return pids
+    entry = PROCESSENTRY32()
+    entry.dwSize = ctypes.sizeof(PROCESSENTRY32)
+    ok = k32.Process32First(snap, ctypes.byref(entry))
+    while ok:
+        if entry.szExeFile.decode("utf-8", "replace").lower() == name:
+            pids.append(entry.th32ProcessID)
+        ok = k32.Process32Next(snap, ctypes.byref(entry))
+    ctypes.windll.kernel32.CloseHandle(snap)
+    return pids
+
+
+def attach(pid):
+    if not k32.DebugActiveProcess(pid):
+        print("attach failed:", ctypes.get_last_error())
+        return False
+    print(f"attached to {pid}")
+    return True
+
+
 def main():
-    if len(sys.argv) > 1:
-        pid = int(sys.argv[1])
-        ok = k32.DebugActiveProcess(pid)
-        if not ok:
-            print("attach failed:", ctypes.get_last_error())
-            return
-        print(f"attached to {pid}")
+    arg = sys.argv[1] if len(sys.argv) > 1 else None
+    if arg is not None:
+        if arg.isdigit():
+            if not attach(int(arg)):
+                return
+        else:
+            pids = find_pids_by_name(arg)
+            if not pids:
+                print(f"no process named {arg!r} (start the app first)")
+                return
+            if len(pids) > 1:
+                print(f"multiple instances {pids}, attaching to the first")
+            if not attach(pids[0]):
+                return
     else:
         exe = os.path.abspath("src-tauri/target/debug/scheet.exe")
         if not os.path.exists(exe):
