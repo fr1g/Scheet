@@ -101,7 +101,12 @@ pub fn show(app: &AppHandle, payload: AlarmPopupPayload) -> Result<(), String> {
     .always_on_top(true)
     .resizable(false)
     .skip_taskbar(true)
+    // 防抢焦点需要两个开关：focused(false) 只覆盖创建首秀（tao 创建后即移除
+    // MARKER_DONT_FOCUS，复显 set_visible→SW_SHOW 仍会激活窗口）；
+    // focusable(false) 挂 WS_EX_NOACTIVATE 才能同时压住复显与点击激活。
+    // 弹窗为纯点击交互（无键盘输入），不可聚焦无副作用。
     .focused(false)
+    .focusable(false)
     .position(x, y)
     .build()
     .map_err(|e| format!("创建提醒弹窗失败: {e}"))?;
