@@ -157,6 +157,7 @@ pub fn run() {
             fonts::get_fonts_dir,
             logging::write_log,
         ])
+        .plugin(tauri_plugin_opener::init())
         .build(tauri::generate_context!())
         .expect("Scheet 初始化失败")
         .run(|_app, _event| {

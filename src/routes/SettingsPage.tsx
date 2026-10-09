@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeftIcon, FolderIcon, RefreshIcon, SaveIcon } from "tdesign-icons-react";
+import { ArrowLeftIcon, CrookedSmileIcon, FolderIcon, JumpIcon, LogoGithubIcon, RefreshIcon, SaveIcon } from "tdesign-icons-react";
 import { invoke } from "@tauri-apps/api/core";
 import Toast from "../components/Toast";
 import CollapseBar from "../components/CollapseBar";
@@ -16,6 +16,7 @@ import logoUrl from "../assets/appicon.png";
 import pkg from "../../package.json";
 import zaiLogoUrl from "../assets/zai-logo.webp";
 import fr1gAvatarUrl from "../assets/fr1g-avatar.webp";
+import vbClubLogo from "../assets/vibrative-t-64.webp";
 import { BUNDLED_FONTS } from "../lib/fonts";
 import {
   minuteToTimeInput,
@@ -24,6 +25,7 @@ import {
 import type { GlobalConfig } from "../types/global-config";
 import type { AlarmMode } from "../types/weeks";
 import type { WindowControlsPosition } from "../types/settings";
+import Opener from "../lib/opener";
 
 type FileKey =
   | "alarmAllFile"
@@ -937,33 +939,54 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-      <div className="w-full max-w-sm rounded-lg  text-left grid grid-cols-3 gap-3">
-        <a href="" className="border block p-3 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
+      <div className="w-full max-w-sm rounded-lg  text-sm grid grid-cols-3 gap-3">
+        <a onClick={() => {
+          Opener.openInDefaultBrowserExpl("https://github.com/fr1g/Scheet")
+        }} className="border flex gap-1 justify-center items-center px-3 py-1.75 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
           {/* 查看仓库 */}
+          <LogoGithubIcon fillColor='transparent' strokeColor='currentColor' strokeWidth={2} />
+          <span>
+            GitHub
+          </span>
+          <JumpIcon fillColor='transparent' strokeColor='currentColor' strokeWidth={2} />
         </a>
-        <a href="#" className="border block p-3 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
+        <a
+          onClick={() => {
+            // Opener.openInDefaultBrowserExpl("")
+            showToast("Coming soon...敬请期待")
+          }}
+          className="border flex gap-1 justify-center items-center px-3 py-1.75 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
           {/* vibrative club */}
-          VibrativeClub
+          <img src={vbClubLogo} width={16} className="inline-block grayscale-100 " />
+          <div className="w-19.5 grid place-items-center px-0.5">
+            <span className="inline-block origin-top-left font-mono scale-x-69" style={{ fontFamily: 'consolas, cascadia code, monaco, mono' }}>
+              Vibrative<span className="underline font-extrabold!">Club</span>
+            </span>
+          </div>
         </a>
-        <a href="#" className="border block p-3 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
+        <a className="border flex gap-1 justify-center items-center px-3 py-1.75 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
           {/*  */}
-          还没想好
+          <CrookedSmileIcon fillColor='transparent' strokeColor='currentColor' strokeWidth={2} />
+          <span>还没想好</span>
         </a>
       </div>
       <hr className="mx-auto border-zinc-100/30 border-2 rounded translate-y-0.5 w-5/7" />
       <p className="text-xs! opacity-70 font-mono translate-y-[3px]">the Program and its source code are permitted to copy, share, release and modify under MIT license, but some of the relied parts requires other permission.</p>
       <CollapseBar title={t("about.infoTitle")} className="w-full!">
         <pre className="typo indent-6">{t("about.info")}</pre>
+        <p className="font-mono text-sm translate-y-1 opacity-65">OpenSource Ref Links <JumpIcon fillColor='transparent' strokeColor='currentColor' strokeWidth={2} /></p>
         <ul className="mt-3 space-y-1 text-xs text-zinc-400">
           {OPENSOURCE.map(([name, url]) => (
             <li key={url}>
               {name} ::{" "}
               <a
-                href={url}
-                target="_blank"
+                onClick={() => {
+                  Opener.openInDefaultBrowserExpl(url ?? '');
+                }}
                 rel="noreferrer"
                 className="text-zinc-500 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-300"
               >
+                {/* A CLICK HERE */}
                 {url}
               </a>
             </li>

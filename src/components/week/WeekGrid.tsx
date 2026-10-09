@@ -1,4 +1,4 @@
-import { SaveIcon, SettingIcon, CopyIcon, PasteIcon, RollbackIcon } from "tdesign-icons-react";
+import { SaveIcon, SettingIcon, CopyIcon, PasteIcon, RollbackIcon, TeaIcon, AssignmentIcon } from "tdesign-icons-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import type { GlobalConfig } from "../../types/global-config";
@@ -639,8 +639,7 @@ function EntryCell({
   const realEnd = entry.startMinute + entry.durationMinute;
   const h = p.heightPx;
   // 极矮 cell（≤10px）：标题放不下，改横向显示起止时间区间，随高度等比缩放
-  const compact = h <= 10;
-  const compactScale = h / 16;
+  let compact = h <= 10, compactScale = h / 16;
   // 偏矮 cell（<26px）：标题等比缩小（26px 处恢复原大）
   const titleScale = h < 26 ? h / 26 : 1;
   const content = compact
@@ -696,19 +695,18 @@ ${t("grid.copyEdge")}`}
       {entry.notes && (
         <span
           title={t("entry.notes")}
-          className={`pointer-events-none absolute right-1.5 top-1.5 size-1 rounded-full opacity-35 ${entryColors.textDark ? "bg-zinc-900" : "bg-zinc-50"
-            }`}
+          className={`pointer-events-none absolute ${scale !== 1 ? 'top-1/2 translate-y-[-56%] scale-68' : 'top-px scale-78'} right-0.75 rounded-full opacity-35 `}
         >
-
+          <AssignmentIcon fillColor='transparent' className={`${entryColors.textDark ? "text-zinc-900" : "text-zinc-50"}`} strokeColor='currentColor' strokeWidth={2} />
         </span>
       )}
       {entry.entryType === "rest" && (
         <span
+          // style={{ transform: `scale(${scale})` }}
           title={typeLabel}
-          className={`pointer-events-none absolute bottom-1.5 left-1.5 size-1 rounded-full opacity-35 ${entryColors.textDark ? "bg-zinc-900" : "bg-zinc-50"
-            }`}
+          className={`pointer-events-none scale-80 absolute ${scale !== 1 ? 'top-1/2 translate-y-[-60%] ' : 'bottom-0.75'} left-0.75 rounded-full opacity-35 `}
         >
-
+          <TeaIcon fillColor='transparent' className={`${entryColors.textDark ? "text-zinc-900" : "text-zinc-50"}`} strokeColor='currentColor' strokeWidth={2} />
         </span>
       )}
       {showTimes && (
@@ -716,14 +714,14 @@ ${t("grid.copyEdge")}`}
           {minuteToHHMM(entry.startMinute)}
         </span>
       )}
-      <div className="grid min-h-0 grow place-items-center ">
+      <div className="grid min-h-px grow place-items-center ">
         <span
           className={`text-center leading-tight ${entry.entryType === "normal" ? "font-semibold" : ""
             } ${entryColors.textDark
               ? "text-zinc-900"
               : "text-zinc-100"
             } ${compact ? "whitespace-nowrap" : "-translate-y-px"}`}
-          style={{ transform: `scale(${scale})` }}
+          style={{ transform: `scale(${scale * 0.95})` }}
         >
           {content}
         </span>

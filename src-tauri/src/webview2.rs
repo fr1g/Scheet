@@ -9,6 +9,7 @@
 use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
+use tauri_plugin_opener::OpenerExt;
 
 /// 微软官方 Evergreen Bootstrapper（约 2MB，联网安装最新运行时）。
 const BOOTSTRAPPER_URL: &str = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
@@ -77,6 +78,7 @@ fn install_bootstrapper(installer: &Path) -> Result<(), String> {
 
 fn open_download_page() {
     let _ = Command::new("explorer").arg(DOWNLOAD_PAGE).status();
+    // app.opener().open_url("https://tauri.app", None::<&str>)?; // 暂时没有clone app到全局
 }
 
 /// 若 WEBVIEW2_BROWSER_EXECUTABLE_FOLDER 指向的运行时目录已不存在（Evergreen
