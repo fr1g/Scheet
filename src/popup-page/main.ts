@@ -48,6 +48,7 @@ function resolveLang(pref: string): "zh" | "en" {
 }
 
 const $ = (id: string): HTMLElement => document.getElementById(id) as HTMLElement;
+// 啥习惯啊怎么GPT GLM都喜欢在这搓个jquery余孽似的的东西
 
 function render(p: AlarmPopupPayload): void {
   const s = RES[resolveLang(p.lang)];
@@ -60,6 +61,7 @@ function render(p: AlarmPopupPayload): void {
   if (p.body) $("sub").textContent += ` — ${p.body}`;
   const openMain = $("open-main");
   openMain.textContent = s.openMain;
+  $("click-hint")!.textContent = s.clickHint;
 }
 
 function tick(): void {

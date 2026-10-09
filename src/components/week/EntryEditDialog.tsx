@@ -229,11 +229,10 @@ export default function EntryEditDialog({
             key={et}
             type="button"
             onClick={() => setEntryType(et)}
-            className={`rounded border px-2 py-1.5 text-xs transition-colors ${
-              entryType === et
+            className={`rounded border px-2 py-1.5 text-xs transition-colors ${entryType === et
                 ? "border-blue-400 bg-blue-400/15 text-zinc-100"
                 : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-            }`}
+              }`}
           >
             {typeLabel(et)}
           </button>
@@ -318,7 +317,7 @@ export default function EntryEditDialog({
         <div className="px-2 pb-2 pt-1">
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs text-zinc-300">
-              {t("entry.startBell")}
+              {t("settings.startBells")}
               <select
                 value={alarmChoice}
                 onChange={(e) => setAlarmChoice(e.target.value as AlarmFileChoice)}
@@ -340,7 +339,7 @@ export default function EntryEditDialog({
               </select>
             </label>
             <label className="block text-xs text-zinc-300">
-              {t("entry.endBell")}
+              {t("settings.startBells")}
               <select
                 value={endAlarmChoice}
                 onChange={(e) => setEndAlarmChoice(e.target.value as AlarmFileChoice)}
@@ -442,19 +441,19 @@ export default function EntryEditDialog({
                   background:
                     color === ""
                       ? hexWithAlpha(
-                          entryType === "normal"
-                            ? scheme.normalColor
-                            : scheme.restColor,
-                          entryType === "normal"
-                            ? NORMAL_BG_ALPHA
-                            : REST_BG_ALPHA,
-                        ) ?? "transparent"
+                        entryType === "normal"
+                          ? scheme.normalColor
+                          : scheme.restColor,
+                        entryType === "normal"
+                          ? NORMAL_BG_ALPHA
+                          : REST_BG_ALPHA,
+                      ) ?? "transparent"
                       : (hexWithAlpha(
-                          color,
-                          entryType === "normal"
-                            ? NORMAL_BG_ALPHA
-                            : REST_BG_ALPHA,
-                        ) ?? "transparent"),
+                        color,
+                        entryType === "normal"
+                          ? NORMAL_BG_ALPHA
+                          : REST_BG_ALPHA,
+                      ) ?? "transparent"),
                 }}
               />
             </div>

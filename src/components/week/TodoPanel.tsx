@@ -111,8 +111,9 @@ export default function TodoPanel({
           type="button"
           onClick={() => void handleAdd()}
           title={t("todo.title")}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-100 transition-colors hover:bg-zinc-600"
+          className="flex? h-7 w-7 shrink-0 items-center justify-center rounded-lg hidden text-zinc-100 transition-colors hover:bg-zinc-600"
         >
+          {/* 要不不用这个按钮了吧。主要是字装不下了 */}
           <AddIcon size="14px" />
         </button>
       </div>

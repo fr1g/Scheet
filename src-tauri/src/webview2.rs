@@ -10,40 +10,11 @@ use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 
-/// WebView2 Evergreen 运行时的 EdgeUpdate 注册表客户端 ID（微软官方检测方式）。
-const WEBVIEW2_CLIENT_ID: &str =
-    r"Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
 /// 微软官方 Evergreen Bootstrapper（约 2MB，联网安装最新运行时）。
 const BOOTSTRAPPER_URL: &str = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
 const DOWNLOAD_PAGE: &str = "https://developer.microsoft.com/microsoft-edge/webview2/";
 /// 隐藏 curl/powershell 子进程的控制台窗口。
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-
-/// 检测 WebView2 运行时是否已安装：依次探测
-/// HKCU/HKLM（含 WOW6432Node）下 Microsoft\EdgeUpdate\Clients\{id} 的 `pv` 值。
-pub fn runtime_installed() -> bool {
-    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
-    use winreg::RegKey;
-
-    let candidates = [
-        (HKEY_CURRENT_USER, format!(r"SOFTWARE\{WEBVIEW2_CLIENT_ID}")),
-        (HKEY_LOCAL_MACHINE, format!(r"SOFTWARE\{WEBVIEW2_CLIENT_ID}")),
-        (
-            HKEY_LOCAL_MACHINE,
-            format!(r"SOFTWARE\WOW6432Node\{WEBVIEW2_CLIENT_ID}"),
-        ),
-    ];
-    for (hive, path) in candidates {
-        if let Ok(key) = RegKey::predef(hive).open_subkey(path) {
-            if let Ok(pv) = key.get_value::<String, _>("pv") {
-                if !pv.trim().is_empty() {
-                    return true;
-                }
-            }
-        }
-    }
-    false
-}
 
 /// 弹出原生 Yes/No 消息框，返回用户是否选择了“是”。
 fn prompt(message: &str) -> bool {
@@ -108,58 +79,39 @@ fn open_download_page() {
     let _ = Command::new("explorer").arg(DOWNLOAD_PAGE).status();
 }
 
-/// 在应用启动前确保 WebView2 可用；缺失时下载/引导安装，最终失败则退出进程。
-/// 临时规避：WebView2 运行时 154.0.4258.48 存在宿主堆损坏缺陷（0xc0000374），
-/// 9/30 自动升级后于 10/1 起稳定复现。若当前运行时为该版本且旧版 .37 仍在，
-/// 将 WEBVIEW2_BROWSER_EXECUTABLE_FOLDER 钉到旧版（必须在创建任何 WebView2 环境前设置）。
-/// 运行时修复（.49+）后删除本段，并提醒用户移除用户级同名环境变量。
-const BROKEN_RUNTIME_VERSION: &str = "154.0.4258.48";
-const FALLBACK_RUNTIME_FOLDER: &str =
-    r"C:\Program Files (x86)\Microsoft\EdgeWebView\Application\154.0.4258.37";
-
-pub fn pin_runtime_if_broken() {
-    // 用户已手动钉住（用户级/进程级环境变量）则不干预
-    if std::env::var_os("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER").is_some() {
-        return;
-    }
-    let Ok(current) = tauri::webview_version() else {
+/// 若 WEBVIEW2_BROWSER_EXECUTABLE_FOLDER 指向的运行时目录已不存在（Evergreen
+/// 自动更新会删除旧版本目录，而该变量可能是更早应急方案的用户级残留），
+/// 进程内清除它，让加载器回退到注册表解析。必须在创建任何 WebView2 环境前调用。
+fn clear_stale_runtime_override() {
+    let Some(folder) = std::env::var_os("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER") else {
         return;
     };
-    if current != BROKEN_RUNTIME_VERSION {
+    if Path::new(&folder).join("msedge.dll").is_file() {
         return;
     }
-    if !std::path::Path::new(FALLBACK_RUNTIME_FOLDER).exists() {
-        return;
-    }
-    std::env::set_var("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER", FALLBACK_RUNTIME_FOLDER);
     crate::logging::warn(&format!(
-        "[wv] Broken runtime {current} detected, pinned to fallback {}",
-        FALLBACK_RUNTIME_FOLDER
+        "[wv] WEBVIEW2_BROWSER_EXECUTABLE_FOLDER points to a missing runtime ({folder:?}); cleared, falling back to registry resolution"
     ));
+    std::env::remove_var("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER");
 }
 
+/// 在应用启动前确保 WebView2 可用；版本探测失败视为缺失，弹窗引导安装，最终失败则退出进程。
+/// 探测走 wry/tauri 实际加载的同一条解析链（环境变量 → 注册表），
+/// 不用纯注册表查询——pv 非空不代表加载器真能加载（旧版本目录被更新器删除即此场景）。
 pub fn ensure_runtime() {
-    pin_runtime_if_broken();
-    if runtime_installed() {
-        match tauri::webview_version() {
-            Ok(v) => crate::logging::warn(&format!(
-                "[wv] WebView2 runtime present, version {v}"
-            )),
-            Err(e) => crate::logging::warn(&format!(
-                "[wv] WebView2 runtime present, version query failed: {e}"
-            )),
+    clear_stale_runtime_override();
+    match tauri::webview_version() {
+        Ok(v) => {
+            crate::logging::warn(&format!("[wv] WebView2 runtime present, version {v}"));
+            return;
         }
-        return;
+        Err(e) => crate::logging::warn(&format!(
+            "[wv] WebView2 runtime not loadable: {e}; prompting for installation"
+        )),
     }
-    crate::logging::log(
-            crate::logging::LEVEL_WARN,
-            "WARN",
-            "[WV]",
-            "WebView2 runtime missing, prompting for installation",
-        );
 
     let agreed = prompt(
-        "未检测到 Microsoft WebView2 运行时，Scheet 需要它才能显示界面。\n\n\
+        "未检测到可用的 Microsoft WebView2 运行时，Scheet 需要它才能显示界面。\n\n\
          是否立即下载并静默安装？（约 2MB 官方引导器，需要联网并同意 UAC 提权）",
     );
     if !agreed {
@@ -172,10 +124,10 @@ pub fn ensure_runtime() {
         .and_then(|_| install_bootstrapper(&installer))
         .err();
 
-    // 引导器静默安装可能异步收尾，轮询注册表等待其落盘
+    // 引导器静默安装可能异步收尾，轮询等待运行时变得可加载
     let mut installed = false;
     for _ in 0..6 {
-        if runtime_installed() {
+        if tauri::webview_version().is_ok() {
             installed = true;
             break;
         }
@@ -185,7 +137,7 @@ pub fn ensure_runtime() {
         return;
     }
 
-    let detail = install_error.unwrap_or_else(|| "安装流程结束但未检测到运行时".to_string());
+    let detail = install_error.unwrap_or_else(|| "安装流程结束但运行时仍不可用".to_string());
     prompt(&format!(
         "自动安装 WebView2 未成功（{detail}）。\n\
          即将打开官方下载页，安装完成后请重新启动 Scheet。"

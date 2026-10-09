@@ -938,13 +938,17 @@ export default function SettingsPage() {
         </div>
       </div>
       <div className="w-full max-w-sm rounded-lg  text-left grid grid-cols-3 gap-3">
-        <div className="border p-3 border-zinc-600/60 rounded-lg min-h-5">
+        <a href="" className="border block p-3 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
           {/* 查看仓库 */}
-        </div>
-        <div className="border p-3 border-zinc-600/60 rounded-lg min-h-5">
-          {/* vibration club */}
-        </div>
-        <div className="border p-3 border-zinc-600/60 rounded-lg min-h-5"></div>
+        </a>
+        <a href="#" className="border block p-3 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
+          {/* vibrative club */}
+          VibrativeClub
+        </a>
+        <a href="#" className="border block p-3 border-zinc-600/60 hover:bg-zinc-50/10 transition rounded-lg min-h-5">
+          {/*  */}
+          还没想好
+        </a>
       </div>
       <hr className="mx-auto border-zinc-100/30 border-2 rounded translate-y-0.5 w-5/7" />
       <p className="text-xs! opacity-70 font-mono translate-y-[3px]">the Program and its source code are permitted to copy, share, release and modify under MIT license, but some of the relied parts requires other permission.</p>
