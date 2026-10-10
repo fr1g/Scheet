@@ -32,12 +32,13 @@ pnpm exec tauri icon app-icon.png  # 重新生成 src-tauri/icons/（源图=根�
 ### WebView2 兜底（Windows 专属）
 
 - Tauri 的 `webviewInstallMode` 只对安装包生效，便携 exe 不经过安装器，因此
-  `src-tauri/src/webview2.rs` 在创建窗口前自行检测 WebView2 运行时
-  （微软官方注册表方式：HKCU/HKLM/WOW6432Node 下
-  `SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-…}` 的 `pv` 值非空）。
-- 缺失时弹原生消息框询问：同意则用 `curl.exe`（回退 PowerShell）下载微软官方
-  Evergreen Bootstrapper 到临时目录并 `/silent /install` 静默安装，随后轮询注册表确认；
-  拒绝或安装失败则打开官方下载页后退出。
+  `src-tauri/src/webview2.rs` 在创建窗口前自行检测 WebView2 运行时：
+  以 `tauri::webview_version()`（与 wry/tauri 加载器同一条解析链）为权威探测，
+  并在启动时清理指向已失效运行时目录的 `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER` 残留
+  （Evergreen 自动更新会删除旧版本目录；证据链见根目录 wv2-runtime-investigation.md）。
+- 探测失败视为缺失，弹原生消息框询问：同意则用 `curl.exe`（回退 PowerShell）下载微软官方
+  Evergreen Bootstrapper 到临时目录并**显性安装**（不带参数运行，引导器自带进度界面），
+  随后轮询版本探测确认；拒绝或安装失败则打开官方下载页后退出。
 - macOS（WKWebView 系统自带）与 Linux（AppImage 捆绑 webkit2gtk）无需此逻辑，模块已 `#[cfg(windows)]` 门控。
 
 ## UI 设计规范（必须遵守）
