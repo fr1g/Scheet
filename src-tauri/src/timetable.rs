@@ -117,7 +117,7 @@ pub(crate) fn resolve_alarm(
 /// 计算某天（weekday: 1=周一..7=周日）的提醒事件。
 ///
 /// `entries`：当天的提醒事务（普通/休息），无需预先排序；
-/// `day_end_minute`：当天结束时间（结束铃的钳制点）。
+/// `day_end_minute`：当天结束时间（结束铃的钳制点）；end=24:00 的事件例外，固定在 23:59 触发。
 pub fn compute_day_events(
     entries: &[WeekEntry],
     weekday: u32,
@@ -154,14 +154,21 @@ pub fn compute_day_events(
             .map(|next| next.start_minute == end_minute)
             .unwrap_or(false);
         if !chained {
+            // 结束=24:00（1440）的事件例外于 day_end 钳制：固定在 23:59 触发与展示
+            // （24:00 作为时刻不存在——一天不会有两个零点）
+            let end_fire = if end_minute >= 1440 {
+                1439
+            } else {
+                end_minute.min(day_end_minute)
+            };
             events.push(AlarmEvent {
                 entry_id: entry.id,
                 kind: AlarmKind::End,
                 entry_type: entry.entry_type,
                 title: entry.title.clone(),
-                fire_minute: end_minute.min(day_end_minute),
+                fire_minute: end_fire,
                 start_minute: entry.start_minute,
-                end_minute: end_minute.min(day_end_minute),
+                end_minute: end_fire,
                 ringtone: end_ringtone,
                 mode: end_mode,
             });
@@ -228,6 +235,25 @@ mod tests {
         let events = compute_day_events(&entries, 1, 1439, &GlobalConfig::default());
         let end = events.iter().find(|e| e.kind == AlarmKind::End).unwrap();
         assert_eq!(end.fire_minute, 1439);
+    }
+
+    #[test]
+    fn midnight_end_bell_fires_at_2359_regardless_of_day_end() {
+        // 结束=24:00：固定在 23:59 触发与展示（24:00 作为时刻不存在），不受 day_end 钳制
+        let entries = vec![entry(1, 1, 1380, 60)];
+        let events = compute_day_events(&entries, 1, 1320, &GlobalConfig::default());
+        let end = events.iter().find(|e| e.kind == AlarmKind::End).unwrap();
+        assert_eq!(end.fire_minute, 1439);
+        assert_eq!(end.end_minute, 1439);
+    }
+
+    #[test]
+    fn end_bell_below_2400_still_clamps_to_day_end() {
+        // 结束=23:00：超出 22:00 的窗口仍按既有语义钳到 day_end（仅 24:00 有例外）
+        let entries = vec![entry(1, 1, 1320, 60)];
+        let events = compute_day_events(&entries, 1, 1320, &GlobalConfig::default());
+        let end = events.iter().find(|e| e.kind == AlarmKind::End).unwrap();
+        assert_eq!(end.fire_minute, 1320);
     }
 
     #[test]

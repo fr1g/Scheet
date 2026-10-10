@@ -13,11 +13,11 @@ export const PX_PER_MINUTE = 3.2;
 /** cell 内嵌时间标签的最小高度（低于此值降级为 hover tooltip）。 */
 export const TIME_LABEL_MIN_HEIGHT = 32;
 
-/** 分钟数 → "HH:MM"（允许 24:00 表示溢出到次日）。 */
+/** 分钟数 → "HH:MM"；24:00 及以上（end=1440，旧数据可能更大）一律显示为 23:59——一天不会有两个零点。 */
 export function minuteToHHMM(minute: number): string {
-  const h = Math.floor(minute / 60);
-  const m = minute % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  const m = Math.min(minute, 1439);
+  const h = Math.floor(m / 60);
+  return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
 /** 整张周表 7 天窗口的全局范围（用于统一纵向比例、跨列时间对齐）。 */

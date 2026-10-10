@@ -136,3 +136,4 @@
 - README 写完：新增"功能特性"六条（编排/交互/提醒/待办/本地优先/可定制）；AI Usage 过期内容刷新（系统通知→置顶弹窗子窗口、合成默认铃→三套内置铃、M1-M5→M1-M6）；文档链接已随目录整理更新
 - 新建 HANDOFF.md（面向下一个 agent 的交接快照，AGENTS.md 之外的当前状态/环境陷阱/协作节奏三节；跨 harness 冷启动入口），可配合用户备胎 harness 评估
 - app-icon.png 移回根目录（用户指出它是图标重生成源图——打包虽只吃 src-tauri/icons/ 生成物，但源图属构建资产不该当设计稿归档）；AGENTS.md 图标命令从占位符 <png> 改为实路径，根除"全仓库无路径引用"的歧义
+- 时间边界重做（应用户"无迁移"方案）：下界硬顶 24:00=1440（数据层保持 5 分钟粒度零迁移——23:55→24:00 天然合法），展示与提醒按 23:59 归一。①WeekGrid 三处钳制：resize-end 相对上限 baseStart+1440（"26:30"来源）→绝对 1440，resize-start/move 的 dayStart/dayEnd 钳制放开为 [0, 1440-duration]（可上探 0:00）；②minuteToHHMM ≥1440 一律显示 23:59；③EntryEditDialog snappedDuration 减去 startMinute（原封顶 1440 不含起点）；④weeks.rs validate_entry 增 start+duration≤1440（后端此前完全不查结束）；⑤timetable 结束铃特判：end=1440 固定 1439 触发与展示（例外于 day_end 钳制），补 3 个测试；⑥webview2 改显性安装：去掉 /silent，引导器自带进度界面；⑦gitignore 加 /LXGWWenKaiMono-Regular.ttf。cargo test 41 绿 + pnpm build 通过

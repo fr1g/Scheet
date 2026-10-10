@@ -100,10 +100,14 @@ export default function EntryEditDialog({
 
   const startMinute = timeInputToMinute(start);
   const durationMinutes = parseDurationInput(duration);
+  // 结束（开始+时长）硬顶 24:00：合法时长随开始时间收窄（展示按 23:59）
   const snappedDuration =
-    durationMinutes == null
+    durationMinutes == null || startMinute == null || Number.isNaN(startMinute)
       ? null
-      : Math.min(1440, Math.max(5, Math.round(durationMinutes / 5) * 5));
+      : Math.min(
+          1440 - startMinute,
+          Math.max(5, Math.round(durationMinutes / 5) * 5),
+        );
   const colorOk = color === "" || /^#[0-9a-fA-F]{6}$/.test(color);
   const titleOk = entryType === "rest" || title.trim().length > 0;
   const timesOk =

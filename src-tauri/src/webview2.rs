@@ -3,7 +3,8 @@
 //! 便携单文件 exe 不经过安装器，`tauri.conf.json` 的 `webviewInstallMode`
 //! 只对 NSIS/WiX 安装包生效，因此这里在创建窗口前自行检测运行时：
 //! 缺失时弹原生对话框询问，用户同意则下载微软官方 Evergreen 引导器并
-//! 静默安装；拒绝或失败则打开官方下载页后退出。
+//! 运行其交互式安装（引导器自带安装进度界面，应用侧不另做进度提示）；
+//! 拒绝或失败则打开官方下载页后退出。
 //! 前端资源已嵌入二进制并由 Tauri 在内存中服务，运行时不会解压出任何应用文件。
 
 use std::os::windows::process::CommandExt;
@@ -63,10 +64,9 @@ fn download_bootstrapper(dest: &Path) -> Result<(), String> {
     }
 }
 
-/// 静默安装运行时（引导器自行请求 UAC 提权）。
+/// 运行官方引导器：不带参数即显示其自带的安装进度界面（自行请求 UAC 提权）。
 fn install_bootstrapper(installer: &Path) -> Result<(), String> {
     let status = Command::new(installer)
-        .args(["/silent", "/install"])
         .status()
         .map_err(|e| format!("运行安装器失败: {e}"))?;
     if status.success() {
@@ -114,7 +114,7 @@ pub fn ensure_runtime() {
 
     let agreed = prompt(
         "未检测到可用的 Microsoft WebView2 运行时，Scheet 需要它才能显示界面。\n\n\
-         是否立即下载并静默安装？（约 2MB 官方引导器，需要联网并同意 UAC 提权）",
+         是否立即下载并安装？（约 2MB 官方引导器，将显示安装进度，需要联网并同意 UAC 提权）",
     );
     if !agreed {
         open_download_page();
@@ -126,7 +126,7 @@ pub fn ensure_runtime() {
         .and_then(|_| install_bootstrapper(&installer))
         .err();
 
-    // 引导器静默安装可能异步收尾，轮询等待运行时变得可加载
+    // 安装器退出后运行时注册可能略有延迟，轮询等待变得可加载
     let mut installed = false;
     for _ in 0..6 {
         if tauri::webview_version().is_ok() {

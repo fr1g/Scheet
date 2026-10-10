@@ -62,14 +62,14 @@ interface WeekGridProps {
 
 const HEADER_ROW_PX = 32; // thead 行高（h-8，含边框）
 const TD_PADDING_PX = 8; // tbody td 上下内边距合计（p-1）
-const MAX_DURATION_MINUTE = 1440;
+/** 一天的绝对终点 24:00（end=1440）：展示与提醒按 23:59 归一（一天不会有两个零点）。 */
+const ABSOLUTE_DAY_END = 1440;
 
 type DragState =
   /** 拖动 cell 顶部边缘：调整开始时间（结束不变）。 */
   | {
     mode: "resize-start";
     entryId: number;
-    dayStart: number;
     startY: number;
     baseStart: number;
     baseEnd: number;
@@ -200,12 +200,10 @@ export default function WeekGrid({
   ) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    const { dayStart } = resolveDayWindow(plan, entry.weekday, config);
     if (which === "start") {
       setDrag({
         mode: "resize-start",
         entryId: entry.id,
-        dayStart,
         startY: e.clientY,
         baseStart: entry.startMinute,
         baseEnd: entry.startMinute + entry.durationMinute,
@@ -247,9 +245,9 @@ export default function WeekGrid({
 
     const onPointerMove = (e: PointerEvent) => {
       if (drag.mode === "resize-start") {
-        // 拖顶部：改开始时间，结束不变；至少保留 5 分钟
+        // 拖顶部：改开始时间，结束不变；至少保留 5 分钟；可上探到当天 0:00
         const start = Math.max(
-          drag.dayStart,
+          0,
           Math.min(
             drag.baseEnd - 5,
             drag.baseStart + snap5(e.clientY - drag.startY, pxPerMinute),
@@ -268,9 +266,9 @@ export default function WeekGrid({
         return;
       }
       if (drag.mode === "resize-end") {
-        // 拖底部：改结束时间（允许溢出当天结束时间，最长一整天）
+        // 拖底部：改结束时间（允许溢出当天结束时间，硬顶 24:00；展示按 23:59）
         const end = Math.min(
-          drag.baseStart + MAX_DURATION_MINUTE,
+          ABSOLUTE_DAY_END,
           Math.max(
             drag.baseStart + 5,
             drag.baseEnd + snap5(e.clientY - drag.startY, pxPerMinute),
@@ -293,19 +291,16 @@ export default function WeekGrid({
         }
         return;
       }
-      // move：垂直=当天内重放（保持时长），水平=换天
+      // move：垂直=当天内重放（保持时长），水平=换天；
+      // 可上探 0:00、下探至结束=24:00（溢出窗口的部分由琥珀 outline 标注）
       const shift = snap5(e.clientY - drag.startY, pxPerMinute);
       const targetDay = dayFromPoint(e.clientX, e.clientY);
       if (shift !== drag.shift || targetDay !== drag.targetDay) {
         setDrag({ ...drag, shift, targetDay });
         const day = targetDay ?? drag.sourceWeekday;
-        const window = resolveDayWindow(plan, day, config);
         const start = Math.max(
-          window.dayStart,
-          Math.min(
-            Math.max(window.dayStart, window.dayEnd - drag.duration),
-            drag.baseStart + shift,
-          ),
+          0,
+          Math.min(ABSOLUTE_DAY_END - drag.duration, drag.baseStart + shift),
         );
         onChangeEntries((entries) =>
           entries.map((x) =>

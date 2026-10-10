@@ -2,7 +2,8 @@
 //!
 //! - 周表至多 [`MAX_PLANS`] 个，第一个（slot 1）默认创建且不可删除；
 //! - 事务（week_entries）分为普通/休息两类提醒事务，最小粒度 5 分钟，
-//!   存 `start_minute`（0–1439）+ `duration_minute`（5 的倍数），允许溢出当天结束时间；
+//!   存 `start_minute`（0–1439）+ `duration_minute`（5 的倍数），允许溢出当天结束时间，
+//!   但结束（start+duration）硬顶 24:00=1440——展示与提醒按 23:59 归一（一天不会有两个零点）；
 //! - 无安排时段不入库，由前端按空隙派生渲染；
 //! - "当周"设置后按槽位顺序循环轮换（锚点日期存于 data.db 的 app_settings）。
 
@@ -493,6 +494,12 @@ fn validate_entry(entry: &WeekEntry) -> Result<(), String> {
     }
     if entry.duration_minute <= 0 || entry.duration_minute % 5 != 0 {
         return Err(format!("事务 {} 的时长必须是 5 的倍数", entry.id));
+    }
+    if entry.start_minute + entry.duration_minute > 1440 {
+        return Err(format!(
+            "事务 {} 的结束时间超过 24:00，请缩短该事务后保存",
+            entry.id
+        ));
     }
     match &entry.alarm_file {
         None => {}
@@ -1109,5 +1116,14 @@ mod tests {
         )
         .unwrap();
         assert_eq!(current_plan_id(&weeks, &data).unwrap(), 1); // 过一周回绕到 1
+    }
+
+    #[test]
+    fn validate_entry_caps_end_at_2400() {
+        // 结束（start+duration）硬顶 24:00=1440：23:55→24:00 合法，26:30 拒绝
+        assert!(validate_entry(&entry(1, 1, 1435, 5)).is_ok());
+        assert!(validate_entry(&entry(2, 1, 0, 1440)).is_ok());
+        let err = validate_entry(&entry(3, 1, 930, 660)).unwrap_err();
+        assert!(err.contains("24:00"), "实际错误: {err}");
     }
 }
