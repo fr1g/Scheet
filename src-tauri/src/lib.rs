@@ -4,6 +4,7 @@ mod db;
 mod flags;
 mod fonts;
 mod logging;
+mod notice;
 // 系统通知实现保留备用（当前提醒推送改用 popup.rs 的置顶弹窗方案）
 #[allow(dead_code)]
 mod notify;
@@ -104,7 +105,36 @@ pub fn run() {
                 // 否则 dismiss 的 close 被拦成 hide，弹窗隐形残留、后续提醒全部不可见
                 if window.label() == "main" {
                     api.prevent_close();
+                    // 首次关闭：照常收进托盘，另弹说明小窗（覆盖按钮/任务栏/Alt+F4/
+                    // Linux 标题栏等一切关闭入口；标记即置——前端无响应时下次照常隐藏）
+                    let first_close = {
+                        let data = window
+                            .app_handle()
+                            .state::<std::sync::Arc<crate::db::DataDb>>()
+                            .inner()
+                            .clone();
+                        let shown = data
+                            .with_conn(|conn| {
+                                Ok(flags::get_flag_sync(conn, flags::CLOSE_TO_TRAY_FLAG).is_some())
+                            })
+                            .unwrap_or(true);
+                        if !shown {
+                            let _ = data.with_conn(|conn| {
+                                flags::set_flag_sync(conn, flags::CLOSE_TO_TRAY_FLAG, "1")
+                            });
+                            true
+                        } else {
+                            false
+                        }
+                    };
                     let _ = window.hide();
+                    if first_close {
+                        if let Err(e) = notice::show(window.app_handle()) {
+                            crate::logging::warn(&format!(
+                                "[notice] Close notice failed (ignored): {e}"
+                            ));
+                        }
+                    }
                 }
             }
             // 主窗口获得焦点时自动关闭提醒弹窗
@@ -125,6 +155,7 @@ pub fn run() {
             settings::get_startup_webview_flags,
             settings::open_devtools,
             settings::debug_time_travel,
+            notice::finish_close_notice,
             settings::restart_application,
             settings::request_clear_data,
             flags::get_app_flag,

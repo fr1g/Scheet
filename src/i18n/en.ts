@@ -170,6 +170,13 @@ export default {
     body: "Scheet reads the clipboard when the window gains focus and when you copy an entry inside the app, to detect schedule data; copying an entry writes to and occupies the clipboard. The clipboard is accessed for nothing else. Scheet is fully offline with no networking capability — your clipboard content will never be leaked by it.",
     ok: "Got it",
   },
+  closeNotice: {
+    title: "Close = Minimize to tray",
+    body1: "Clicking the close button (including taskbar close and Alt+F4) does not quit Scheet — it keeps running in the system tray, so alarms and reminders still work.",
+    body2: "To actually quit: right-click the tray icon → Quit Scheet, or hold Shift while clicking the close button.",
+    bodyWin: "Tip: Windows hides new tray icons in the overflow area (the ^ arrow near the clock). Drag the Scheet icon onto the taskbar to keep it always visible.",
+    ok: "Got it",
+  },
   alarmSnackbar: {
     start: "Start",
     end: "End",

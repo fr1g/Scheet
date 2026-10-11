@@ -8,10 +8,11 @@ export default defineConfig({
   clearScreen: false,
   build: {
     rollupOptions: {
-      // 多页入口：主应用 + 提醒弹窗（静态页，无 React）
+      // 多页入口：主应用 + 提醒弹窗 + 首次关闭说明小窗（静态页，无 React）
       input: {
         main: "index.html",
         popup: "popup.html",
+        notice: "notice.html",
       },
     },
   },

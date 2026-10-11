@@ -15,7 +15,7 @@ use tauri::{command, AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, W
 
 pub const POPUP_LABEL: &str = "alarm-popup";
 const POPUP_WIDTH: f64 = 360.0;
-const POPUP_HEIGHT: f64 = 132.0;
+pub(crate) const POPUP_HEIGHT: f64 = 132.0;
 
 /// 弹窗渲染所需的全部数据（静态页经 IPC 取用；serde camelCase 与前端接口一致）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,21 +60,32 @@ pub fn get_last_alarm_payload() -> Result<Option<AlarmPopupPayload>, String> {
 /// 主显示器可用区域（预留任务栏空间）右下角的逻辑坐标。
 /// 工作区给出的是物理像素，set_position 消费逻辑坐标——必须除以缩放因子，
 /// 否则在非 100% 缩放的屏幕上弹窗会被定位到屏幕外（曾经"永远看不到弹窗"的原因）。
-fn popup_position(app: &AppHandle) -> (f64, f64) {
+/// bottom_extra：在任务栏预留之外再向上让出的距离（给同角落的其他小窗叠位用）。
+pub(crate) fn bottom_right_position(
+    app: &AppHandle,
+    width: f64,
+    height: f64,
+    bottom_extra: f64,
+) -> (f64, f64) {
     match app.primary_monitor() {
         Ok(Some(monitor)) => {
             let area = monitor.work_area();
             let scale = monitor.scale_factor();
             let x = (area.position.x as f64 + area.size.width as f64) / scale
-                - POPUP_WIDTH
+                - width
                 - 16.0;
             let y = (area.position.y as f64 + area.size.height as f64) / scale
-                - POPUP_HEIGHT
-                - 48.0;
+                - height
+                - 48.0
+                - bottom_extra;
             (x, y)
         }
         _ => (0.0, 0.0),
     }
+}
+
+fn popup_position(app: &AppHandle) -> (f64, f64) {
+    bottom_right_position(app, POPUP_WIDTH, POPUP_HEIGHT, 0.0)
 }
 
 /// 显示（或刷新）提醒弹窗：载荷入仓库 → 窗口已存在则移回屏幕角落 +

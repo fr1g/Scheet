@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Scheet</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+      html, body { height: 100%; overflow: hidden; background: #1c1c1f; }
+      /* 字体栈放 html：main.ts 会用设置字体覆盖 documentElement 内联样式，body 继承 */
+      html { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; }
+      body {
+        border: 1px solid #52525b;
+        color: #f4f4f5;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        padding: 14px;
+      }
+      .title { font-size: 13px; font-weight: 600; color: #fafafa; }
+      .body { margin-top: 10px; line-height: 1.6; color: #d4d4d8; }
+      .body p + p { margin-top: 6px; }
+      .body .tip { color: #a1a1aa; }
+      .foot { margin-top: auto; display: flex; justify-content: flex-end; }
+      .ok {
+        border: 1px solid #3b82f6; border-radius: 6px; background: #3b82f6;
+        color: #ffffff; font-size: 12px; padding: 4px 14px; cursor: pointer;
+      }
+      .ok:hover { background: #60a5fa; }
+    </style>
+  </head>
+  <body>
+    <div class="title" id="title"></div>
+    <div class="body" id="body"></div>
+    <div class="foot">
+      <button class="ok" id="ok"></button>
+    </div>
+    <script type="module" src="/src/notice-page/main.ts"></script>
+  </body>
+</html>
