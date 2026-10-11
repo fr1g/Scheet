@@ -1008,7 +1008,7 @@ export default function SettingsPage() {
       <hr className="mx-auto border-zinc-100/30 border-2 rounded translate-y-0.5 w-5/7" />
       <p className="text-xs! opacity-70 font-mono translate-y-[3px]">the Program and its source code are permitted to copy, share, release and modify under MIT license, but some of the relied parts requires other permission.</p>
       <CollapseBar title={t("about.infoTitle")} className="w-full!">
-        <pre className="typo indent-6">{t("about.info")}</pre>
+        <pre className="typo indent-6 whitespace-pre-wrap">{t("about.info").trimStart()}</pre>
         <p className="font-mono text-sm translate-y-1 opacity-65">OpenSource Ref Links <JumpIcon fillColor='transparent' strokeColor='currentColor' strokeWidth={2} /></p>
         <ul className="mt-3 space-y-1 text-xs text-zinc-400">
           {OPENSOURCE.map(([name, url]) => (
