@@ -18,7 +18,7 @@ function AppTitle() {
   const { date } = useToday();
   const { settings } = useSettings();
   // 窗口按钮在左侧时徽章镜像到标题文本左侧
-  const badgeOnLeft = (settings?.windowControls.position ?? "right") === "left";
+  const badgeOnLeft = (settings?.windowControls.position ?? "right") !== "right";
   const badge = actions?.dirty && (
     <span
       data-tauri-drag-region
@@ -123,15 +123,24 @@ function PlanActions({ actions }: { actions: TitleBarActions }) {
   );
 }
 
-/** 回滚按钮：恒在设置按钮与时钟之间（与保存分处设置两侧），仅脏状态显示。 */
-function RevertButton({ actions }: { actions: TitleBarActions }) {
+/** 回滚按钮：恒在设置按钮与时钟之间（与保存分处设置两侧），仅脏状态显示。
+ * gapSide = 面向设置一侧的留白方向，避免与齿轮的 hover 背景贴在一起。 */
+function RevertButton({
+  actions,
+  gapSide,
+}: {
+  actions: TitleBarActions;
+  gapSide: "left" | "right";
+}) {
   const { t } = useTranslation();
   return (
     <button
       type="button"
       onClick={actions.onRevert}
       title={t("topbar.revertTitle")}
-      className="flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50"
+      className={`flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50 ${
+        gapSide === "left" ? "ml-2" : "mr-2"
+      }`}
     >
       <RollbackIcon size="12px" />
     </button>
@@ -156,7 +165,9 @@ export default function TitleBar() {
     <>
       <header className={`flex h-10 shrink-0 items-stretch   ${position === 'hidden' ? 'px-2.5' : ''}`}>
         {position === "hidden" && clockOn && <Clock seconds={clockSeconds} />}
-        {position === "hidden" && actions?.dirty && <RevertButton actions={actions} />}
+        {position === "hidden" && actions?.dirty && (
+          <RevertButton actions={actions} gapSide="right" />
+        )}
         {position === "hidden" && onHome && (
           <button
             type="button"
@@ -177,7 +188,9 @@ export default function TitleBar() {
           />
         )}
         {position === "left" && clockOn && <Clock seconds={clockSeconds} />}
-        {position === "left" && actions?.dirty && <RevertButton actions={actions} />}
+        {position === "left" && actions?.dirty && (
+          <RevertButton actions={actions} gapSide="right" />
+        )}
         {position === "left" && onHome && (
           <button
             type="button"
@@ -201,7 +214,9 @@ export default function TitleBar() {
             <SettingIcon size="13px" />
           </button>
         )}
-        {position === "right" && actions?.dirty && <RevertButton actions={actions} />}
+        {position === "right" && actions?.dirty && (
+          <RevertButton actions={actions} gapSide="left" />
+        )}
         {position === "right" && clockOn && <Clock seconds={clockSeconds} />}
         {position === "right" && (
           <WindowControls
