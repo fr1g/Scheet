@@ -327,6 +327,7 @@ export default {
     intro: "Scheet 是一款本地优先的周课表应用：以 5 分钟为粒度编排一周的普通事务与休息，到点响铃提醒，配上还有每日待办清单。所有数据都保存在你自己的电脑上。",
     collaborators: "协作者",
     aiNote: "AI 协作开发",
+    kimiNote: "翻译协助",
     mgr: "呃...「产品经理」",
     mgrNote: "同志们，工程化思维下用Agent真的好爽。",
     clearData: "清空数据",

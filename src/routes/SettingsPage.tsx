@@ -17,6 +17,7 @@ import pkg from "../../package.json";
 import zaiLogoUrl from "../assets/zai-logo.webp";
 import fr1gAvatarUrl from "../assets/fr1g-avatar.webp";
 import vbClubLogo from "../assets/vibrative-t-64.webp";
+import kimiLogoUrl from "../assets/kimi-64.webp";
 import { BUNDLED_FONTS } from "../lib/fonts";
 import {
   minuteToTimeInput,
@@ -963,6 +964,13 @@ export default function SettingsPage() {
           <div>
             <div className="text-sm font-mono font-semibold text-zinc-100">GLM-5.3-Flash</div>
             <div className="text-[10px] text-zinc-500">{t("about.aiNote")}</div>
+          </div>
+        </div>
+        <div className="mt-2 flex items-center gap-3">
+          <img src={kimiLogoUrl} alt="Kimi" className="size-10 shrink-0 rounded-lg" />
+          <div>
+            <div className="text-sm font-mono font-semibold text-zinc-100">Kimi</div>
+            <div className="text-[10px] text-zinc-500">{t("about.kimiNote")}</div>
           </div>
         </div>
       </div>
