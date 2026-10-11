@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
+import { CopyIcon, PasteIcon, RollbackIcon, SaveIcon, SettingIcon } from "tdesign-icons-react";
 import ConfirmDialog from "./ConfirmDialog";
 import { exitApplication } from "../lib/app";
 import { useSettings } from "../state/SettingsContext";
 import { useGlobalConfig } from "../state/GlobalConfigContext";
-import { useTitleState } from "../state/titleState";
+import { useTitleState, type TitleBarActions } from "../state/titleState";
 import { useToday } from "../state/dateState";
 import WindowControls from "./WindowControls";
 
@@ -63,19 +65,90 @@ function Clock({ seconds }: { seconds: boolean }) {
   );
 }
 
+/** 周表页操作按钮组：复制/粘贴/保存 + 未保存徽章与回滚（仅周表页挂载时显示）。 */
+function PlanActions({ actions }: { actions: TitleBarActions }) {
+  const { t } = useTranslation();
+  const actionBtn =
+    "flex h-full items-center gap-1 px-2.5 text-[11px] text-zinc-300 transition-colors enabled:hover:bg-zinc-600/50 disabled:opacity-40 disabled:hover:bg-transparent";
+  return (
+    <>
+      <button
+        type="button"
+        onClick={actions.onCopy}
+        disabled={!actions.canCopy}
+        title={t("topbar.copyTitle")}
+        className={actionBtn}
+      >
+        <CopyIcon size="12px" />
+        {t("topbar.copy")}
+      </button>
+      <button
+        type="button"
+        onClick={actions.onPaste}
+        disabled={!actions.canPaste}
+        title={t("topbar.pasteTitle")}
+        className={actionBtn}
+      >
+        <PasteIcon size="12px" />
+        {t("topbar.paste")}
+      </button>
+      <button
+        type="button"
+        onClick={actions.onSave}
+        disabled={!actions.dirty || actions.saving}
+        className={actionBtn}
+      >
+        <SaveIcon size="12px" />
+        {t("topbar.save")}
+      </button>
+      {actions.dirty && (
+        <>
+          <span className="animate-pulse self-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] text-amber-300">
+            {t("topbar.unsaved")}
+          </span>
+          <button
+            type="button"
+            onClick={actions.onRevert}
+            title={t("topbar.revertTitle")}
+            className="flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50"
+          >
+            <RollbackIcon size="12px" />
+          </button>
+        </>
+      )}
+    </>
+  );
+}
+
 export default function TitleBar() {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const { config } = useGlobalConfig();
+  const { actions } = useTitleState();
+  const location = useLocation();
+  const navigate = useNavigate();
   const position = settings?.windowControls.position ?? "right";
   const [confirmExit, setConfirmExit] = useState(false);
   const clockOn = config?.titlebarClock ?? false;
   const clockSeconds = clockOn && (config?.titlebarClockSeconds ?? false);
+  // 操作按钮组与设置入口仅主页（周表页）显示；设置页有自己的返回按钮
+  const onHome = location.pathname === "/";
 
   return (
     <>
       <header className={`flex h-10 shrink-0 items-stretch   ${position === 'hidden' ? 'px-2.5' : ''}`}>
         {position === "hidden" && clockOn && <Clock seconds={clockSeconds} />}
+        {position === "hidden" && actions && <PlanActions actions={actions} />}
+        {position === "hidden" && onHome && (
+          <button
+            type="button"
+            onClick={() => navigate("/settings")}
+            title={t("topbar.settings")}
+            className="flex h-full items-center px-2 text-zinc-300 transition-colors hover:bg-zinc-600/50"
+          >
+            <SettingIcon size="13px" />
+          </button>
+        )}
 
         {position === "right" && <AppTitle />}
         {position === "left" && (
@@ -85,7 +158,29 @@ export default function TitleBar() {
           />
         )}
         {position === "left" && clockOn && <Clock seconds={clockSeconds} />}
+        {position === "left" && actions && <PlanActions actions={actions} />}
+        {position === "left" && onHome && (
+          <button
+            type="button"
+            onClick={() => navigate("/settings")}
+            title={t("topbar.settings")}
+            className="flex h-full items-center px-2 text-zinc-300 transition-colors hover:bg-zinc-600/50"
+          >
+            <SettingIcon size="13px" />
+          </button>
+        )}
         <div data-tauri-drag-region className="min-w-0 flex-1" />
+        {position === "right" && actions && <PlanActions actions={actions} />}
+        {position === "right" && onHome && (
+          <button
+            type="button"
+            onClick={() => navigate("/settings")}
+            title={t("topbar.settings")}
+            className="flex h-full items-center px-2 text-zinc-300 transition-colors hover:bg-zinc-600/50"
+          >
+            <SettingIcon size="13px" />
+          </button>
+        )}
         {position === "right" && clockOn && <Clock seconds={clockSeconds} />}
         {position === "right" && (
           <WindowControls

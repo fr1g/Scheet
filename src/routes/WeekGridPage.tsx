@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ChevronLeftIcon } from "tdesign-icons-react";
@@ -196,22 +196,6 @@ export default function WeekGridPage() {
   }, [todayDate]);
 
 
-  // 选中周表展示名走统一规则（本周/单周/双周/自定义名）
-  const selectedPlanDisplayName = (() => {
-    const index = plans.findIndex((p) => p.id === selectedId);
-    if (index >= 0) return planDisplayName(plans, index, planName, t);
-    return planName(plan?.plan.name ?? "");
-  })();
-
-  // 同步标题栏/系统窗口标题所需的状态
-  useEffect(() => {
-    setTitleState({
-      currentPlanSlot: plans.find((p) => p.id === currentId)?.slot ?? null,
-      selectedPlanSlot: plans.find((p) => p.id === selectedId)?.slot ?? null,
-      planCount: plans.length,
-    });
-  }, [plans, currentId, selectedId]);
-
   const handleSelect = (id: number) => {
     if (id === selectedId) return;
     if (dirty) {
@@ -372,6 +356,40 @@ export default function WeekGridPage() {
   }, [pasteTargetWeekday, showToast, t]);
 
   /** 删除选中事务（Shift+Delete；无确认，可 Ctrl+Z 撤回，随主保存入库）。 */
+  // 同步标题栏/系统窗口标题所需的状态 + 标题栏操作按钮组
+  const titleActions = useMemo(
+    () => ({
+      dirty,
+      saving,
+      canCopy: selectedEntryId != null,
+      canPaste: pasteTargetWeekday != null && clipboardHasPlan,
+      onCopy: () => void handleCopy(),
+      onPaste: () => void handlePaste(),
+      onSave: () => void handleSave(),
+      onRevert: () => setConfirmRevert(true),
+    }),
+    [
+      dirty,
+      saving,
+      selectedEntryId,
+      pasteTargetWeekday,
+      clipboardHasPlan,
+      handleCopy,
+      handlePaste,
+      handleSave,
+    ],
+  );
+  useEffect(() => {
+    setTitleState({
+      currentPlanSlot: plans.find((p) => p.id === currentId)?.slot ?? null,
+      selectedPlanSlot: plans.find((p) => p.id === selectedId)?.slot ?? null,
+      planCount: plans.length,
+      actions: titleActions,
+    });
+  }, [plans, currentId, selectedId, titleActions]);
+  // 离开周表页（进设置页等）：清空操作按钮组，标题栏自动隐藏它们
+  useEffect(() => () => setTitleState({ actions: null }), []);
+
   const handleDeleteSelected = useCallback(() => {
     if (selectedEntryId == null) return;
     setPlan((prev) =>
@@ -679,19 +697,12 @@ export default function WeekGridPage() {
         colorScheme={colorScheme}
         isCurrentWeek={selectedId === currentId}
         nowEntryId={nowEntryId}
-        displayName={selectedPlanDisplayName}
-        dirty={dirty}
-        saving={saving}
-        onSave={() => void handleSave()}
         onDayMenu={(e, weekday) => setDayMenu({ x: e.clientX, y: e.clientY, weekday })}
         selectedEntryId={selectedEntryId}
         onSelectEntry={setSelectedEntryId}
         onPasteTarget={setPasteTargetWeekday}
         pasteTargetWeekday={pasteTargetWeekday}
         clipboardHasPlan={clipboardHasPlan}
-        onCopy={() => void handleCopy()}
-        onPaste={() => void handlePaste()}
-        onRevert={() => setConfirmRevert(true)}
         onChangeEntries={handleChangeEntries}
         onEditEntry={(entry) => setEditEntry({ entry, createdNow: false })}
         onCreateAt={handleCreateAt}

@@ -1,5 +1,4 @@
-import { SaveIcon, SettingIcon, CopyIcon, PasteIcon, RollbackIcon, TeaIcon, AssignmentIcon } from "tdesign-icons-react";
-import { useNavigate } from "react-router-dom";
+import { TeaIcon, AssignmentIcon } from "tdesign-icons-react";
 import { useEffect, useRef, useState } from "react";
 import type { GlobalConfig } from "../../types/global-config";
 import type { FullPlan, WeekEntry } from "../../types/weeks";
@@ -26,15 +25,10 @@ interface WeekGridProps {
   config: GlobalConfig;
   /** 解析好的事务默认色方案（周表覆盖 → 全局）。 */
   colorScheme: EntryColorScheme;
-  /** 选中周表的展示名（双表时为 单周/双周，键名已解析）。 */
-  displayName: string;
   /** 选中周表是否为本周轮换表（非本周时表头不标"今天"）。 */
   isCurrentWeek: boolean;
   /** 覆盖当前时刻的事务 id（仅本周轮换表；null = 无标记）。 */
   nowEntryId: number | null;
-  dirty: boolean;
-  saving: boolean;
-  onSave: () => void;
   /** 右键表头：打开当天设置菜单。 */
   onDayMenu?: (e: React.MouseEvent, weekday: number) => void;
   /** 当前选中的事务（高亮 + 复制目标）。 */
@@ -46,12 +40,6 @@ interface WeekGridProps {
   pasteTargetWeekday: number | null;
   /** 剪贴板是否持有合法事务 JSON（聚焦窗口嗅探）。 */
   clipboardHasPlan: boolean;
-  /** 复制选中事务到剪贴板。 */
-  onCopy: () => void;
-  /** 把剪贴板事务粘贴到粘贴目标天。 */
-  onPaste: () => void;
-  /** 放弃未保存的更改（恢复到上次保存）。 */
-  onRevert: () => void;
   /** 拖拽/调整导致的事务变更（写入工作副本，随主保存入库）。 */
   onChangeEntries: (updater: (entries: WeekEntry[]) => WeekEntry[]) => void;
   /** 双击事务：打开编辑模态。 */
@@ -117,26 +105,18 @@ export default function WeekGrid({
   plan,
   config,
   colorScheme,
-  displayName,
   isCurrentWeek,
   nowEntryId,
-  dirty,
-  saving,
-  onSave,
   onDayMenu,
   selectedEntryId,
   onSelectEntry,
   onPasteTarget,
   pasteTargetWeekday,
   clipboardHasPlan,
-  onCopy,
-  onPaste,
-  onRevert,
   onChangeEntries,
   onEditEntry,
   onCreateAt,
 }: WeekGridProps) {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [wrapHeight, setWrapHeight] = useState(0);
@@ -345,64 +325,6 @@ export default function WeekGrid({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-zinc-600 px-3 py-1">
-        <h1 className="text-xs text-zinc-100">{displayName}</h1>
-        {dirty && (
-          <>
-            <span className="animate-pulse rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[11px] text-amber-300">
-              {t("topbar.unsaved")}
-            </span>
-            <button
-              type="button"
-              onClick={onRevert}
-              title={t("topbar.revertTitle")}
-              className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-zinc-100 transition-colors hover:bg-zinc-600"
-            >
-              <RollbackIcon size="12px" />
-              {t("topbar.revert")}
-            </button>
-          </>
-        )}
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={() => navigate("/settings")}
-          title={t("topbar.settings")}
-          className="flex h-6 w-6 items-center justify-center rounded text-zinc-100 transition-colors hover:bg-zinc-600"
-        >
-          <SettingIcon size="13px" />
-        </button>
-        <button
-          type="button"
-          onClick={onCopy}
-          disabled={selectedEntryId == null}
-          title={t("topbar.copyTitle")}
-          className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
-        >
-          <CopyIcon size="12px" />
-          {t("topbar.copy")}
-        </button>
-        <button
-          type="button"
-          onClick={onPaste}
-          disabled={pasteTargetWeekday == null || !clipboardHasPlan}
-          title={t("topbar.pasteTitle")}
-          className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
-        >
-          <PasteIcon size="12px" />
-          {t("topbar.paste")}
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={!dirty || saving}
-          className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
-        >
-          <SaveIcon size="12px" />
-          {t("topbar.save")}
-        </button>
-      </div>
-
       <div
         ref={wrapRef}
         className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden"
