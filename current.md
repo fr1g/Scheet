@@ -161,3 +161,4 @@
 - HMR 撕裂修复（0xC0000421 前奏根治）：useGlobalConfig Provider 找不到的报错=GlobalConfigContext.tsx 热替换重执行创建新 context 对象，新旧两代模块混用致 useContext 身份失配——四个状态/上下文模块（GlobalConfig/Settings/dateState/titleState）统一加 import.meta.hot.accept(() => reload)，热替换改为整页刷新，不再产生混合世代；Kimi logo scale-99→scale-98
 - about.info 填充（鸣谢/声明/开源许可/其他信息四段，缘起摘自 README 背后的故事；闪闪（icecream）译名绑定、en 用 icecream；鸣谢含 GLM/Kimi/母上大人/闪闪/字体作者；声明=完全离线+MIT+字体上游许可；其他=备份指引与反馈渠道，附 README 故事指引）；en 同结构意译
 - 关于页 info 段渲染打磨：pre 加 whitespace-pre-wrap 自动换行（长段落不再横向溢出），读取翻译键时 trimStart（容忍模板字面量首行换行/缩进的写法）
+- 关于页 info 段字体：等宽栈（ui-monospace/Cascadia/Consolas/Menlo/monospace）首选 + fontPreviewFamily(config.uiFont) 次选——拉丁数字落等宽、CJK 回退应用字体（默认霞鹜文楷 Mono）；indent-6 为用户手调样式保留
