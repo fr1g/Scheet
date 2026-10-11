@@ -348,7 +348,22 @@ export default {
       "You are about to clear all data! After you click Confirm, the app will restart and wipe existing data.",
     clearFailed: "Failed to clear",
     infoTitle: `Acknowledgements, declaration, open-source licenses and other info`,
-    info: ``
+    info: `[Origin]
+Two aimless months after graduation — life lacked a timetable. One night it clicked: my routine has always been a loop of fixed items, so give life a schedule. Then came the holidays and Z.ai's free tokens — and this app, built over seventy rounds of dialogue.
+
+[Acknowledgements]
+GLM-5.3-Flash (Z.ai) — architecture, backend, and every iteration; chief minister of this project.
+Kimi — English translation assistance.
+Mom — co-designer of the v5 icon ("stack them sideways, spell an S").
+icecream — color consultant (rooted for the rejected v2).
+The authors of LXGW WenKai / Maple Mono / HarmonyOS Sans — the UI looks decent because of you.
+
+[Declaration]
+This app runs fully offline: no network, no uploads; all data stays in your Documents folder (three .db files are everything). Diagnostic logs (logs/) never leave this machine. Released under the MIT license; dependencies keep their own licenses (see the list below), fonts per their upstream repos.
+
+[Other]
+Backup: the three .db files are the core data; fonts/ can be rebuilt, alarms/ and logs/ as needed.
+Feedback & source: github.com/fr1g/Scheet (Issues); the full story lives in the README (背后的故事).`
 
   },
   duration: {
