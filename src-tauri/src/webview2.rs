@@ -112,8 +112,13 @@ pub fn ensure_runtime() {
         )),
     }
 
+    // 双语提示：此时尚无法可靠判断用户语言偏好（首启时配置库尚无记录），
+    // 中英同屏覆盖所有用户——安装引导类文案的惯例
     let agreed = prompt(
-        "未检测到可用的 Microsoft WebView2 运行时，Scheet 需要它才能显示界面。\n\n\
+        "Microsoft WebView2 Runtime is not available. Scheet needs it to display its interface.\n\n\
+         Download and install it now? (About 2 MB official bootstrapper with its own progress UI; requires internet and a UAC confirmation.)\n\n\
+         ─────────────────\n\n\
+         未检测到可用的 Microsoft WebView2 运行时，Scheet 需要它才能显示界面。\n\n\
          是否立即下载并安装？（约 2MB 官方引导器，将显示安装进度，需要联网并同意 UAC 提权）",
     );
     if !agreed {
@@ -141,7 +146,10 @@ pub fn ensure_runtime() {
 
     let detail = install_error.unwrap_or_else(|| "安装流程结束但运行时仍不可用".to_string());
     prompt(&format!(
-        "自动安装 WebView2 未成功（{detail}）。\n\
+        "Automatic WebView2 installation failed ({detail}).\n\
+         Opening the official download page — after installing, please restart Scheet.\n\n\
+         ─────────────────\n\n\
+         自动安装 WebView2 未成功（{detail}）。\n\
          即将打开官方下载页，安装完成后请重新启动 Scheet。"
     ));
     open_download_page();
