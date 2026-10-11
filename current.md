@@ -157,3 +157,4 @@
 - i18n 审计与同步：①468da9b 用户改的 4 条 zh 铃声继承文案未同步 en——en 补齐新语义（sourceBuiltin=Default built-in、unsetStart/EndFile=Unset (built-in)、unsetEndMode=Unset (ring once)）；②键树扫描确认 zh/en 无缺失键、无未翻译条目；③webview2 缺失/失败两处提示改中英双语同屏（首启时配置库无语言偏好记录，双语为覆盖所有用户的稳妥解）；④用户英文修改考古：en.ts 在仓库历史中无用户编辑痕迹（键树与我的提交完全吻合），实际找到的用户英文修改=README.en.md（手写+slogan 修正）与 About 页 VibrativeClub 链接；若曾改过 en.ts 未提交，可能毁于模态方案撤回时的 reset --hard，待用户指认后按其风格重写
 - P24 入档：托盘菜单"退出"静默退出不警告脏改动（Rust 感知不到前端 dirty），同脏状态已保护路径盘点（设置入口/Shift+关闭有确认、关进托盘不丢），待做方案（emit 往返确认+超时兜底）——用户拍板暂缓
 - 关于页协作者卡片新增 Kimi（翻译协助，排 GLM-5.3-Flash 之后）：logo 为 kimi.com favicon 转 64px webp（src/assets/kimi-64.webp），i18n 键 about.kimiNote（翻译协助/Translation assistance）
+- Kimi logo 视觉略大（K 字贴边、Z.ai webp 带透明边），img 加 scale-99 缩 1% 对齐观感
