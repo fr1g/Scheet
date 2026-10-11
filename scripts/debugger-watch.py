@@ -28,10 +28,16 @@ TH32CS_SNAPMODULE = 0x8
 
 
 class DEBUG_EVENT(ctypes.Structure):
+    """x64 布局：联合体前有 4 字节 padding（8 字节对齐）。
+    联合体内 EXCEPTION_RECORD 的字段偏移（相对 u 起点）：
+    code=0x00, flags=0x04, address=0x10, NumberParameters=0x18,
+    ExceptionInformation=0x20..0x98, EXCEPTION_DEBUG_INFO.dwFirstChance=0x98。"""
+
     _fields_ = [
         ("dwDebugEventCode", ctypes.c_uint32),
         ("dwProcessId", ctypes.c_uint32),
         ("dwThreadId", ctypes.c_uint32),
+        ("_pad", ctypes.c_uint32),
         ("u", ctypes.c_byte * 512),
     ]
 
@@ -61,8 +67,8 @@ class MODULEENTRY32(ctypes.Structure):
         ("modBaseAddr", ctypes.c_uint64),
         ("modBaseSize", ctypes.c_uint32),
         ("hModule", ctypes.c_uint64),
-        ("szModule", ctypes.c_char * 256),
-        ("szExePath", ctypes.c_char * 260),
+        ("szModule", ctypes.c_wchar * 256),
+        ("szExePath", ctypes.c_wchar * 260),
     ]
 
 
@@ -85,10 +91,10 @@ def modules_of(pid):
     while ok:
         mods.append(
             (
-                me.szModule.decode("utf-8", "replace"),
+                str(me.szModule),
                 me.modBaseAddr,
                 me.modBaseSize,
-                me.szExePath.decode("utf-8", "replace"),
+                str(me.szExePath),
             )
         )
         ok = k32.Module32NextW(snap, ctypes.byref(me))
@@ -228,22 +234,37 @@ def main():
         status = DBG_CONTINUE
 
         if code == EXCEPTION_DEBUG_EVENT:
-            exc_code = struct.unpack_from("<I", evt.u, 0)[0]
-            exc_addr = struct.unpack_from("<Q", evt.u, 16)[0]
-            first_chance = struct.unpack_from("<I", evt.u, 40)[0]
+            u = bytes(evt.u)
+            exc_code = struct.unpack_from("<I", u, 0x00)[0]
+            exc_flags = struct.unpack_from("<I", u, 0x04)[0]
+            exc_addr = struct.unpack_from("<Q", u, 0x10)[0]
+            first_chance = struct.unpack_from("<I", u, 0x98)[0]
+            if exc_code == 0x80000003:
+                # 断点（attach 初始断点 / 目标 DebugBreak）：DBG_CONTINUE 放行，
+                # 二次机会断点杀进程是调试器误杀
+                k32.ContinueDebugEvent(evt.dwProcessId, evt.dwThreadId, DBG_CONTINUE)
+                continue
             mods_cache = modules_of(evt.dwProcessId) or mods_cache
             tag = "FIRST" if first_chance else "SECOND"
+            # 常见良性一_chance：断点/OutputDebugString/WoW64/C++ EH/.NET EH
             interesting = exc_code in (0xC0000374, 0xC0000409, 0xC0000005)
-            if interesting or not first_chance:
-                print(
-                    f"EXC {tag} code=0x{exc_code:08X} addr=0x{exc_addr:x} -> {locate(exc_addr, mods_cache)}"
-                )
-            if not first_chance and interesting:
-                fatal_seen = True
-                print("=== 崩溃定位完成（上方模块即出错模块）===")
-                status = DBG_EXCEPTION_NOT_HANDLED
+            detail = f"code=0x{exc_code:08X} addr=0x{exc_addr:x} -> {locate(exc_addr, mods_cache)}"
+            if interesting and first_chance:
+                # AV 附带读写方向与目标地址（ExceptionInformation[0]/[1]）
+                info0 = struct.unpack_from("<Q", u, 0x20)[0]
+                info1 = struct.unpack_from("<Q", u, 0x28)[0]
+                kind = {0: "READ", 1: "WRITE", 8: "DEP"}.get(info0, "?")
+                detail += f" [{kind} @0x{info1:x}]"
+            if not first_chance or interesting:
+                print(f"EXC {tag} tid={evt.dwThreadId} {detail} flags=0x{exc_flags:x}")
+            if not first_chance:
+                if interesting:
+                    fatal_seen = True
+                    print("=== 崩溃定位完成（上方模块即出错模块）===")
+                status = DBG_EXCEPTION_NOT_HANDLED  # 二次机会：交由系统终止进程
             else:
-                status = DBG_CONTINUE if exc_code in (0x4000001E,) else DBG_EXCEPTION_NOT_HANDLED
+                # 一_chance 一律交还应用自身处理（良性/未知由其 SEH 吞掉）
+                status = DBG_EXCEPTION_NOT_HANDLED
         elif code == EXIT_PROCESS_DEBUG_EVENT:
             exit_code = struct.unpack_from("<I", evt.u, 0)[0]
             print(f"process exited, code=0x{exit_code:08X}")
