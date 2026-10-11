@@ -93,19 +93,19 @@
 - **注意**：Regular 单字重，粗体由渲染器合成；字体文件解压到 `Documents/scheet/fonts/`，删除该目录文件后重启应用会重新解压。
 
 ### P22 WebView2 默认错误页无法拦截（仅影响开发模式）
-- **现状**：页面导航失败（如 dev 模式下 vite 意外退出后刷新）时，WebView2 会绘制原生错误页，其上的默认右键菜单同样无法屏蔽——tauri/wry 未暴露对应 API（错误页由 WebView2 原生绘制，页面 JS 已不在场）。
-- **缓解**：
-  - release 产物的前端资源内嵌于二进制，主文档加载不会失败，此场景实际只在 dev 模式出现；
-  - 应用自身的所有文档（首屏 splash、主界面、弹窗）已在 index.html 内联脚本与应用层双重屏蔽默认右键菜单；
-  - `pnpm tauri dev` 会托管 vite 进程，vite 退出时 dev 实例随之退出，不会长时间停留在错误页。
-
-### P22 WebView2 默认错误页无法拦截（仅影响开发模式）
 - **现象**：页面导航失败（如 dev 模式下 vite 意外退出后刷新）时，WebView2 会绘制原生错误页，其上的默认右键菜单同样无法屏蔽——tauri/wry 未暴露对应 API（错误页由 WebView2 原生绘制，页面 JS 已不在场）。
 - **缓解**：
   - release 产物的前端资源内嵌于二进制，主文档加载不会失败，此场景实际只在 dev 模式出现；
   - 应用自身的所有文档（首屏 splash、主界面、弹窗）已在 index.html 内联脚本与应用层双重屏蔽默认右键菜单；
   - `pnpm tauri dev` 会托管 vite 进程，vite 退出时 dev 实例随之退出，不会长时间停留在错误页。
 - **补充（M4-part7 后）**：AppShell 已加渲染错误边界（ErrorBoundary）+ JS 错误转发 stderr（diagnostics::debug_log），渲染崩溃不再吞掉标题栏，会显示带"重试"的错误面板。
+
+### P23 dev+HMR 切换查看瞬间整进程闪退（WebView2 宿主断言，已实证）
+- **现象**：开发模式（pnpm tauri dev）前端 HMR 热替换落地、切回窗口查看的瞬间，整进程闪退。退出码 **0xC0000421（STATUS_ASSERTION_FAILURE，Chromium CHECK 签名）**；`pnpm debug:attach` 确认无任何异常事件、直接 EXIT（断言路径绕过异常分发与日志），真实退出码以父进程（tauri CLI）读数为准。
+- **环境**：WebView2 154.0.4258.62；多 webview 存活（main / alarm-popup / close-notice）。2026-10-11 实证，与堆损坏（0xC0000374，已随 .48 钉住方案移除，见 git 历史）是不同签名。
+- **性质**：WebView2 宿主层断言，非应用代码 panic、非堆损坏；release 构建无 HMR，不受影响。
+- **缓解**：HMR 落地后再切回查看；重要操作前先保存；复现/取证用 `pnpm debug:attach`。
+- **验证**：开发环境问题，不进功能用例。
 
 ## 已解决（历史记录）
 

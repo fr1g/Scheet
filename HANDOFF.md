@@ -27,7 +27,7 @@
 - **WebView2 154.0.4258.48 有宿主堆损坏缺陷**（0xc0000374，fastfastfail 绕过 WER——无事件日志、无转储）：开发用 `pnpm dev:safe`（钉住 .37），生产应用内 `pin_runtime_if_broken()` 自动兜底；崩溃复现用 `pnpm debug:attach`（Python ctypes 调试器，打印二次机会异常与出错模块）。
 - PowerShell 5.1 会把 UTF-8 无 BOM 的 .ps1 按 GBK 误读——脚本文件必须带 BOM；Bash heredoc 有截断风险，追加文件后必须 `tail` 验证。
 - 往 .gitignore 等无末尾换行的文件追加内容会粘连（踩过），先确认换行。
-- HMR 瞬间疑似有崩溃案例——复现时先挂 `pnpm debug:attach` 再操作。
+- **HMR 瞬间闪退已实证**（0xC0000421 WebView2 宿主断言，绕过异常分发与日志；release 构建无 HMR 不受影响）——复现/取证先挂 `pnpm debug:attach`，真实退出码看 tauri CLI 输出。详见 docs/problems.md P23。
 
 ## 协作节奏（用户已确认的偏好）
 
