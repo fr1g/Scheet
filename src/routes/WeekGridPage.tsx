@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ChevronLeftIcon } from "tdesign-icons-react";
@@ -45,6 +46,7 @@ import { useToday } from "../state/dateState";
 /** 周表页：左侧 tab 列 + 中央网格 + 右侧待办。编辑在工作副本上进行，显式保存入库。 */
 export default function WeekGridPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { config, error: configError, reload: reloadConfig, update } = useGlobalConfig();
   const { weekday: todayWeekday, date: todayDate } = useToday();
   // 当前分钟（1s 刷新）：用于圈出覆盖当前时刻的事务 cell
@@ -109,6 +111,8 @@ export default function WeekGridPage() {
   } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<WeekPlan | null>(null);
   const [confirmRevert, setConfirmRevert] = useState(false);
+  // 有脏改动时点击标题栏设置入口：确认后导航（改动会因页面卸载丢失）
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
   const [pasteTargetWeekday, setPasteTargetWeekday] = useState<number | null>(null);
   /** 聚焦窗口时嗅探：剪贴板中的事务（null = 无/非事务 JSON）。 */
@@ -367,6 +371,7 @@ export default function WeekGridPage() {
       onPaste: () => void handlePaste(),
       onSave: () => void handleSave(),
       onRevert: () => setConfirmRevert(true),
+      onSettingsRequest: () => setConfirmLeave(true),
     }),
     [
       dirty,
@@ -823,6 +828,21 @@ export default function WeekGridPage() {
             onClose={handleEditCancel}
             onConfirm={handleEditConfirm}
             onDelete={handleEditDelete}
+          />
+        )}
+        {confirmLeave && (
+          <ConfirmDialog
+            key="confirm-leave"
+            open
+            title={t("confirms.leaveTitle")}
+            message={t("confirms.leaveMessage")}
+            confirmText={t("confirms.leaveConfirm")}
+            danger
+            onConfirm={() => {
+              setConfirmLeave(false);
+              navigate("/settings");
+            }}
+            onCancel={() => setConfirmLeave(false)}
           />
         )}
         {confirmDelete && (

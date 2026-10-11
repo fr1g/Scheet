@@ -153,3 +153,4 @@
 - 回滚按钮与设置齿轮之间加 ml/mr-2 间隔（按布局方向）；隐藏布局的未保存徽章也镜像到标题左侧（badgeOnLeft = 非 right）
 - 标题栏排布按用户手调落库：回滚按钮统一移至操作组外侧，徽章 translate-y-px 微调，标题 gap-1
 - P23 入档：dev+HMR 切换查看瞬间闪退实证为 0xC0000421（WebView2 宿主断言，绕过异常分发；debug:attach 干净捕获，真实退出码以 tauri CLI 为准）；合并 problems.md 重复的 P22 条目；HANDOFF 的 HMR 疑似条目升级为已实证
+- 脏改动保护扩展：①标题栏设置入口在 dirty 时改走 onSettingsRequest（titleState 新字段）→ 周表页弹"有未保存的改动"确认框（confirms.leave*，确认后 navigate 到设置页，改动因卸载丢失）；②Shift+退出确认框文案在 dirty 时换 messageDirty（明示周表未保存改动将丢失）；③关进托盘本身不弹——React 状态在内存中存活，不丢失；托盘菜单"退出"仍为静默退出（Rust 侧无从感知前端 dirty，列为已知缺口）；cargo test 43 绿 + pnpm build 绿（Rust 无改动）

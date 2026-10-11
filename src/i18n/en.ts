@@ -23,6 +23,8 @@ export default {
     title: "Quit Scheet",
     message:
       "You won't get any reminders (including a ringing alarm) until you open the app again. You sure?",
+    messageDirty:
+      "You won't get any reminders until you open the app again, and unsaved changes on the plan will be lost. You sure?",
   },
   tabs: { add: "New plan", current: "Current week", thisWeek: "This week" },
   weeks: {
@@ -82,7 +84,10 @@ export default {
       "「{{name}}」 and all of its entries will be gone for good. Delete?",
     deleteConfirm: "Delete",
     switchMessage: "Switching plans discards unsaved changes. Continue?",
+    leaveTitle: "Unsaved changes",
+    leaveMessage: "Going to Settings discards unsaved changes on the current plan.",
     switchConfirm: "Discard & switch",
+    leaveConfirm: "Go anyway",
     revertMessage: "Changes go back to the last saved state. Discard?",
   },
   planSettings: {

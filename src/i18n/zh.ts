@@ -26,6 +26,8 @@ export default {
     title: "退出 Scheet",
     message:
       "退出后将无法收到未来的提醒，直到重新打开。确定退出？",
+    messageDirty:
+      "退出后将无法收到未来的提醒，直到重新打开；周表的未保存改动也会丢失。确定退出？",
   },
   tabs: { add: "新建周表", current: "当周", thisWeek: "本周" },
   timeField: { clear: "清除（恢复继承）" },
@@ -85,7 +87,10 @@ export default {
       "「{{name}}」和里面所有安排都会删掉，找不回来。确定删除？",
     deleteConfirm: "删除",
     switchMessage: "换个表，没保存的改动就没了。确定要换吗？",
+    leaveTitle: "有未保存的改动",
+    leaveMessage: "前往设置页后，当前周表的未保存改动将丢失。",
     switchConfirm: "不保存，直接换",
+    leaveConfirm: "仍然前往",
     revertMessage: "会退回到上次保存的样子。确定放弃？",
   },
   planSettings: {

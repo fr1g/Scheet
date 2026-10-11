@@ -168,7 +168,13 @@ export default function TitleBar() {
         {position === "hidden" && onHome && (
           <button
             type="button"
-            onClick={() => navigate("/settings")}
+            onClick={() => {
+              if (actions?.dirty) {
+                actions.onSettingsRequest();
+              } else {
+                navigate("/settings");
+              }
+            }}
             title={t("topbar.settings")}
             className="flex h-full items-center px-2 text-zinc-300 transition-colors hover:bg-zinc-600/50"
           >
@@ -191,7 +197,13 @@ export default function TitleBar() {
         {position === "left" && onHome && (
           <button
             type="button"
-            onClick={() => navigate("/settings")}
+            onClick={() => {
+              if (actions?.dirty) {
+                actions.onSettingsRequest();
+              } else {
+                navigate("/settings");
+              }
+            }}
             title={t("topbar.settings")}
             className="flex h-full items-center px-2 text-zinc-300 transition-colors hover:bg-zinc-600/50"
           >
@@ -214,7 +226,13 @@ export default function TitleBar() {
         {position === "right" && onHome && (
           <button
             type="button"
-            onClick={() => navigate("/settings")}
+            onClick={() => {
+              if (actions?.dirty) {
+                actions.onSettingsRequest();
+              } else {
+                navigate("/settings");
+              }
+            }}
             title={t("topbar.settings")}
             className="flex h-full items-center px-2 text-zinc-300 transition-colors hover:bg-zinc-600/50"
           >
@@ -235,7 +253,11 @@ export default function TitleBar() {
       <ConfirmDialog
         open={confirmExit}
         title={t("exitConfirm.title")}
-        message={t("exitConfirm.message")}
+        message={
+          actions?.dirty
+            ? t("exitConfirm.messageDirty")
+            : t("exitConfirm.message")
+        }
         confirmText={t("titlebar.exitButton")}
         danger
         onConfirm={() => {

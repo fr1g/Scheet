@@ -15,6 +15,8 @@ export interface TitleBarActions {
   onSave: () => void;
   /** 打开"放弃改动"确认框（确认框仍由周表页渲染）。 */
   onRevert: () => void;
+  /** 有脏改动时点击设置入口：打开"离开将丢失改动"确认框（确认框由周表页渲染）。 */
+  onSettingsRequest: () => void;
 }
 
 /** 标题栏所需的共享状态（周表页写入，TitleBar 订阅）。 */
