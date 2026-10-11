@@ -22,7 +22,7 @@ function AppTitle() {
   const badge = actions?.dirty && (
     <span
       data-tauri-drag-region
-      className="animate-pulse self-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] text-amber-300"
+      className="animate-pulse self-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] text-amber-300 translate-y-px"
     >
       {t("topbar.unsaved")}
     </span>
@@ -56,7 +56,7 @@ function AppTitle() {
     // 标题文本块是可拖拽区（含未保存徽章）；双击同样触发最大化
     <div
       data-tauri-drag-region
-      className="flex h-full items-center px-3 text-xs text-zinc-300"
+      className="flex h-full items-center px-3 text-xs text-zinc-300 gap-1"
     >
       {badgeOnLeft && badge}
       {title}
@@ -138,9 +138,8 @@ function RevertButton({
       type="button"
       onClick={actions.onRevert}
       title={t("topbar.revertTitle")}
-      className={`flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50 ${
-        gapSide === "left" ? "ml-2" : "mr-2"
-      }`}
+      className={`flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50 ${gapSide === "left" ? "ml-2" : "mr-2"
+        }`}
     >
       <RollbackIcon size="12px" />
     </button>
@@ -165,9 +164,7 @@ export default function TitleBar() {
     <>
       <header className={`flex h-10 shrink-0 items-stretch   ${position === 'hidden' ? 'px-2.5' : ''}`}>
         {position === "hidden" && clockOn && <Clock seconds={clockSeconds} />}
-        {position === "hidden" && actions?.dirty && (
-          <RevertButton actions={actions} gapSide="right" />
-        )}
+
         {position === "hidden" && onHome && (
           <button
             type="button"
@@ -179,6 +176,9 @@ export default function TitleBar() {
           </button>
         )}
         {position === "hidden" && actions && <PlanActions actions={actions} />}
+        {position === "hidden" && actions?.dirty && (
+          <RevertButton actions={actions} gapSide="right" />
+        )}
 
         {position === "right" && <AppTitle />}
         {position === "left" && (
@@ -188,9 +188,6 @@ export default function TitleBar() {
           />
         )}
         {position === "left" && clockOn && <Clock seconds={clockSeconds} />}
-        {position === "left" && actions?.dirty && (
-          <RevertButton actions={actions} gapSide="right" />
-        )}
         {position === "left" && onHome && (
           <button
             type="button"
@@ -202,7 +199,17 @@ export default function TitleBar() {
           </button>
         )}
         {position === "left" && actions && <PlanActions actions={actions} />}
+        {position === "left" && actions?.dirty && (
+          <RevertButton actions={actions} gapSide="right" />
+        )}
+
+
         <div data-tauri-drag-region className="min-w-0 flex-1" />
+
+
+        {position === "right" && actions?.dirty && (
+          <RevertButton actions={actions} gapSide="left" />
+        )}
         {position === "right" && actions && <PlanActions actions={actions} />}
         {position === "right" && onHome && (
           <button
@@ -214,9 +221,8 @@ export default function TitleBar() {
             <SettingIcon size="13px" />
           </button>
         )}
-        {position === "right" && actions?.dirty && (
-          <RevertButton actions={actions} gapSide="left" />
-        )}
+
+
         {position === "right" && clockOn && <Clock seconds={clockSeconds} />}
         {position === "right" && (
           <WindowControls
