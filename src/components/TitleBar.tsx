@@ -14,7 +14,7 @@ import WindowControls from "./WindowControls";
 /** 应用标题：显示在窗口控制按钮的相反一侧，并同步到系统窗口标题。 */
 function AppTitle() {
   const { t } = useTranslation();
-  const { currentPlanSlot, selectedPlanSlot, planCount } = useTitleState();
+  const { currentPlanSlot, selectedPlanSlot, planCount, actions } = useTitleState();
   const { date } = useToday();
 
   const weekLabel = (slot: number | null): string => {
@@ -42,8 +42,20 @@ function AppTitle() {
   }, [title]);
 
   return (
-    <div className="flex h-full items-center px-3 text-xs text-zinc-300">
+    // 标题文本块是可拖拽区（含未保存徽章）；双击同样触发最大化
+    <div
+      data-tauri-drag-region
+      className="flex h-full items-center px-3 text-xs text-zinc-300"
+    >
       {title}
+      {actions?.dirty && (
+        <span
+          data-tauri-drag-region
+          className="animate-pulse self-center ml-2 rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] text-amber-300"
+        >
+          {t("topbar.unsaved")}
+        </span>
+      )}
     </div>
   );
 }
@@ -102,19 +114,14 @@ function PlanActions({ actions }: { actions: TitleBarActions }) {
         {t("topbar.save")}
       </button>
       {actions.dirty && (
-        <>
-          <span className="animate-pulse self-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] text-amber-300">
-            {t("topbar.unsaved")}
-          </span>
-          <button
-            type="button"
-            onClick={actions.onRevert}
-            title={t("topbar.revertTitle")}
-            className="flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50"
-          >
-            <RollbackIcon size="12px" />
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={actions.onRevert}
+          title={t("topbar.revertTitle")}
+          className="flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50"
+        >
+          <RollbackIcon size="12px" />
+        </button>
       )}
     </>
   );

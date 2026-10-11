@@ -146,3 +146,4 @@
 - 运营操作：①重置 data.db flags 表 closeToTrayNoticeShown（下次关闭重新弹收进托盘说明）；②promo 视频段 20→25 秒（film.js 的 T 常量链后移 +5、侧字幕间隔 4→5 秒铺满、占位文案与 README 时间表/导出口径同步；导出时长由 T.end 驱动自动变 51 秒；promo/ 不入库仅本地生效）
 - 说明小窗打磨：①位置改与提醒弹窗同槽位（原叠加层设计高 144px 被嫌高，bottom_extra 归零）；②标题前加"Scheet提示："前缀（i18n 键 closeNotice.prefix，英文 Scheet notice:）；③白屏闪烁根治——notice 与提醒弹窗的窗口/网页层都补 background_color(0x1c1c1f)（webview 首帧前不再露出白底）；④"知道了"按钮补 transition；⑤页面语言从系统语言升级为跟随应用 uiLanguage 设置（auto 才回退系统语言，与主窗口/提醒弹窗一致），语言与字体一次取齐；⑥标记再重置供验收；cargo test 43 绿 + pnpm build 通过
 - 顶栏并入标题栏：WeekGrid 顶栏整行删除（省一行高度给网格），复制/粘贴/保存 + 未保存徽章/回滚 + 设置齿轮移入 TitleBar——顺序为 操作组 | 设置 | 时钟 | 窗口控制（三种窗口按钮位置布局均镜像适配），仅周表页挂载时显示（titleState 扩展 TitleBarActions，离开页面自动清空隐藏；设置页已有返回按钮故齿轮同隐藏）；周表名不再单独展示（左侧 tab 与窗口标题已覆盖）；WeekGrid 六个顶栏 props 与 navigate 移除；cargo 43 绿 + pnpm build 绿
+- 未保存徽章挪到标题文本之后（AppTitle 内，读取 actions.dirty），标题文本块（含徽章）标记 data-tauri-drag-region 可拖拽/双击最大化；操作组里的徽章移除、回滚按钮保留
