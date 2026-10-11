@@ -145,7 +145,6 @@ export default function TitleBar() {
     <>
       <header className={`flex h-10 shrink-0 items-stretch   ${position === 'hidden' ? 'px-2.5' : ''}`}>
         {position === "hidden" && clockOn && <Clock seconds={clockSeconds} />}
-        {position === "hidden" && actions && <PlanActions actions={actions} />}
         {position === "hidden" && onHome && (
           <button
             type="button"
@@ -156,6 +155,7 @@ export default function TitleBar() {
             <SettingIcon size="13px" />
           </button>
         )}
+        {position === "hidden" && actions && <PlanActions actions={actions} />}
 
         {position === "right" && <AppTitle />}
         {position === "left" && (
@@ -165,7 +165,6 @@ export default function TitleBar() {
           />
         )}
         {position === "left" && clockOn && <Clock seconds={clockSeconds} />}
-        {position === "left" && actions && <PlanActions actions={actions} />}
         {position === "left" && onHome && (
           <button
             type="button"
@@ -176,6 +175,7 @@ export default function TitleBar() {
             <SettingIcon size="13px" />
           </button>
         )}
+        {position === "left" && actions && <PlanActions actions={actions} />}
         <div data-tauri-drag-region className="min-w-0 flex-1" />
         {position === "right" && actions && <PlanActions actions={actions} />}
         {position === "right" && onHome && (
