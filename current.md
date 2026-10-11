@@ -155,3 +155,4 @@
 - P23 入档：dev+HMR 切换查看瞬间闪退实证为 0xC0000421（WebView2 宿主断言，绕过异常分发；debug:attach 干净捕获，真实退出码以 tauri CLI 为准）；合并 problems.md 重复的 P22 条目；HANDOFF 的 HMR 疑似条目升级为已实证
 - 脏改动保护扩展：①标题栏设置入口在 dirty 时改走 onSettingsRequest（titleState 新字段）→ 周表页弹"有未保存的改动"确认框（confirms.leave*，确认后 navigate 到设置页，改动因卸载丢失）；②Shift+退出确认框文案在 dirty 时换 messageDirty（明示周表未保存改动将丢失）；③关进托盘本身不弹——React 状态在内存中存活，不丢失；托盘菜单"退出"仍为静默退出（Rust 侧无从感知前端 dirty，列为已知缺口）；cargo test 43 绿 + pnpm build 绿（Rust 无改动）
 - i18n 审计与同步：①468da9b 用户改的 4 条 zh 铃声继承文案未同步 en——en 补齐新语义（sourceBuiltin=Default built-in、unsetStart/EndFile=Unset (built-in)、unsetEndMode=Unset (ring once)）；②键树扫描确认 zh/en 无缺失键、无未翻译条目；③webview2 缺失/失败两处提示改中英双语同屏（首启时配置库无语言偏好记录，双语为覆盖所有用户的稳妥解）；④用户英文修改考古：en.ts 在仓库历史中无用户编辑痕迹（键树与我的提交完全吻合），实际找到的用户英文修改=README.en.md（手写+slogan 修正）与 About 页 VibrativeClub 链接；若曾改过 en.ts 未提交，可能毁于模态方案撤回时的 reset --hard，待用户指认后按其风格重写
+- P24 入档：托盘菜单"退出"静默退出不警告脏改动（Rust 感知不到前端 dirty），同脏状态已保护路径盘点（设置入口/Shift+关闭有确认、关进托盘不丢），待做方案（emit 往返确认+超时兜底）——用户拍板暂缓
