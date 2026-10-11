@@ -359,7 +359,7 @@ impl Default for GlobalConfig {
             entry_rest_color: "#fecac0".to_string(),
             entry_normal_text_dark: false,
             entry_rest_text_dark: true,
-            titlebar_clock: false,
+            titlebar_clock: true,
             titlebar_clock_seconds: false,
             todo_panel_mode: "pinned".to_string(),
         }
@@ -428,7 +428,7 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
             .unwrap_or(true),
         titlebar_clock: get_setting(conn, "titlebarClock")?
             .and_then(|s| s.parse().ok())
-            .unwrap_or(false),
+            .unwrap_or(true),
         titlebar_clock_seconds: get_setting(conn, "titlebarClockSeconds")?
             .and_then(|s| s.parse().ok())
             .unwrap_or(false),

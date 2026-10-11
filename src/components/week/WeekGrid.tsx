@@ -60,7 +60,7 @@ interface WeekGridProps {
   onCreateAt?: (weekday: number, startMinute: number) => void;
 }
 
-const HEADER_ROW_PX = 32; // thead 行高（h-8，含边框）
+const HEADER_ROW_PX = 24; // thead 行高（h-6，含边框）
 const TD_PADDING_PX = 8; // tbody td 上下内边距合计（p-1）
 /** 一天的绝对终点 24:00（end=1440）：展示与提醒按 23:59 归一（一天不会有两个零点）。 */
 const ABSOLUTE_DAY_END = 1440;
@@ -345,20 +345,20 @@ export default function WeekGrid({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-zinc-600 px-3 py-1.5">
-        <h1 className="text-sm text-zinc-100">{displayName}</h1>
+      <div className="flex items-center gap-2 border-b border-zinc-600 px-3 py-1">
+        <h1 className="text-xs text-zinc-100">{displayName}</h1>
         {dirty && (
           <>
-            <span className="animate-pulse rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-300">
+            <span className="animate-pulse rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[11px] text-amber-300">
               {t("topbar.unsaved")}
             </span>
             <button
               type="button"
               onClick={onRevert}
               title={t("topbar.revertTitle")}
-              className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+              className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-zinc-100 transition-colors hover:bg-zinc-600"
             >
-              <RollbackIcon size="13px" />
+              <RollbackIcon size="12px" />
               {t("topbar.revert")}
             </button>
           </>
@@ -368,18 +368,18 @@ export default function WeekGrid({
           type="button"
           onClick={() => navigate("/settings")}
           title={t("topbar.settings")}
-          className="flex h-7 w-7 items-center justify-center rounded text-zinc-100 transition-colors hover:bg-zinc-600"
+          className="flex h-6 w-6 items-center justify-center rounded text-zinc-100 transition-colors hover:bg-zinc-600"
         >
-          <SettingIcon size="15px" />
+          <SettingIcon size="13px" />
         </button>
         <button
           type="button"
           onClick={onCopy}
           disabled={selectedEntryId == null}
           title={t("topbar.copyTitle")}
-          className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
+          className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
         >
-          <CopyIcon size="13px" />
+          <CopyIcon size="12px" />
           {t("topbar.copy")}
         </button>
         <button
@@ -387,18 +387,18 @@ export default function WeekGrid({
           onClick={onPaste}
           disabled={pasteTargetWeekday == null || !clipboardHasPlan}
           title={t("topbar.pasteTitle")}
-          className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
+          className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
         >
-          <PasteIcon size="13px" />
+          <PasteIcon size="12px" />
           {t("topbar.paste")}
         </button>
         <button
           type="button"
           onClick={onSave}
           disabled={!dirty || saving}
-          className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
+          className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-zinc-100 transition-colors enabled:hover:bg-zinc-600 disabled:opacity-40"
         >
-          <SaveIcon size="13px" />
+          <SaveIcon size="12px" />
           {t("topbar.save")}
         </button>
       </div>
@@ -431,7 +431,7 @@ export default function WeekGrid({
                         ? t("grid.headerReady")
                         : t("grid.headerEmpty")
                   }
-                  className={`h-8 border border-zinc-600 px-2 text-left text-xs font-normal text-zinc-100 transition-colors ${pasteTargetWeekday === d || dragTargetDay === d
+                  className={`h-6 border border-zinc-600 px-1.5 text-left text-[11px] font-normal text-zinc-100 transition-colors ${pasteTargetWeekday === d || dragTargetDay === d
                     ? "bg-zinc-600/70"
                     : clipboardHasPlan
                       ? "cursor-pointer"
@@ -465,7 +465,7 @@ export default function WeekGrid({
                 return (
                   <td key={d} data-day={d} className="border border-zinc-600 align-top px-0.5 overflow-clip [overflow-clip-margin:10px]">
                     <div
-                      className={`relative h-full overflow-clip [overflow-clip-margin:6px] ${isCurrentWeek && d === today ? "bg-zinc-100/10" : ""
+                      className={`relative h-full overflow-clip [overflow-clip-margin:14px] ${isCurrentWeek && d === today ? "bg-zinc-100/10" : ""
                         }`}
                       title={t("grid.newHere")}
                       onPointerMove={(e) => {
@@ -486,6 +486,10 @@ export default function WeekGrid({
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest("[data-entry]")) return;
                         onSelectEntry(null);
+                        // 剪贴板有待粘贴事务时，点击列内任意空闲处即选中该天为粘贴目标
+                        if (clipboardHasPlan) {
+                          onPasteTarget(pasteTargetWeekday === d ? null : d);
+                        }
                       }}
                       onDoubleClick={(e) => {
                         if ((e.target as HTMLElement).closest("[data-entry]")) return;
@@ -546,7 +550,17 @@ export default function WeekGrid({
                             left: `${(p.lane * 100) / p.lanes}%`,
                             width: `${100 / p.lanes}%`,
                           }}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // 剪贴板有待粘贴事务时，点击任意 cell 即选中其所在天为粘贴目标
+                            if (clipboardHasPlan) {
+                              onPasteTarget(
+                                pasteTargetWeekday === p.entry.weekday
+                                  ? null
+                                  : p.entry.weekday,
+                              );
+                            }
+                          }}
                           onDoubleClick={(e) => {
                             e.stopPropagation();
                             onEditEntry?.(p.entry);

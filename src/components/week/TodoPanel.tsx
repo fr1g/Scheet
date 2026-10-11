@@ -70,7 +70,7 @@ export default function TodoPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-3 pt-3">
+      <div className="flex items-center justify-between px-3 pt-2">
         <span className="text-xs text-zinc-400">{t("todo.title")}</span>
         <span className="flex items-center gap-0.5">
           <span className="text-[10px] text-zinc-500 mr-1.5">{date}</span>
@@ -79,9 +79,9 @@ export default function TodoPanel({
               type="button"
               onClick={onPin}
               title={t("todo.pin")}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-300 transition-colors hover:bg-zinc-600 hover:text-zinc-100"
+              className="flex h-5 w-5 items-center justify-center rounded-md text-zinc-300 transition-colors hover:bg-zinc-600 hover:text-zinc-100"
             >
-              <PinIcon size="13px" />
+              <PinIcon size="12px" />
             </button>
           )}
           {onCollapse && (
@@ -89,9 +89,9 @@ export default function TodoPanel({
               type="button"
               onClick={onCollapse}
               title={t("todo.collapse")}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-300 transition-colors hover:bg-zinc-600 hover:text-zinc-100"
+              className="flex h-5 w-5 items-center justify-center rounded-md text-zinc-300 transition-colors hover:bg-zinc-600 hover:text-zinc-100"
             >
-              <ChevronRightIcon size="13px" />
+              <ChevronRightIcon size="12px" />
             </button>
           )}
         </span>
