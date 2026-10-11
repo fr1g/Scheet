@@ -124,6 +124,7 @@ pub fn run() {
             settings::open_alarms_dir,
             settings::get_startup_webview_flags,
             settings::open_devtools,
+            settings::debug_time_travel,
             settings::restart_application,
             settings::request_clear_data,
             flags::get_app_flag,

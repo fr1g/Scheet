@@ -659,7 +659,13 @@ pub fn current_plan_id(
     weeks_conn: &Connection,
     data_conn: &Connection,
 ) -> Result<i64, String> {
-    current_plan_id_at(weeks_conn, data_conn, Local::now().date_naive())
+    // 诊断偏移（时间旅行钩子）：0 = 真实今天
+    let offset = crate::settings::debug_today_offset(data_conn);
+    current_plan_id_at(
+        weeks_conn,
+        data_conn,
+        Local::now().date_naive() + chrono::Duration::days(offset),
+    )
 }
 
 /// 同上，但"今天"可注入（测试与确定性推导用）。

@@ -297,6 +297,11 @@ export default {
     badIconVariant: "Invalid icon variant choice",
     openDevtools: "Open DevTools",
     openDevtoolsTitle: "Developer tools (for debugging)",
+    timeTravel: "Time travel (diagnostics)",
+    timeTravelTitle: "Skip/rewind \"today\": affects plan rotation and date display only, not alarm scheduling",
+    timeTravelForward: "Skip 7 days",
+    timeTravelReset: "Back to today",
+    timeTravelDone: "Date set to {{date}}",
     logLevelHint:
       "Logs are written daily to the logs folder inside the app data dir (daily--date.scheet.log), in English only. none logs nothing and creates no file; verbose is the most detailed; default is error. Applies immediately after saving, no restart needed.",
     entryColors: "Default entry colors",

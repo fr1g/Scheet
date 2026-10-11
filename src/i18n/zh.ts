@@ -292,6 +292,11 @@ export default {
     badIconVariant: "图标变体选择不合法",
     openDevtools: "打开 DevTools",
     openDevtoolsTitle: "开发者工具（调试用）",
+    timeTravel: "时间旅行（诊断）",
+    timeTravelTitle: "快进/回退\"今天\"：仅影响周表轮换与日期显示，不影响提醒调度",
+    timeTravelForward: "快进 7 天",
+    timeTravelReset: "回到今天",
+    timeTravelDone: "当前日期已切至 {{date}}",
     logLevelHint:
       "日志按天写入应用数据目录的 logs 文件夹（daily--日期.scheet.log），全部为英文。none 不输出也不保存；verbose 最详细；默认 error。保存后马上生效，不用重启。",
     entryColors: "事务默认颜色",

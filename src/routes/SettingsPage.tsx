@@ -845,14 +845,41 @@ export default function SettingsPage() {
 
       <section>
         {shiftHeld && (
-          <button
-            type="button"
-            onClick={() => void invoke("open_devtools")}
-            title={t("settings.openDevtoolsTitle")}
-            className="rounded border border-zinc-500 px-4 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
-          >
-            {t("settings.openDevtools")}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void invoke("open_devtools")}
+              title={t("settings.openDevtoolsTitle")}
+              className="rounded border border-zinc-500 px-4 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+            >
+              {t("settings.openDevtools")}
+            </button>
+            <span title={t("settings.timeTravelTitle")} className="text-xs text-zinc-400">
+              {t("settings.timeTravel")}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                void invoke<string>("debug_time_travel", { days: 7 })
+                  .then((date) => showToast(t("settings.timeTravelDone", { date })))
+                  .catch((e: unknown) => showToast(String(e)))
+              }
+              className="rounded border border-zinc-500 px-4 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+            >
+              {t("settings.timeTravelForward")}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                void invoke<string>("debug_time_travel", { days: 0 })
+                  .then((date) => showToast(t("settings.timeTravelDone", { date })))
+                  .catch((e: unknown) => showToast(String(e)))
+              }
+              className="rounded border border-zinc-500 px-4 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600"
+            >
+              {t("settings.timeTravelReset")}
+            </button>
+          </div>
         )}
       </section>
 

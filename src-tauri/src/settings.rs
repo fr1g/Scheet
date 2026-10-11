@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::Datelike;
+use chrono::{Datelike, Local};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::{command, Manager, State};
@@ -273,6 +273,42 @@ pub fn open_devtools(app: tauri::AppHandle) -> Result<(), String> {
     };
     win.open_devtools();
     Ok(())
+}
+
+/// 诊断用"今天"偏移天数（0 = 真实今天）：时间旅行验收钩子。
+/// 只被周表轮换推导与日切事件消费；提醒调度、todo 滚动等仍用真实时钟。
+pub fn debug_today_offset(conn: &Connection) -> i64 {
+    get_setting(conn, "debugTodayOffsetDays")
+        .ok()
+        .flatten()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0)
+}
+
+/// 诊断（设置-高级 的 Shift 隐藏区）：把"今天"快进/回退 N 天，
+/// 持久化偏移并广播日切事件，让轮换推导与 UI 即时重算（clock injection 的开发面）。
+#[command]
+pub async fn debug_time_travel(
+    days: i64,
+    app: tauri::AppHandle,
+    db: State<'_, Arc<DataDb>>,
+) -> Result<String, String> {
+    let db = db.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        db.with_conn(|conn| set_setting(conn, "debugTodayOffsetDays", &days.to_string()))
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let today = Local::now().date_naive() + chrono::Duration::days(days);
+    let payload = serde_json::json!({
+        "date": today.format("%Y-%m-%d").to_string(),
+        "weekday": today.weekday().num_days_from_monday() as u32 + 1,
+    });
+    use tauri::Emitter;
+    app.emit("scheet://date-changed", payload)
+        .map_err(|e| format!("广播日切事件失败: {e}"))?;
+    Ok(today.format("%Y-%m-%d").to_string())
 }
 
 /// 应用图标变体：设置主窗口图标（Windows 任务栏/标题栏、Linux 窗口）。
