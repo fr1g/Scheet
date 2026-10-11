@@ -165,3 +165,4 @@
 - 新增 promo-b/（gitignore，不入库）：概念还原版宣传片——纯 canvas 按当前 UI 画核心交互（网格/双色 cell/当前时刻脉动/拖拽换天/拉长/复制粘贴/待办面板/收托盘亮图标），42 秒时间轴、2K 导出、确定性 renderAt、复用 promo/serve.py；与 GPT 版（promo/，实拍展示位）并存
 - promo-b 改为 file:// 直开可用：去掉 type=module（模块脚本 file:// 被 CORS 硬禁），app-icon 内嵌 data URL（icon.js，杜绝画布污染保导出），字体改相对 @font-face + 就地解压的明文 ttf（file:// 被拦则回退系统等宽）；http 模式仍可用，README 双模式说明
 - promo-b 三处修正：①CELL 数据从 HHMM 数字改为真分钟数（825→505 等；此前 1320-1800 的"下午课"全部落到画布外消失、时间轴错位）；②drawChrome/drawGrid 的 fade 包络误用（淡入又淡出=窗体/表头 2 秒后消失）改为出现并保持；③收缩变换改为包住全部窗体内容缩放（原实现只缩窗体矩形、cells 悬空在外），字标/slogan 常驻至黑场，render 分镜各自 try/catch + rAF 提前挂（异常不再冻结循环，状态栏显示出错分镜）；语法校验通过，待用户浏览器复检
+- promo-b 课表数据换为通用日常 mock（晨间散步/学英语/看网课/做饭/健身/游戏/追剧/逛公园等，无业但自律的一周），拖拽演示改 整理房间 周一→周五，复制演示改 晨间散步 周一→周六，待办改预约牙医/交电费/给绿植浇水；落定 cell 常驻逻辑修正（drawDrag/drawCopy 按 t 阶段接管渲染）
