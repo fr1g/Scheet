@@ -55,7 +55,7 @@ export default {
   topbar: {
     unsaved: "有改动没保存",
     revert: "放弃修改",
-    revertTitle: "放弃修改，退回上次保存的样子",
+    revertTitle: "放弃修改，退回上次保存的样子（Ctrl+Z 跳过确认）",
     settings: "设置",
     copy: "复制",
     copyTitle: "复制选中的安排（Ctrl+C）",

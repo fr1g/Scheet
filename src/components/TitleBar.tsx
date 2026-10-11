@@ -16,6 +16,17 @@ function AppTitle() {
   const { t } = useTranslation();
   const { currentPlanSlot, selectedPlanSlot, planCount, actions } = useTitleState();
   const { date } = useToday();
+  const { settings } = useSettings();
+  // 窗口按钮在左侧时徽章镜像到标题文本左侧
+  const badgeOnLeft = (settings?.windowControls.position ?? "right") === "left";
+  const badge = actions?.dirty && (
+    <span
+      data-tauri-drag-region
+      className="animate-pulse self-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] text-amber-300"
+    >
+      {t("topbar.unsaved")}
+    </span>
+  );
 
   const weekLabel = (slot: number | null): string => {
     if (slot == null) return "";
@@ -47,15 +58,9 @@ function AppTitle() {
       data-tauri-drag-region
       className="flex h-full items-center px-3 text-xs text-zinc-300"
     >
+      {badgeOnLeft && badge}
       {title}
-      {actions?.dirty && (
-        <span
-          data-tauri-drag-region
-          className="animate-pulse self-center ml-2 rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] text-amber-300"
-        >
-          {t("topbar.unsaved")}
-        </span>
-      )}
+      {!badgeOnLeft && badge}
     </div>
   );
 }
@@ -108,6 +113,7 @@ function PlanActions({ actions }: { actions: TitleBarActions }) {
         type="button"
         onClick={actions.onSave}
         disabled={!actions.dirty || actions.saving}
+        title={t("topbar.saveTitle")}
         className={actionBtn}
       >
         <SaveIcon size="12px" />

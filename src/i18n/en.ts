@@ -52,7 +52,7 @@ export default {
   topbar: {
     unsaved: "Unsaved changes",
     revert: "Discard",
-    revertTitle: "Discard changes, back to last saved",
+    revertTitle: "Discard changes, back to last saved (Ctrl+Z skips the confirm)",
     settings: "Settings",
     copy: "Copy",
     copyTitle: "Copy selected entry (Ctrl+C)",

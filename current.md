@@ -148,3 +148,4 @@
 - 顶栏并入标题栏：WeekGrid 顶栏整行删除（省一行高度给网格），复制/粘贴/保存 + 未保存徽章/回滚 + 设置齿轮移入 TitleBar——顺序为 操作组 | 设置 | 时钟 | 窗口控制（三种窗口按钮位置布局均镜像适配），仅周表页挂载时显示（titleState 扩展 TitleBarActions，离开页面自动清空隐藏；设置页已有返回按钮故齿轮同隐藏）；周表名不再单独展示（左侧 tab 与窗口标题已覆盖）；WeekGrid 六个顶栏 props 与 navigate 移除；cargo 43 绿 + pnpm build 绿
 - 未保存徽章挪到标题文本之后（AppTitle 内，读取 actions.dirty），标题文本块（含徽章）标记 data-tauri-drag-region 可拖拽/双击最大化；操作组里的徽章移除、回滚按钮保留
 - 窗口按钮在左侧/隐藏时，设置齿轮镜像到时钟与操作组之间（统一规则：齿轮永远紧贴时钟）
+- 标题栏操作组 tooltip 补快捷键：保存接既有 saveTitle 键（Ctrl+S），回滚 revertTitle 文案补（Ctrl+Z 跳过确认）；未保存徽章随窗口按钮位置镜像——按钮在左侧时徽章在标题文本左侧，其余在右侧
