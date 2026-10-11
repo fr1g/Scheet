@@ -62,3 +62,9 @@ function subscribe(listener: () => void): () => void {
 export function useTitleState(): TitleState {
   return useSyncExternalStore(subscribe, () => state);
 }
+
+// HMR 政策：状态/上下文模块热替换会撕裂对象身份（context 找不到 Provider、
+// 外部 store 监听器分裂）——拒绝热替换，让 Vite 冒泡到整页刷新。
+if (import.meta.hot) {
+  import.meta.hot.accept(() => window.location.reload());
+}

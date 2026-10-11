@@ -967,7 +967,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <div className="mt-2 flex items-center gap-3">
-          <img src={kimiLogoUrl} alt="Kimi" className="size-10 shrink-0 scale-99 rounded-lg" />
+          <img src={kimiLogoUrl} alt="Kimi" className="size-10 shrink-0 scale-98 rounded-lg" />
           <div>
             <div className="text-sm font-mono font-semibold text-zinc-100">Kimi</div>
             <div className="text-[10px] text-zinc-500">{t("about.kimiNote")}</div>

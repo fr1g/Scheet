@@ -158,3 +158,4 @@
 - P24 入档：托盘菜单"退出"静默退出不警告脏改动（Rust 感知不到前端 dirty），同脏状态已保护路径盘点（设置入口/Shift+关闭有确认、关进托盘不丢），待做方案（emit 往返确认+超时兜底）——用户拍板暂缓
 - 关于页协作者卡片新增 Kimi（翻译协助，排 GLM-5.3-Flash 之后）：logo 为 kimi.com favicon 转 64px webp（src/assets/kimi-64.webp），i18n 键 about.kimiNote（翻译协助/Translation assistance）
 - Kimi logo 视觉略大（K 字贴边、Z.ai webp 带透明边），img 加 scale-99 缩 1% 对齐观感
+- HMR 撕裂修复（0xC0000421 前奏根治）：useGlobalConfig Provider 找不到的报错=GlobalConfigContext.tsx 热替换重执行创建新 context 对象，新旧两代模块混用致 useContext 身份失配——四个状态/上下文模块（GlobalConfig/Settings/dateState/titleState）统一加 import.meta.hot.accept(() => reload)，热替换改为整页刷新，不再产生混合世代；Kimi logo scale-99→scale-98
