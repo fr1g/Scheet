@@ -46,7 +46,7 @@ import { useToday } from "../state/dateState";
 export default function WeekGridPage() {
   const { t } = useTranslation();
   const { config, error: configError, reload: reloadConfig, update } = useGlobalConfig();
-  const { weekday: todayWeekday } = useToday();
+  const { weekday: todayWeekday, date: todayDate } = useToday();
   // 当前分钟（1s 刷新）：用于圈出覆盖当前时刻的事务 cell
   const [nowMinute, setNowMinute] = useState(() => {
     const d = new Date();
@@ -167,6 +167,33 @@ export default function WeekGridPage() {
   }, [selectedId, showToast]);
 
   const dirty = plan != null && JSON.stringify(plan) !== savedSnapshot;
+
+  // 日期切换（跨天）：重取"当前周"；正在查看旧当周且无未保存改动时跟随切换——
+  // 在看其他周或有脏改动则只更新"本周"标记，不打扰编辑
+  const viewStateRef = useRef({
+    currentId: null as number | null,
+    selectedId: null as number | null,
+    dirty: false,
+  });
+  viewStateRef.current = { currentId, selectedId, dirty };
+  const lastSeenDateRef = useRef(todayDate);
+  useEffect(() => {
+    if (lastSeenDateRef.current === todayDate) return;
+    lastSeenDateRef.current = todayDate;
+    void (async () => {
+      try {
+        const current = await getCurrentWeekPlan().catch(() => null);
+        const nextId = current ? current.plan.id : null;
+        const view = viewStateRef.current;
+        setCurrentId(nextId);
+        if (view.selectedId !== nextId && view.selectedId === view.currentId && !view.dirty) {
+          setSelectedId(nextId);
+        }
+      } catch {
+        // 跨天刷新失败静默：下次日切或重开应用会重取
+      }
+    })();
+  }, [todayDate]);
 
 
   // 选中周表展示名走统一规则（本周/单周/双周/自定义名）

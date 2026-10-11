@@ -659,6 +659,15 @@ pub fn current_plan_id(
     weeks_conn: &Connection,
     data_conn: &Connection,
 ) -> Result<i64, String> {
+    current_plan_id_at(weeks_conn, data_conn, Local::now().date_naive())
+}
+
+/// 同上，但"今天"可注入（测试与确定性推导用）。
+pub fn current_plan_id_at(
+    weeks_conn: &Connection,
+    data_conn: &Connection,
+    today: chrono::NaiveDate,
+) -> Result<i64, String> {
     let plans = list_plans(weeks_conn)?;
     let Some(first) = plans.first() else {
         return Err("没有任何周表".to_string());
@@ -676,12 +685,17 @@ pub fn current_plan_id(
     };
 
     let cfg = load_global_config(data_conn)?;
-    let today = Local::now().date_naive();
     let this_week_start = cfg.first_day_of_week.week_start(today);
     let weeks_elapsed = crate::settings::get_setting(data_conn, "rotationAnchorDate")
         .map_err(|e| e)?
         .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())
-        .map(|anchor| (this_week_start - anchor).num_days().div_euclid(7))
+        .map(|anchor| {
+            // 锚点先按当前"每周第一天"设置对齐到其所在周的首日，再做周差：
+            // 换过首日设置或存在未对齐锚点时，轮换边界仍落在配置的周首日，
+            // 而不是锚点当初被写入时的星期几（如锚点=周一、首日=周日的组合）
+            let aligned = cfg.first_day_of_week.week_start(anchor);
+            (this_week_start - aligned).num_days().div_euclid(7)
+        })
         .unwrap_or(0)
         .max(0);
 
@@ -1125,5 +1139,42 @@ mod tests {
         assert!(validate_entry(&entry(2, 1, 0, 1440)).is_ok());
         let err = validate_entry(&entry(3, 1, 930, 660)).unwrap_err();
         assert!(err.contains("24:00"), "实际错误: {err}");
+    }
+
+    #[test]
+    fn rotation_boundary_follows_first_day_setting() {
+        let weeks = weeks_conn();
+        let data = data_conn();
+        create_plan(&weeks, Some("第二周表")).unwrap(); // id=2
+        // 场景：锚点 2026-10-05（周一，换设置前/旧版本写入），现设置"周日起始"——
+        // 轮换边界必须对齐回周日（锚点所在周首日 10-04），而非锚点的星期一
+        set_setting(&data, "activePlanId", "1").unwrap();
+        set_setting(&data, "firstDayOfWeek", "sun").unwrap();
+        set_setting(&data, "rotationAnchorDate", "2026-10-05").unwrap();
+        let at = |y, m, d| chrono::NaiveDate::from_ymd_opt(y, m, d).unwrap();
+        // 周六 10-10：仍属锚点周 → 周表 1
+        assert_eq!(current_plan_id_at(&weeks, &data, at(2026, 10, 10)).unwrap(), 1);
+        // 周日 10-11：新一周 → 周表 2
+        assert_eq!(current_plan_id_at(&weeks, &data, at(2026, 10, 11)).unwrap(), 2);
+    }
+
+    #[test]
+    fn rotation_wraps_back_to_first_plan() {
+        let weeks = weeks_conn();
+        let data = data_conn();
+        create_plan(&weeks, Some("第二周表")).unwrap(); // id=2
+        set_setting(&data, "activePlanId", "1").unwrap();
+        set_setting(&data, "firstDayOfWeek", "sun").unwrap();
+        set_setting(&data, "rotationAnchorDate", "2026-10-04").unwrap();
+        // 两周后从最后一个周表循环回第一个（1 → 2 → 1）
+        assert_eq!(
+            current_plan_id_at(
+                &weeks,
+                &data,
+                chrono::NaiveDate::from_ymd_opt(2026, 10, 18).unwrap()
+            )
+            .unwrap(),
+            1
+        );
     }
 }
