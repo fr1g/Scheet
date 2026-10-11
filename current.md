@@ -162,3 +162,4 @@
 - about.info 填充（鸣谢/声明/开源许可/其他信息四段，缘起摘自 README 背后的故事；闪闪（icecream）译名绑定、en 用 icecream；鸣谢含 GLM/Kimi/母上大人/闪闪/字体作者；声明=完全离线+MIT+字体上游许可；其他=备份指引与反馈渠道，附 README 故事指引）；en 同结构意译
 - 关于页 info 段渲染打磨：pre 加 whitespace-pre-wrap 自动换行（长段落不再横向溢出），读取翻译键时 trimStart（容忍模板字面量首行换行/缩进的写法）
 - 关于页 info 段字体：等宽栈（ui-monospace/Cascadia/Consolas/Menlo/monospace）首选 + fontPreviewFamily(config.uiFont) 次选——拉丁数字落等宽、CJK 回退应用字体（默认霞鹜文楷 Mono）；indent-6 为用户手调样式保留
+- 新增 promo-b/（gitignore，不入库）：概念还原版宣传片——纯 canvas 按当前 UI 画核心交互（网格/双色 cell/当前时刻脉动/拖拽换天/拉长/复制粘贴/待办面板/收托盘亮图标），42 秒时间轴、2K 导出、确定性 renderAt、复用 promo/serve.py；与 GPT 版（promo/，实拍展示位）并存
