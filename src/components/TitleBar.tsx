@@ -119,17 +119,22 @@ function PlanActions({ actions }: { actions: TitleBarActions }) {
         <SaveIcon size="12px" />
         {t("topbar.save")}
       </button>
-      {actions.dirty && (
-        <button
-          type="button"
-          onClick={actions.onRevert}
-          title={t("topbar.revertTitle")}
-          className="flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50"
-        >
-          <RollbackIcon size="12px" />
-        </button>
-      )}
     </>
+  );
+}
+
+/** 回滚按钮：恒在设置按钮与时钟之间（与保存分处设置两侧），仅脏状态显示。 */
+function RevertButton({ actions }: { actions: TitleBarActions }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={actions.onRevert}
+      title={t("topbar.revertTitle")}
+      className="flex h-full items-center px-1.5 text-zinc-300 transition-colors hover:bg-zinc-600/50"
+    >
+      <RollbackIcon size="12px" />
+    </button>
   );
 }
 
@@ -151,6 +156,7 @@ export default function TitleBar() {
     <>
       <header className={`flex h-10 shrink-0 items-stretch   ${position === 'hidden' ? 'px-2.5' : ''}`}>
         {position === "hidden" && clockOn && <Clock seconds={clockSeconds} />}
+        {position === "hidden" && actions?.dirty && <RevertButton actions={actions} />}
         {position === "hidden" && onHome && (
           <button
             type="button"
@@ -171,6 +177,7 @@ export default function TitleBar() {
           />
         )}
         {position === "left" && clockOn && <Clock seconds={clockSeconds} />}
+        {position === "left" && actions?.dirty && <RevertButton actions={actions} />}
         {position === "left" && onHome && (
           <button
             type="button"
@@ -194,6 +201,7 @@ export default function TitleBar() {
             <SettingIcon size="13px" />
           </button>
         )}
+        {position === "right" && actions?.dirty && <RevertButton actions={actions} />}
         {position === "right" && clockOn && <Clock seconds={clockSeconds} />}
         {position === "right" && (
           <WindowControls
