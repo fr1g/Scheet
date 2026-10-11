@@ -171,6 +171,7 @@ export default {
     ok: "Got it",
   },
   closeNotice: {
+    prefix: "Scheet notice: ",
     title: "Close = Minimize to tray",
     body1: "Clicking the close button (including taskbar close and Alt+F4) does not quit Scheet — it keeps running in the system tray, so alarms and reminders still work.",
     body2: "To actually quit: right-click the tray icon → Quit Scheet, or hold Shift while clicking the close button.",

@@ -108,6 +108,8 @@ pub fn show(app: &AppHandle, payload: AlarmPopupPayload) -> Result<(), String> {
     )
     .title("Scheet 提醒")
     .decorations(false)
+    // 窗体/网页层底色即页面底色：webview 首帧前不闪白
+    .background_color(tauri::window::Color(0x1c, 0x1c, 0x1f, 0xff))
     .inner_size(POPUP_WIDTH, POPUP_HEIGHT)
     .always_on_top(true)
     .resizable(false)

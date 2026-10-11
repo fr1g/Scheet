@@ -7,20 +7,14 @@
 
 use tauri::{command, AppHandle, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder};
 
-use crate::popup::POPUP_HEIGHT;
-
 pub const NOTICE_LABEL: &str = "close-notice";
 const NOTICE_WIDTH: f64 = 420.0;
 const NOTICE_HEIGHT: f64 = 280.0;
 
-/// 弹出（或复显）说明小窗；叠在提醒弹窗槽位上方，两者同现时不重叠。
+/// 弹出（或复显）说明小窗；与提醒弹窗同槽位（右下角、底边对齐）。
 pub fn show(app: &AppHandle) -> Result<(), String> {
-    let (x, y) = crate::popup::bottom_right_position(
-        app,
-        NOTICE_WIDTH,
-        NOTICE_HEIGHT,
-        POPUP_HEIGHT + 12.0,
-    );
+    let (x, y) =
+        crate::popup::bottom_right_position(app, NOTICE_WIDTH, NOTICE_HEIGHT, 0.0);
     if let Some(win) = app.get_webview_window(NOTICE_LABEL) {
         let _ = win.set_position(LogicalPosition::new(x, y));
         let _ = win.show();
@@ -33,6 +27,8 @@ pub fn show(app: &AppHandle) -> Result<(), String> {
     )
     .title("Scheet")
     .decorations(false)
+    // 窗体/网页层底色即页面底色：webview 首帧前不闪白
+    .background_color(tauri::window::Color(0x1c, 0x1c, 0x1f, 0xff))
     .inner_size(NOTICE_WIDTH, NOTICE_HEIGHT)
     .always_on_top(true)
     .resizable(false)

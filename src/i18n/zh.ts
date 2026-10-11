@@ -174,6 +174,7 @@ export default {
     ok: "知道了",
   },
   closeNotice: {
+    prefix: "Scheet提示：",
     title: "关闭 = 收进托盘",
     body1: "点击关闭按钮（包括任务栏关闭、Alt+F4）不会退出 Scheet——它会收进系统托盘继续运行，提醒与闹钟照常工作。",
     body2: "真正退出：托盘图标右键 → 退出 Scheet；或按住 Shift 点击关闭按钮。",
