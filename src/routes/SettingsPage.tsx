@@ -1009,12 +1009,12 @@ export default function SettingsPage() {
       <p className="text-xs! opacity-70 font-mono translate-y-[3px]">the Program and its source code are permitted to copy, share, release and modify under MIT license, but some of the relied parts requires other permission.</p>
       <CollapseBar title={t("about.infoTitle")} className="w-full!">
         <pre
-          className="typo indent-6 whitespace-pre-wrap"
+          className="typo whitespace-pre-wrap"
           style={{
             fontFamily: `ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace, ${fontPreviewFamily(config.uiFont)}`,
           }}
         >
-          {t("about.info").trimStart()}
+          {t("about.info").trimStart().replaceAll("\s", " ").replaceAll("\t", "	")}
         </pre>
         <p className="font-mono text-sm translate-y-1 opacity-65">OpenSource Ref Links <JumpIcon fillColor='transparent' strokeColor='currentColor' strokeWidth={2} /></p>
         <ul className="mt-3 space-y-1 text-xs text-zinc-400">
