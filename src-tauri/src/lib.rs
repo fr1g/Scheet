@@ -80,14 +80,31 @@ pub fn run() {
 
             tray::create(app)?;
 
-            // 启动时应用已保存的图标变体（默认 color 与 exe 内嵌图标一致，重复应用无害）
+            // 启动时应用已保存的图标变体与音频输出配置（默认值重复应用无害）
             {
                 let data = app.state::<Arc<db::DataDb>>().inner().clone();
-                let icon_variant = data
-                    .with_conn(settings::load_global_config)
-                    .map(|c| c.icon_variant)
-                    .unwrap_or_else(|_| "color".to_string());
+                let (icon_variant, sound_config) =
+                    match data.with_conn(settings::load_global_config) {
+                        Ok(cfg) => (
+                            cfg.icon_variant,
+                            sound::SoundConfig {
+                                single_stream: cfg.single_audio_stream,
+                                device: cfg.single_stream_device,
+                            },
+                        ),
+                        Err(e) => {
+                            crate::logging::warn(&format!(
+                                "[settings] Failed to load global config at startup: {e}"
+                            ));
+                            ("color".to_string(), sound::SoundConfig::default())
+                        }
+                    };
                 settings::apply_icon_variant(app.handle(), &icon_variant);
+                if let Err(e) = sound::configure(sound_config) {
+                    crate::logging::error(&format!(
+                        "[settings] Failed to apply startup audio config: {e}"
+                    ));
+                }
             }
 
             let handle = app.handle().clone();
@@ -177,6 +194,8 @@ pub fn run() {
             todo::delete_todo_command,
             sound::play_alarm_sound,
             sound::stop_alarm_sound,
+            sound::list_audio_output_devices,
+            sound::switch_audio_output_device,
             clipboard::stash_and_write_text,
             clipboard::restore_stashed_clipboard,
             clipboard::read_clipboard_text,

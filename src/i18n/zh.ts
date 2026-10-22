@@ -287,6 +287,25 @@ export default {
     advHwAccelHint: "画面更流畅省电；个别显卡出现花屏/黑块时可以关掉试试。",
     advSmooth: "平滑滚动",
     advSmoothHint: "开启后滚轮滚动带惯性动画（默认不开启）。",
+    audioOutput: "音频输出",
+    singleAudioStream: "启用单一音频流",
+    singleAudioStreamOnHint:
+      "默认开启：进程只保留一个音频流，稳定性优先。注意：开启后系统默认播放设备变化不会自动跟随，请用下面的设备选择切换；切换设备会保留旧流到应用退出（Windows 上用于规避已知的 WASAPI 析构崩溃）。",
+    singleAudioStreamOffHint:
+      "关闭后每次播放都会重新打开当前系统默认设备，能跟随设备切换；但在部分 Windows 驱动上，反复创建/销毁音频流可能触发 cpal/WASAPI 堆损坏崩溃（0xc0000374），不建议日常关闭。",
+    audioDevice: "播放设备",
+    audioDeviceDefault: "系统默认（打开流时）",
+    audioDeviceDefaultTag: "（默认）",
+    audioDeviceHint:
+      "设备选择和试听会立即生效；保存后下次启动继续使用该设备。试听使用内置开始铃声，仅播放一次，并会先停止当前铃声；保存音频相关改动同样会先停止当前铃声。",
+    audioDeviceLoading: "正在枚举音频设备…",
+    audioDeviceMissing:
+      "已保存的设备当前不可用，播放会回退到系统默认；可以刷新设备列表或重新选择。",
+    audioDeviceMissingOption: "已保存的设备（当前不可用）",
+    audioDeviceNone: "没有检测到音频输出设备。",
+    audioDeviceRefresh: "刷新设备",
+    audioDevicePreview: "试听",
+    audioDevicePreviewing: "试听中…",
     on: "开",
     off: "关",
     restartNow: "立即重启",

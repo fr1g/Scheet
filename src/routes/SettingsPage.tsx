@@ -8,6 +8,11 @@ import Toast from "../components/Toast";
 import CollapseBar from "../components/CollapseBar";
 import { DialogShell, TimeField } from "../components/week/PlanSettingsDialog";
 import { listAlarmSounds } from "../lib/clipboard";
+import {
+  listAudioOutputDevices,
+  playAlarmSound,
+  switchAudioOutputDevice,
+} from "../lib/alarm-sound";
 import { getWeekPlan, listWeekPlans } from "../lib/weeks";
 import { useGlobalConfig } from "../state/GlobalConfigContext";
 import { useShiftHeld } from "../components/WindowControls";
@@ -24,6 +29,7 @@ import {
   timeInputToMinute,
 } from "../lib/weekgrid";
 import type { GlobalConfig } from "../types/global-config";
+import type { AudioDeviceInfo } from "../types/audio";
 import type { AlarmMode } from "../types/weeks";
 import type { WindowControlsPosition } from "../types/settings";
 import Opener from "../lib/opener";
@@ -157,6 +163,9 @@ export default function SettingsPage() {
   );
   const [clearStep, setClearStep] = useState<0 | 1 | 2 | 3>(0);
   const [agreeText, setAgreeText] = useState("");
+  const [audioDevices, setAudioDevices] = useState<AudioDeviceInfo[]>([]);
+  const [audioDevicesLoading, setAudioDevicesLoading] = useState(false);
+  const [audioPreviewing, setAudioPreviewing] = useState(false);
   const toastTimer = useRef<number | undefined>(undefined);
 
   const showToast = useCallback((message: string) => {
@@ -164,6 +173,37 @@ export default function SettingsPage() {
     window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), 2500);
   }, []);
+
+  const refreshAudioDevices = useCallback(async () => {
+    setAudioDevicesLoading(true);
+    try {
+      setAudioDevices(await listAudioOutputDevices());
+    } catch (e: unknown) {
+      showToast(String(e));
+    } finally {
+      setAudioDevicesLoading(false);
+    }
+  }, [showToast]);
+
+  const previewAudioDevice = useCallback(async () => {
+    if (!draft) return;
+    setAudioPreviewing(true);
+    try {
+      await switchAudioOutputDevice(draft.singleStreamDevice);
+      await playAlarmSound("", "once", "start");
+    } catch (e: unknown) {
+      showToast(String(e));
+    } finally {
+      setAudioPreviewing(false);
+    }
+  }, [draft, showToast]);
+
+  // 只在“已保存且草稿都启用单一流”时展示设备兜底 UI；草稿关闭时立即隐藏。
+  useEffect(() => {
+    if (activeTab !== "advanced") return;
+    if (!config?.singleAudioStream || !draft?.singleAudioStream) return;
+    void refreshAudioDevices();
+  }, [activeTab, config?.singleAudioStream, draft?.singleAudioStream, refreshAudioDevices]);
 
   // 配置加载后初始化工作副本（仅在无草稿时同步，避免覆盖正在编辑的内容）
   useEffect(() => {
@@ -298,7 +338,12 @@ export default function SettingsPage() {
         return null;
       }
     }
-    return { ...draft, dayStartMinute: start, dayEndMinute: end };
+    return {
+      ...draft,
+      dayStartMinute: start,
+      dayEndMinute: end,
+      singleStreamDevice: draft.singleStreamDevice?.trim() || null,
+    };
   };
 
   const handleSave = useCallback(async () => {
@@ -572,10 +617,15 @@ export default function SettingsPage() {
     </section>
   );
 
-  /** WebView2 开关行：点击切换草稿值，保存后重启应用生效。 */
-  const webviewToggle = (
+  /** 设置开关行：点击切换草稿值，保存后生效。 */
+  const settingToggle = (
     labelKey: string,
-    key: "webviewHwAccel" | "webviewSmoothScrolling" | "titlebarClock" | "titlebarClockSeconds",
+    key:
+      | "webviewHwAccel"
+      | "webviewSmoothScrolling"
+      | "titlebarClock"
+      | "titlebarClockSeconds"
+      | "singleAudioStream",
   ) => (
     <button
       type="button"
@@ -664,10 +714,10 @@ export default function SettingsPage() {
         <p className={sectionHint}>{t("settings.titlebarClockHint")}</p>
         <div className="mt-2 space-y-3">
           <div>
-            {webviewToggle("settings.titlebarClock", "titlebarClock")}
+            {settingToggle("settings.titlebarClock", "titlebarClock")}
             {draft.titlebarClock && (
               <div className="mt-1">
-                {webviewToggle("settings.titlebarClockSeconds", "titlebarClockSeconds")}
+                {settingToggle("settings.titlebarClockSeconds", "titlebarClockSeconds")}
               </div>
             )}
           </div>
@@ -805,6 +855,11 @@ export default function SettingsPage() {
     </>
   );
 
+  const audioDeviceUiVisible = config.singleAudioStream && draft.singleAudioStream;
+  const selectedAudioDeviceMissing =
+    Boolean(draft.singleStreamDevice) &&
+    !audioDevices.some((device) => device.id === draft.singleStreamDevice);
+
   const advancedPanel = (
     <>
       <section>
@@ -812,14 +867,101 @@ export default function SettingsPage() {
         <p className={sectionHint}>{t("settings.webviewHint")}</p>
         <div className="mt-2 space-y-3">
           <div>
-            {webviewToggle("settings.advHwAccel", "webviewHwAccel")}
+            {settingToggle("settings.advHwAccel", "webviewHwAccel")}
             <p className="mt-1 text-[10px] text-zinc-500">{t("settings.advHwAccelHint")}</p>
           </div>
           <div>
-            {webviewToggle("settings.advSmooth", "webviewSmoothScrolling")}
+            {settingToggle("settings.advSmooth", "webviewSmoothScrolling")}
             <p className="mt-1 text-[10px] text-zinc-500">{t("settings.advSmoothHint")}</p>
           </div>
         </div>
+      </section>
+
+      <section>
+        <h2 className={sectionTitle}>{t("settings.audioOutput")}</h2>
+        <div className="mt-2">
+          {settingToggle("settings.singleAudioStream", "singleAudioStream")}
+        </div>
+        <p
+          className={`mt-1 rounded border p-2 text-[10px] ${
+            draft.singleAudioStream
+              ? "border-zinc-600/40 text-zinc-500"
+              : "border-amber-400/40 bg-amber-400/10 text-amber-300"
+          }`}
+        >
+          {draft.singleAudioStream
+            ? t("settings.singleAudioStreamOnHint")
+            : t("settings.singleAudioStreamOffHint")}
+        </p>
+
+        {audioDeviceUiVisible && (
+          <div className="mt-3 space-y-2">
+            <div className="flex max-w-2xl items-end gap-2">
+              <label className="min-w-0 flex-1">
+                <span className={inputLabel}>{t("settings.audioDevice")}</span>
+                <select
+                  value={draft.singleStreamDevice ?? ""}
+                  onChange={(e) =>
+                    setDraft((prev) =>
+                      prev
+                        ? { ...prev, singleStreamDevice: e.target.value || null }
+                        : prev,
+                    )
+                  }
+                  className={`${inputClass} mt-1`}
+                >
+                  <option value="">{t("settings.audioDeviceDefault")}</option>
+                  {selectedAudioDeviceMissing && draft.singleStreamDevice && (
+                    <option value={draft.singleStreamDevice}>
+                      {t("settings.audioDeviceMissingOption")}
+                    </option>
+                  )}
+                  {audioDevices.map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.name}
+                      {device.isDefault ? ` ${t("settings.audioDeviceDefaultTag")}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => void refreshAudioDevices()}
+                disabled={audioDevicesLoading}
+                className="flex shrink-0 items-center gap-1 rounded border border-zinc-500 px-2 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600 disabled:opacity-50"
+              >
+                <RefreshIcon size="12px" />
+                {t("settings.audioDeviceRefresh")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void previewAudioDevice()}
+                disabled={audioPreviewing || audioDevicesLoading}
+                className="shrink-0 rounded border border-zinc-500 px-2 py-1.5 text-xs text-zinc-100 transition-colors hover:bg-zinc-600 disabled:opacity-50"
+              >
+                {audioPreviewing
+                  ? t("settings.audioDevicePreviewing")
+                  : t("settings.audioDevicePreview")}
+              </button>
+            </div>
+            <p className={sectionHint}>{t("settings.audioDeviceHint")}</p>
+            {audioDevicesLoading && (
+              <p className={sectionHint}>{t("settings.audioDeviceLoading")}</p>
+            )}
+            {!audioDevicesLoading && audioDevices.length === 0 && (
+              <p className="rounded border border-amber-400/40 bg-amber-400/10 p-2 text-[10px] text-amber-300">
+                {t("settings.audioDeviceNone")}
+              </p>
+            )}
+            {!audioDevicesLoading &&
+              audioDevices.length > 0 &&
+              selectedAudioDeviceMissing && (
+                <p className="rounded border border-amber-400/40 bg-amber-400/10 p-2 text-[10px] text-amber-300">
+                  {t("settings.audioDeviceMissing")}
+                </p>
+              )}
+          </div>
+        )}
       </section>
 
       <section>

@@ -121,8 +121,14 @@ pnpm exec tauri icon app-icon.png  # 重新生成 src-tauri/icons/（源图=根�
   均恒播放一次）；任何播放失败只记录日志绝不 panic（无音频设备时应用照常运行）。
 - 全局同时只有一个播放引擎：新播放替换当前播放；`loop` 会一直循环，
   直到被新播放替换、调用 `stop_alarm_sound` 命令或应用退出（未来 UI 应在用户确认提醒时调用它）。
+- 输出流模式由设置-高级的 `singleAudioStream`（默认 true）控制：true=进程常驻一个
+  `MixerDeviceSink`，系统默认设备变化不会自动跟随，设置页提供设备选择 + 内置开始铃
+  试听兜底；false=每次播放重新打开系统默认设备。切换设备/关闭单一流时旧流进入退役列表
+  （不 drop），规避 Windows cpal/WASAPI 析构竞态；对应 SQLite 键
+  `singleAudioStream` / `singleStreamDevice`。
 - 命令：`play_alarm_sound(alarm_file?, alarm_mode?, builtin?)`（预览，builtin 取
-  generic/start/end 决定回退哪个内置铃）、`stop_alarm_sound()`。
+  generic/start/end 决定回退哪个内置铃）、`stop_alarm_sound()`、
+  `list_audio_output_devices()`、`switch_audio_output_device(device?)`。
 - 文件名只允许裸文件名（拒绝路径分隔符与 `..`，防目录穿越）。
 - Linux 构建机需要 `libasound2-dev`（ALSA 头文件）；运行时无需额外依赖。
 

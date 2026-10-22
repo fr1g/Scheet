@@ -42,6 +42,11 @@ export interface GlobalConfig {
   logLevel: "none" | "verbose" | "info" | "warn" | "error" | "fatal";
   /** 应用图标变体（Windows/Linux 运行时生效；macOS 图标需在 Finder 手动替换）。 */
   iconVariant: "color" | "grayscale" | "zinc50";
+  /** 是否启用单一音频流（默认 true）：true=常驻一个输出流，切换设备走设置页兜底；
+   *  false=每次播放重新打开系统默认设备（可跟随默认设备变化）。 */
+  singleAudioStream: boolean;
+  /** 单一音频流模式的输出设备（cpal DeviceId）；null=系统默认。 */
+  singleStreamDevice: string | null;
   /** 普通事务默认背景色（#RRGGBB）。 */
   entryNormalColor: string;
   /** 休息事务默认背景色（#RRGGBB）。 */

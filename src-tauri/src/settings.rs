@@ -236,6 +236,11 @@ pub struct GlobalConfig {
     pub log_level: String,
     /// 应用图标变体：color/grayscale/zinc50（默认 color；Windows/Linux 运行时生效，macOS 忽略）。
     pub icon_variant: String,
+    /// 是否启用单一音频流（默认 true）。true=进程常驻一个输出流，切换设备走设置页兜底；
+    /// false=每次播放重新打开系统默认设备（可跟随默认设备变化）。
+    pub single_audio_stream: bool,
+    /// 单一音频流模式的输出设备（cpal DeviceId 文本）；None=系统默认。
+    pub single_stream_device: Option<String>,
     /// 普通事务默认背景色（#RRGGBB，渲染时按类型叠加 alpha）；周表/单条事务可覆盖。
     pub entry_normal_color: String,
     /// 休息事务默认背景色（#RRGGBB）。
@@ -355,6 +360,8 @@ impl Default for GlobalConfig {
             webview_smooth_scrolling: false,
             log_level: "error".to_string(),
             icon_variant: "color".to_string(),
+            single_audio_stream: true,
+            single_stream_device: None,
             entry_normal_color: "#615ea8".to_string(),
             entry_rest_color: "#fecac0".to_string(),
             entry_normal_text_dark: false,
@@ -414,6 +421,11 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         icon_variant: get_setting(conn, "iconVariant")?
             .filter(|s| ICON_VARIANTS.contains(&s.as_str()))
             .unwrap_or_else(|| "color".to_string()),
+        single_audio_stream: get_setting(conn, "singleAudioStream")?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(true),
+        single_stream_device: get_setting(conn, "singleStreamDevice")?
+            .filter(|s| !s.trim().is_empty()),
         entry_normal_color: get_setting(conn, "entryNormalColor")?
             .filter(|s| is_hex_color(s))
             .unwrap_or_else(|| "#615ea8".to_string()),
@@ -495,6 +507,21 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
     )?;
     set_setting(conn, "logLevel", &cfg.log_level)?;
     set_setting(conn, "iconVariant", &cfg.icon_variant)?;
+    set_setting(
+        conn,
+        "singleAudioStream",
+        &cfg.single_audio_stream.to_string(),
+    )?;
+    match &cfg.single_stream_device {
+        Some(device) => set_setting(conn, "singleStreamDevice", device)?,
+        None => {
+            conn.execute(
+                "DELETE FROM app_settings WHERE key = ?1",
+                ["singleStreamDevice"],
+            )
+            .map_err(|e| format!("写入设置失败: {e}"))?;
+        }
+    }
     set_setting(conn, "entryNormalColor", &cfg.entry_normal_color)?;
     set_setting(conn, "entryRestColor", &cfg.entry_rest_color)?;
     set_setting(
@@ -538,10 +565,18 @@ pub async fn get_global_config(db: State<'_, Arc<DataDb>>) -> Result<GlobalConfi
 
 #[command]
 pub async fn set_global_config(
-    config: GlobalConfig,
+    mut config: GlobalConfig,
     db: State<'_, Arc<DataDb>>,
     app: tauri::AppHandle,
 ) -> Result<GlobalConfig, String> {
+    config.single_stream_device = config.single_stream_device.and_then(|value| {
+        let trimmed = value.trim().to_string();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        }
+    });
     if !(0..=1439).contains(&config.day_start_minute)
         || !(0..=1439).contains(&config.day_end_minute)
     {
@@ -569,6 +604,15 @@ pub async fn set_global_config(
             crate::logging::set_level_u8(crate::logging::level_to_u8(&config.log_level));
             // 图标变体立即应用到主窗口（macOS 忽略）
             apply_icon_variant(&app, &config.icon_variant);
+            // 音频输出模式/设备保存后立即应用（失败只记日志，不回滚设置）
+            if let Err(e) = crate::sound::configure(crate::sound::SoundConfig {
+                single_stream: config_clone.single_audio_stream,
+                device: config_clone.single_stream_device.clone(),
+            }) {
+                crate::logging::error(&format!(
+                    "[settings] Failed to apply audio output settings: {e}"
+                ));
+            }
             db.with_conn(load_global_config)
         })
         .await
@@ -814,6 +858,30 @@ mod tests {
             load(&conn).unwrap().window_controls.position,
             WindowControlsPosition::Hidden
         );
+    }
+
+    #[test]
+    fn global_config_audio_defaults_and_roundtrip() {
+        let conn = test_conn();
+        let loaded = load_global_config(&conn).unwrap();
+        assert!(loaded.single_audio_stream);
+        assert_eq!(loaded.single_stream_device, None);
+
+        let mut config = loaded;
+        config.single_audio_stream = false;
+        config.single_stream_device = Some("WASAPI:test-device".to_string());
+        persist_global_config(&conn, &config).unwrap();
+        let loaded = load_global_config(&conn).unwrap();
+        assert!(!loaded.single_audio_stream);
+        assert_eq!(
+            loaded.single_stream_device.as_deref(),
+            Some("WASAPI:test-device")
+        );
+
+        config.single_stream_device = None;
+        persist_global_config(&conn, &config).unwrap();
+        let loaded = load_global_config(&conn).unwrap();
+        assert_eq!(loaded.single_stream_device, None);
     }
 
     #[test]

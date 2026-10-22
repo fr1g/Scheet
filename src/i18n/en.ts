@@ -292,6 +292,25 @@ export default {
     advHwAccelHint: "Smoother rendering; turn off if your GPU shows glitches or black blocks.",
     advSmooth: "Smooth scrolling",
     advSmoothHint: "Adds inertia animation to wheel scrolling (off by default in WebView2).",
+    audioOutput: "Audio output",
+    singleAudioStream: "Enable single audio stream",
+    singleAudioStreamOnHint:
+      "On by default: one output stream stays open for stability. Note: with this on, changes to the system default output device are not followed automatically; use the device selector below. Switching devices keeps the old stream alive until exit (on Windows this avoids a known WASAPI teardown crash).",
+    singleAudioStreamOffHint:
+      "When off, each playback opens a fresh stream on the current system default, so it follows device changes. On some Windows drivers, repeatedly creating/destroying streams can trigger a known cpal/WASAPI heap-corruption crash (0xc0000374); not recommended for daily use.",
+    audioDevice: "Playback device",
+    audioDeviceDefault: "System default (when the stream opens)",
+    audioDeviceDefaultTag: "(default)",
+    audioDeviceHint:
+      "Device changes and preview take effect immediately. The selection is saved for future launches. Preview uses the built-in start chime, plays once, and stops the current alarm first; saving audio-related changes also stops the current alarm first.",
+    audioDeviceLoading: "Enumerating audio devices…",
+    audioDeviceMissing:
+      "The saved device is currently unavailable; playback will fall back to the system default. Refresh the list or choose another device.",
+    audioDeviceMissingOption: "Saved device (currently unavailable)",
+    audioDeviceNone: "No audio output devices detected.",
+    audioDeviceRefresh: "Refresh devices",
+    audioDevicePreview: "Preview",
+    audioDevicePreviewing: "Previewing…",
     on: "On",
     off: "Off",
     restartNow: "Restart now",
