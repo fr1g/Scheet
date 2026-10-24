@@ -354,7 +354,7 @@ export default {
     mgrNote: "Comrades, engineering ideas with agent working do works!",
     aiNote: "AI-assisted development",
     kimiNote: "Translation assistance",
-    deepseekNote: "Research assistance",
+    deepseekNote: "Maintenance assistant",
     clearData: "Clear all data",
     clearStep1Body:
       "Are you sure you want to clear all data? You can copy the current app data folder somewhere else as an archive, then quit the app and delete the data folder. That way nothing is lost, and the app starts fresh.",

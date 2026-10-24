@@ -347,7 +347,7 @@ export default {
     collaborators: "协作者",
     aiNote: "AI 协作开发",
     kimiNote: "翻译协助",
-    deepseekNote: "资料检索协助",
+    deepseekNote: "维护助理",
     mgr: "呃...「产品经理」",
     mgrNote: "同志们，工程化思维下用Agent真的好爽。",
     clearData: "清空数据",
