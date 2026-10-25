@@ -17,3 +17,6 @@ __pycache__/
 promo/
 promo-b/
 /LXGWWenKaiMono-Regular.ttf
+
+# 本机 WSL 凭据（用户隐私，严禁提交）
+/wsl-creds
