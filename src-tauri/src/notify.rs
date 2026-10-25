@@ -87,10 +87,12 @@ mod linux {
     use tauri::AppHandle;
 
     pub fn send(app: &AppHandle, title: &str, body: &str) -> Result<(), String> {
-        let mut notification =
-            notify_rust::Notification::new().summary(title).appname("Scheet");
+        // notify-rust 的 builder 方法返回 &mut self：先绑定所有者再链式设置，
+        // 直接 Notification::new().summary(..) 会把 &mut 借到临时值上（E0716）
+        let mut notification = notify_rust::Notification::new();
+        notification.summary(title).appname("Scheet");
         if !body.trim().is_empty() {
-            notification = notification.body(body);
+            notification.body(body);
         }
         // 大多数桌面环境把"点击横幅本体"映射为 default 动作
         let handle = notification
