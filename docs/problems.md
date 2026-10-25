@@ -40,6 +40,13 @@
 - **缓解**：启动时自愈——release 下若配置为开则重跑 `autolaunch().enable()` 覆盖式重写注册项（含 exe 当前路径与 `--autostart` 参数），同时兜住绿色软件挪动 exe 后的路径漂移。dev 构建不做任何系统写入。
 - **验证**：BB-STARTUP-02 开关后 `reg query HKCU\...\Run`；重启 OS 后注册项仍在（用户侧）。
 
+### P28 WSL 本地构建 Linux 版：systemd 陷阱与 linuxdeploy PATH 崩溃（均已实证）
+- **现状**：Windows 原生无法交叉编译 Linux 产物（GTK/WebKit 需目标平台 C 库），本机路线 = Kali WSL2 原生构建。官方构建脚本 `K:\wsl-build\scripts\build-linux.sh`，产物落 `K:\wsl-build\out\`，构建目录为 WSL ext4 副本 `/root/src/scheet`（DrvFS IO 慢数倍，勿用符号链接到 /mnt）。凭据见根目录 wsl-creds（gitignored）。
+- **坑 1（systemd，险些报废发行版）**：apt 依赖升级会把 systemd 拉成"半配置"（postinst 在无 systemd 的 WSL 里必然失败）；此时若在 wsl.conf 开 `[boot] systemd=true`，发行版引导失败 → `Wsl/Service/E_UNEXPECTED` 完全起不来。救援法：借 docker-desktop 上下文 `wsl --mount --vhd <kali的ext4.vhdx>`（按 UUID 认盘；docker-desktop 的 automount 根是 `/mnt/host`，K 盘在 `/mnt/host/k`），删掉 /etc/wsl.conf 后正常启动，数据无损。之后给无法配置的包 postinst 打 `exit 0` 垫片（`/var/lib/dpkg/info/<pkg>.postinst`，原文件存 `.orig-bak`）使 dpkg 归一致——本机已对 systemd/selinux-utils/tpm-udev 打垫片，**systemd 永不运行（无害），但未来 systemd 升级会覆盖垫片，需重打**。
+- **坑 2（linuxdeploy）**：linuxdeploy 打包时扫描 PATH，WSL 默认 PATH 混入 Windows 目录，对某些 Windows 目录（如 K:\etc\VMware\...）stat 返回 EIO → linuxdeploy 崩溃 `filesystem error: status: Input/output error`。构建必须用纯 Linux PATH（build-linux.sh 已内置洗涤）。
+- **坑 3（小）**：Kali 的 librsvg2-dev 提供的 pkg-config 名是 `librsvg-2.0`（不是旧文档的 rsvg-2.0）。
+- **验证**：BB-BUILD-01 Linux 变体：2026-10-26 实测产出 `Scheet_0.1.1_amd64.AppImage`（136MB，版本号随 package.json）。
+
 ## 二、平台语义推断（需 macOS / Linux 真机确认）
 
 ### P8 macOS：隐藏窗口后 Dock 图标是否留存

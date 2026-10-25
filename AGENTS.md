@@ -29,6 +29,16 @@ pnpm exec tauri icon app-icon.png  # 重新生成 src-tauri/icons/（源图=根�
 - **macOS**：`tauri.macos.conf.json` 设置 `targets: ["app"]`，产物为单个 `.app` 包。
 - **Linux**：`tauri.linux.conf.json` 设置 `targets: ["appimage"]`，产物为单文件 `.AppImage`。
 
+### Linux 构建（Windows 主机经 WSL）
+
+- Windows 原生无法交叉编译（GTK/WebKit 需 Linux C 库与链接器）。本机路线：Kali WSL2 原生构建，
+  入口脚本 `K:\wsl-build\scripts\build-linux.sh`（Windows 侧执行
+  `wsl.exe -d kali-linux -u root -- bash /mnt/k/wsl-build/scripts/build-linux.sh`）。
+- 构建发生在 WSL ext4 副本 `/root/src/scheet`（DrvFS IO 慢数倍，勿用符号链接）：Windows 侧改动
+  先同步（`copy-repo.sh` 全量或对单文件 cp），产物自动落 `K:\wsl-build\out\`。
+- 环境由 USTC 镜像 + rustup + 原生 pnpm 构成；systemd postinst 垫片、linuxdeploy 的 PATH 洗涤、
+  librsvg-2.0.pc 改名等坑全部记录在 docs/problems.md P28。凭据见根目录 wsl-creds（gitignored）。
+
 ### WebView2 兜底（Windows 专属）
 
 - Tauri 的 `webviewInstallMode` 只对安装包生效，便携 exe 不经过安装器，因此
