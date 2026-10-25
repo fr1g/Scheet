@@ -67,6 +67,15 @@ pnpm exec tauri icon app-icon.png  # 重新生成 src-tauri/icons/（源图=根�
 
 - Rust 类型定义在 `src-tauri/src/settings.rs` 的 `AppSettings`（serde camelCase，带 `default`，旧数据缺字段自动补默认值）；前端镜像类型在 `src/types/settings.ts`，两端字段需保持同步。
 - 现有设置：`windowControls.position`，取值 `"left" | "right" | "hidden"`。
+- 设置页主配置走同文件的 `GlobalConfig`（**逐键字符串**存 app_settings 表，非 JSON 整体；命令 `get/set_global_config`，前端镜像 `src/types/global-config.ts`）；新增布尔项照 `singleAudioStream` / `launchAtStartup` 模式扩展（struct 字段 + Default + load/persist + 需要即时生效的副作用放 `set_global_config`）。
+
+### 开机自启与单实例
+
+- 官方插件：`tauri-plugin-autostart`（纯 Rust 侧 `app.autolaunch()` 调用，**不加**前端 capability）+ `tauri-plugin-single-instance`（**必须注册为第一个插件**，重复启动唤起已有实例的主窗口）。
+- 自启注册项固定携带 `--autostart` 参数：带参启动 = 静默驻托盘不显主窗口。主窗口 `visible: false`，显隐统一由代码接管——`lib.rs::run` 解析参数，setup 末尾非自启启动才 `focus_main_window`。
+- 启动自愈：release 启动时若 `launchAtStartup` 为开则重跑 `enable()` 覆盖式重写注册项（兜绿色软件挪 exe 的路径漂移与上游 issue #771）；dev 构建（`debug_assertions`）在 `settings::apply_autostart` 内一律跳过系统写入（dev 二进制路径不得进开机项）。
+- 保存时序：`set_global_config` 先改系统侧、成功才持久化 DB，系统调用失败整体返回 Err——防止"库说开了、系统没注册"的状态漂移；值未变化不重复写系统。
+- 平台机制与已知问题见 docs/problems.md P25-P27（Windows #771、macOS LaunchAgent 与 app.restart() 冲突、Linux AppImage best-effort）。
 
 ### 启动流程（不可破坏的约定）
 

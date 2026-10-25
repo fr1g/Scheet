@@ -35,6 +35,11 @@
 ### P7 alarms 目录里的 README.txt 不参与铃声列表
 - **现状**：`list_alarm_sounds` 排除了 README.txt 和点开头的隐藏文件；用户若放入同名 README.txt 不会被当成铃声（合理但需知晓）。其他任意扩展名的文件会出现在列表中，解码失败时回退内置铃声。
 
+### P25 Windows：开机自启注册项可能无端消失（上游 open issue，启动自愈兜底）
+- **现状**：tauri-apps/plugins-workspace#771（2023 年起 open，根因未明）报告 Run 注册表项一次开机后被删除。本项目未复现，但采纳为真实风险。
+- **缓解**：启动时自愈——release 下若配置为开则重跑 `autolaunch().enable()` 覆盖式重写注册项（含 exe 当前路径与 `--autostart` 参数），同时兜住绿色软件挪动 exe 后的路径漂移。dev 构建不做任何系统写入。
+- **验证**：BB-STARTUP-02 开关后 `reg query HKCU\...\Run`；重启 OS 后注册项仍在（用户侧）。
+
 ## 二、平台语义推断（需 macOS / Linux 真机确认）
 
 ### P8 macOS：隐藏窗口后 Dock 图标是否留存
@@ -63,6 +68,16 @@
 ### P13 三端产物签名与分发
 - **现状**：Windows exe 无签名（SmartScreen 可能提示）；macOS .app 未签名/notarized（Gatekeeper 首启需右键打开或 `xattr -cr`）；均未配置自动更新。
 - **验证**：分发前按需接入签名/公证流程（超出当前计划）。
+
+### P26 macOS：LaunchAgent 自启模式下 `app.restart()` 失效
+- **现状**：开机自启选 `MacosLauncher::LaunchAgent`（写 `~/Library/LaunchAgents` plist）。launchd 管理的进程内调用 `app.restart()`（"重启生效"类设置使用）会静默失败——新进程脱离 launchd 作业上下文，生态已知限制。
+- **备选**：`MacosLauncher::AppleScript`（系统登录项）不受影响且原生出现在系统设置-登录项，但注册时需要弹"自动化-System Events"权限，且 auto-launch 在该模式只透传 `--hidden`/`--minimized` 参数（`--autostart` 恰好不在此列）。权衡后选 LaunchAgent + 文档记录。
+- **验证**：macOS 真机：开启自启后到设置页切换 webview 开关点"立即重启"。
+- **影响范围**：仅 macOS + 已开启自启 + 触发重启生效设置三者同时成立。
+
+### P27 Linux：AppImage 自启为 best-effort
+- **现状**：XDG autostart 走 `~/.config/autostart/<app>.desktop`，`Exec` 指向二进制绝对路径。AppImage 场景下 auto-launch 对 `$APPIMAGE` 环境变量的处理未逐行核实（0.6 文档未提及），可能需运行时自行处理 `--appimage-extract-and-run` 或工作目录。
+- **验证**：Linux 真机 AppImage：开启自启 → 注销重登 → 静默驻托盘。
 
 ## 三、设计取舍（行为如此，非 bug）
 

@@ -90,6 +90,12 @@
 - [x] M6.2 待办面板三态：todoPanelMode 持久化键（pinned/hidden，默认 pinned）+ 隐藏态右缘细竖轨（点击暂时展开）+ 点外收回 + 面板头图钉（转常驻）/收起按钮 + 宽度过渡动画
 - [x] M6.3 验收：cargo test + pnpm build + 冒烟（复制→右下预览、连贴多天、复制其他文本→预览消失、三态互转、重启记忆）→ 暂停等验收（2026-10-07 验收通过，事后补勾）
 
+## M7 开机自启 + 单实例锁
+
+- [ ] M7.1 Rust 接入：tauri-plugin-autostart（注册项固定带 `--autostart` 参数；Windows=HKCU Run 键、macOS=LaunchAgent、Linux=XDG autostart）+ tauri-plugin-single-instance（第一个注册，重复启动唤起已有实例）；主窗口 `visible:false`、显隐统一代码接管（正常启动即显、`--autostart` 静默驻托盘）；启动自愈（配置为开时重跑 enable() 覆盖注册项，兜挪 exe 路径漂移与上游 #771）；dev 构建跳过一切系统写入
+- [ ] M7.2 设置页-通用"开机自启"开关：GlobalConfig.launchAtStartup（默认关），保存时先改系统侧、成功才持久化（失败整体报错，防库/系统漂移）
+- [ ] M7.3 验收：cargo test（47 绿）+ pnpm build + `reg query` Run 键生成/删除 + 双开唤起 + 手动 `--autostart` 静默启动 + 普通启动窗口正常 → 暂停等验收（真实开机自启需用户重启 OS 终验；macOS/Linux 见 problems.md P26/P27）
+
 ## 明确不做（后续升级项）
 
 - 事务独立窗口编辑（本期模态窗，结构上预留升级）
