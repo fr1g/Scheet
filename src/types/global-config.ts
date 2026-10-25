@@ -61,5 +61,7 @@ export interface GlobalConfig {
   titlebarClockSeconds: boolean;
   /** 右侧待办面板显示模式：pinned=常驻，hidden=隐藏（可暂时展开）。 */
   todoPanelMode: "pinned" | "hidden";
+  /** 开机自启（默认关）：系统登录时静默启动、驻留托盘。 */
+  launchAtStartup: boolean;
 }
 

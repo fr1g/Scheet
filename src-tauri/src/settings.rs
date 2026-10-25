@@ -255,6 +255,8 @@ pub struct GlobalConfig {
     pub titlebar_clock_seconds: bool,
     /// 右侧待办面板显示模式：pinned=常驻，hidden=隐藏（前端可暂时展开；默认 pinned）。
     pub todo_panel_mode: String,
+    /// 开机自启（默认关）：系统登录时以 --autostart 参数静默启动、驻留托盘。
+    pub launch_at_startup: bool,
 }
 
 /// 运行时图标变体资产（256px，源图为 generated/appicon-256-*.png）。
@@ -369,6 +371,7 @@ impl Default for GlobalConfig {
             titlebar_clock: true,
             titlebar_clock_seconds: false,
             todo_panel_mode: "pinned".to_string(),
+            launch_at_startup: false,
         }
     }
 }
@@ -447,6 +450,9 @@ pub(crate) fn load_global_config(conn: &Connection) -> Result<GlobalConfig, Stri
         todo_panel_mode: get_setting(conn, "todoPanelMode")?
             .filter(|s| TODO_PANEL_MODES.contains(&s.as_str()))
             .unwrap_or_else(|| "pinned".to_string()),
+        launch_at_startup: get_setting(conn, "launchAtStartup")?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(false),
     })
 }
 
@@ -541,6 +547,7 @@ fn persist_global_config(conn: &Connection, cfg: &GlobalConfig) -> Result<(), St
         &cfg.titlebar_clock_seconds.to_string(),
     )?;
     set_setting(conn, "todoPanelMode", &cfg.todo_panel_mode)?;
+    set_setting(conn, "launchAtStartup", &cfg.launch_at_startup.to_string())?;
     for (key, value) in mode_entries {
         match value {
             Some(m) => set_setting(conn, key, m.as_db())?,
@@ -561,6 +568,30 @@ pub async fn get_global_config(db: State<'_, Arc<DataDb>>) -> Result<GlobalConfi
             .await
             .map_err(|e| e.to_string())??,
     )
+}
+
+/// 把开机自启开关同步到系统注册（Windows 注册表 Run 键 / macOS LaunchAgent / Linux XDG autostart）。
+/// dev 构建一律跳过系统写入——dev 二进制路径不得注册进开机项，只记日志并按成功返回。
+pub(crate) fn apply_autostart(app: &tauri::AppHandle, enable: bool) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    if cfg!(debug_assertions) {
+        crate::logging::warn(&format!(
+            "[autostart] dev build: skip system write (enable={enable})"
+        ));
+        return Ok(());
+    }
+    let autostart = app.autolaunch();
+    let result = if enable {
+        autostart.enable()
+    } else {
+        autostart.disable()
+    };
+    result.map_err(|e| format!("系统开机自启注册失败: {e}"))?;
+    crate::logging::info(&format!(
+        "[autostart] system entry {}",
+        if enable { "enabled" } else { "disabled" }
+    ));
+    Ok(())
 }
 
 #[command]
@@ -599,6 +630,12 @@ pub async fn set_global_config(
     let db = db.inner().clone();
     Ok(
         tauri::async_runtime::spawn_blocking(move || {
+            // 自启开关：先改系统侧再持久化，系统调用失败即整体失败返回 Err，
+            // 避免"库说开了、系统没注册"的状态漂移；值未变化时不重复写系统
+            let previous = db.with_conn(load_global_config)?;
+            if previous.launch_at_startup != config.launch_at_startup {
+                apply_autostart(&app, config.launch_at_startup)?;
+            }
             db.with_conn(|conn| persist_global_config(conn, &config_clone))?;
             // 日志等级保存后立即生效（运行时更新阈值，无需重启）
             crate::logging::set_level_u8(crate::logging::level_to_u8(&config.log_level));
@@ -882,6 +919,22 @@ mod tests {
         persist_global_config(&conn, &config).unwrap();
         let loaded = load_global_config(&conn).unwrap();
         assert_eq!(loaded.single_stream_device, None);
+    }
+
+    #[test]
+    fn global_config_launch_at_startup_defaults_and_roundtrip() {
+        let conn = test_conn();
+        let loaded = load_global_config(&conn).unwrap();
+        assert!(!loaded.launch_at_startup);
+
+        let mut config = loaded;
+        config.launch_at_startup = true;
+        persist_global_config(&conn, &config).unwrap();
+        assert!(load_global_config(&conn).unwrap().launch_at_startup);
+
+        config.launch_at_startup = false;
+        persist_global_config(&conn, &config).unwrap();
+        assert!(!load_global_config(&conn).unwrap().launch_at_startup);
     }
 
     #[test]

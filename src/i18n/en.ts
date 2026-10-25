@@ -271,6 +271,8 @@ export default {
     langAuto: "System",
     langZh: "中文",
     langEn: "English",
+    launchAtStartup: "Launch at startup",
+    launchAtStartupHint: "When enabled, the app starts silently to the tray at system login (no main window). Applies on save; you can also turn it off anytime from your system's startup settings.",
     timeInvalid: "That time doesn't look right",
     startAfterEnd: "The start must be before the end",
     badBellFile: "That sound file name doesn't work: {{name}}",

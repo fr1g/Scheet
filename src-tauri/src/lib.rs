@@ -35,6 +35,10 @@ pub(crate) fn focus_main_window(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // --autostart：由开机自启注册项固定携带（tauri-plugin-autostart 的 args），
+    // 本次启动静默驻托盘，不显示主窗口
+    let autostart_launch = std::env::args().any(|a| a == "--autostart");
+
     // 日志等级须最先初始化（之后的日志才受阈值过滤）；[T] 桥接 tauri/log 框架日志
     logging::init_from_db();
     logging::attach_tauri_logger();
@@ -66,7 +70,8 @@ pub fn run() {
             "todo-list.db",
             todo::init_todo_schema,
         ))))
-        .setup(|app| {
+        // move：闭包须持有 autostart_launch（setup 要求 'static）
+        .setup(move |app| {
             // macOS：设置通知归属并在首次启动时请求通知权限
             #[cfg(target_os = "macos")]
             {
@@ -80,29 +85,43 @@ pub fn run() {
 
             tray::create(app)?;
 
-            // 启动时应用已保存的图标变体与音频输出配置（默认值重复应用无害）
-            {
+            // 启动时应用已保存的图标变体、音频输出配置与自启状态（默认值重复应用无害）
+            let (icon_variant, sound_config, launch_at_startup) = {
                 let data = app.state::<Arc<db::DataDb>>().inner().clone();
-                let (icon_variant, sound_config) =
-                    match data.with_conn(settings::load_global_config) {
-                        Ok(cfg) => (
-                            cfg.icon_variant,
-                            sound::SoundConfig {
-                                single_stream: cfg.single_audio_stream,
-                                device: cfg.single_stream_device,
-                            },
-                        ),
-                        Err(e) => {
-                            crate::logging::warn(&format!(
-                                "[settings] Failed to load global config at startup: {e}"
-                            ));
-                            ("color".to_string(), sound::SoundConfig::default())
-                        }
-                    };
-                settings::apply_icon_variant(app.handle(), &icon_variant);
-                if let Err(e) = sound::configure(sound_config) {
-                    crate::logging::error(&format!(
-                        "[settings] Failed to apply startup audio config: {e}"
+                match data.with_conn(settings::load_global_config) {
+                    Ok(cfg) => (
+                        cfg.icon_variant,
+                        sound::SoundConfig {
+                            single_stream: cfg.single_audio_stream,
+                            device: cfg.single_stream_device,
+                        },
+                        cfg.launch_at_startup,
+                    ),
+                    Err(e) => {
+                        crate::logging::warn(&format!(
+                            "[settings] Failed to load global config at startup: {e}"
+                        ));
+                        (
+                            "color".to_string(),
+                            sound::SoundConfig::default(),
+                            false,
+                        )
+                    }
+                }
+            };
+            settings::apply_icon_variant(app.handle(), &icon_variant);
+            if let Err(e) = sound::configure(sound_config) {
+                crate::logging::error(&format!(
+                    "[settings] Failed to apply startup audio config: {e}"
+                ));
+            }
+            // 启动自愈：绿色软件挪动 exe 或外部清理会让自启注册项指向失效路径。
+            // 配置为开时重跑 enable() 覆盖式重写注册项（含 --autostart 参数）；
+            // 失败只记日志不打断启动。dev 构建在 apply_autostart 内部跳过。
+            if launch_at_startup {
+                if let Err(e) = settings::apply_autostart(app.handle(), true) {
+                    crate::logging::warn(&format!(
+                        "[autostart] startup reconcile failed (ignored): {e}"
                     ));
                 }
             }
@@ -112,6 +131,12 @@ pub fn run() {
             let weeks = app.state::<Arc<db::WeeksDb>>().inner().clone();
             let todo_db = app.state::<Arc<db::TodoDb>>().inner().clone();
             scheduler::start(handle, data, weeks, todo_db);
+
+            // 主窗口 visible:false，显隐统一由代码接管：
+            // 正常启动立即显示；--autostart（开机自启）保持隐藏、静默驻托盘
+            if !autostart_launch {
+                focus_main_window(app.handle());
+            }
 
             Ok(())
         })
@@ -208,7 +233,17 @@ pub fn run() {
             fonts::get_fonts_dir,
             logging::write_log,
         ])
+        // 单实例锁：必须第一个注册；重复启动时唤起已有实例的主窗口（含 --autostart
+        // 静默启动的实例），新进程随即退出，杜绝开机自启 + 手动双开出现双实例
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            focus_main_window(app);
+        }))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            // 注册项固定携带该参数：登录启动的实例静默驻托盘
+            Some(vec!["--autostart"]),
+        ))
         .build(tauri::generate_context!())
         .expect("Scheet 初始化失败")
         .run(|_app, _event| {

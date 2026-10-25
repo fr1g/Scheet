@@ -266,6 +266,8 @@ export default {
     langAuto: "跟随系统",
     langZh: "中文",
     langEn: "English",
+    launchAtStartup: "开机自启",
+    launchAtStartupHint: "开启后系统登录时静默启动、驻留托盘（不弹主窗口），保存立即生效；也可随时在系统启动项管理（如任务管理器-启动应用）中关闭。",
     timeInvalid: "时间没填对",
     startAfterEnd: "开始时间要比结束时间早",
     badBellFile: "找不到此铃声：{{name}}",

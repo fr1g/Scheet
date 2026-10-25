@@ -516,6 +516,34 @@ export default function SettingsPage() {
     }
   };
 
+  /** 设置开关行：点击切换草稿值，保存后生效。 */
+  const settingToggle = (
+    labelKey: string,
+    key:
+      | "webviewHwAccel"
+      | "webviewSmoothScrolling"
+      | "titlebarClock"
+      | "titlebarClockSeconds"
+      | "singleAudioStream"
+      | "launchAtStartup",
+  ) => (
+    <button
+      type="button"
+      onClick={() =>
+        setDraft((prev) => (prev ? { ...prev, [key]: !prev[key] } : prev))
+      }
+      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${draft[key]
+        ? "border-blue-400 bg-blue-400/15 text-zinc-100"
+        : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
+        }`}
+    >
+      <span>{t(labelKey)}</span>
+      <span className="text-[10px] text-zinc-400">
+        {draft[key] ? t("settings.on") : t("settings.off")}
+      </span>
+    </button>
+  );
+
   const generalPanel = (
     <>
       <section>
@@ -570,6 +598,14 @@ export default function SettingsPage() {
         </div>
         <p className={sectionHint}>{t("settings.languageHint")}</p>
       </section>
+
+      <section>
+        <h2 className={sectionTitle}>{t("settings.launchAtStartup")}</h2>
+        <div className="mt-2">
+          {settingToggle("settings.launchAtStartup", "launchAtStartup")}
+        </div>
+        <p className={sectionHint}>{t("settings.launchAtStartupHint")}</p>
+      </section>
     </>
   );
 
@@ -616,33 +652,6 @@ export default function SettingsPage() {
         {levelRow("settings.levelRestEnd", "alarmRestEndFile", "alarmRestEndMode", "end")}
       </div>
     </section>
-  );
-
-  /** 设置开关行：点击切换草稿值，保存后生效。 */
-  const settingToggle = (
-    labelKey: string,
-    key:
-      | "webviewHwAccel"
-      | "webviewSmoothScrolling"
-      | "titlebarClock"
-      | "titlebarClockSeconds"
-      | "singleAudioStream",
-  ) => (
-    <button
-      type="button"
-      onClick={() =>
-        setDraft((prev) => (prev ? { ...prev, [key]: !prev[key] } : prev))
-      }
-      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${draft[key]
-        ? "border-blue-400 bg-blue-400/15 text-zinc-100"
-        : "border-zinc-600 text-zinc-300 hover:bg-zinc-600/60"
-        }`}
-    >
-      <span>{t(labelKey)}</span>
-      <span className="text-[10px] text-zinc-400">
-        {draft[key] ? t("settings.on") : t("settings.off")}
-      </span>
-    </button>
   );
 
   const appearancePanel = (
